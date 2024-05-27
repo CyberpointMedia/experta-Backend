@@ -4,17 +4,20 @@ const postSchema = new mongoose.Schema(
   {
     image: { type: String }, // URL or path to image
     caption: { type: String, trim: true },
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        required: true,
-      },
-      coordinates: {
-        type: [Number],
-        required: true,
-      },
+    location:{
+       type: String
     },
+    // location: {
+    //   type: {
+    //     type: String,
+    //     enum: ["Point"],
+    //     required: true,
+    //   },
+    //   coordinates: {
+    //     type: [Number],
+    //     required: true,
+    //   },
+    // },
     postedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

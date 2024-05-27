@@ -34,14 +34,27 @@ module.exports.createPost = function (postToSave, basicInfoId) {
       .then(async (data) => {
         if (data) {
           const basicInfo = await BasicInfo.findById(basicInfoId);
-          basicInfo.posts.push(post._id);
+          basicInfo.posts.push(data._id);
           await basicInfo.save();
           resolve(data);
         } else resolve(null);
       })
       .catch((err) => {
-        console.log(err.message);
+        console.log("error",err);
         reject(err.message);
+      });
+  });
+};
+
+module.exports.getAllPost = function (type, userId) {
+  return new Promise((resolve, reject) => {
+    Post.find({ type: type, postedBy: userId })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
       });
   });
 };

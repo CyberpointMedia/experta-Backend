@@ -1,7 +1,6 @@
 const customError = require("../errors/custom.error");
 const globalConstants = require("../constants/global-constants");
 
-
 const BasicInfo = require("../models/basicInfo.model");
 
 const Post = require("../models/post.model");
@@ -37,15 +36,15 @@ module.exports.likeUnlikePost = async (postId, userId) => {
   }
 };
 
-module.exports.deletePost = async function (postId, userId,basicInfoId) {
+module.exports.deletePost = async function (postId, userId, basicInfoId) {
   try {
     const post = await Post.findById(postId);
     if (!post) {
-       const response = {
-         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
-         errorMessage: "Post Not Found",
-       };
-       return createResponse.error(response);
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Post Not Found",
+      };
+      return createResponse.error(response);
     }
     if (post.postedBy.toString() !== userId.toString()) {
       const response = {
@@ -69,6 +68,39 @@ module.exports.deletePost = async function (postId, userId,basicInfoId) {
     console.error("Error:", error);
     const response = {
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
+  }
+};
+
+module.exports.newComment = async (postId, userId, comment) => {
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Post Not Found",
+      };
+      return createResponse.error(response);
+    }
+    if (post.comments.includes(userId)) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Already commneted",
+      };
+      return createResponse.error(response);
+    }
+    post.comments.push({
+      user: userId,
+      comment: comment,
+    });
+    const saveComment = await post.save();
+    return createResponse.success(saveComment);
+  } catch (error) {
+    console.log("error", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR,
       errorMessage: error.message,
     };
     return createResponse.error(response);

@@ -131,46 +131,7 @@ module.exports.decodeToken = function (token) {
   });
 };
 
-module.exports.validateToken = function (token) {
-  try {
-    return jwt.verify(token, config.jwt.secret, async function (err, decoded) {
-      if (err) {
-        throw new customError.AuthenticationError(
-          globalConstants.TOKEN_ISSUE_CODE,
-          err.message
-        );
-      }
-      let user = await user_model.findOne({
-        where: { id: decoded.id },
-        attributes: {
-          include: ["otp"],
-        },
-      });
-      if (user == null) {
-        throw new customError.AuthenticationError(
-          globalConstants.INVALID_USER_CODE,
-          "User is not registered with KOBA. Please contact administrator."
-        );
-      }
-      user = user.dataValues;
-      user["roles"] = await userDao.getUserRolesById(user.id);
-      if (!decoded.otp || user.otp != decoded.otp) {
-        throw new customError.AuthenticationError(
-          globalConstants.INVALID_USER_CODE,
-          "You are not allowed to set/reset password. Please contact administrator."
-        );
-      }
-      let token = await jwtUtil.generateToken(user);
-      return { user: user, token: token };
-    });
-  } catch (e) {
-    if (e instanceof AuthenticationError) {
-      throw e;
-    } else {
-      throw new Error(e.message);
-    }
-  }
-};
+
 
 module.exports.login = async function (phoneNo) {
   try {

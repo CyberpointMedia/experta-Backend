@@ -28,15 +28,12 @@ exports.createPost = async (req, res) => {
   }
 
   try {
-    const postToSave = new Post({
+    const postToSave = {
       image: req.body.image,
       caption: req.body.caption,
-      location: {
-        type: "Point",
-        coordinates: req.body.coordinates, // example [45.5236, -122.6750]
-      },
+      location: req.body.coordinates, // example [45.5236, -122.6750],
       postedBy: userId,
-    });
+    };
     postDao
       .createPost(postToSave, req.body.basicInfoId)
       .then((data) => {
@@ -94,17 +91,12 @@ exports.likeUnlikePost = async (req, res) => {
 };
 
 exports.getPostDetails = async (req, res) => {
-  const userId = req.body.user._id;
-  if (!userId) {
-    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
-    return;
-  }
   const { postId, type } = req.body;
   postDao
     .getPostDetails(postId, type)
     .then((data) => {
-      if (null != data && data.basicInfo) {
-        res.json(createResponse.success(data.basicInfo));
+      if (null != data) {
+        res.json(createResponse.success(data));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
@@ -121,4 +113,65 @@ exports.getPostDetails = async (req, res) => {
       };
       res.json(createResponse.error(response));
     });
+};
+
+exports.getAllPost = async (req, res) => {
+  const type = req.params.type;
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  if (!type) {
+    res.send(createResponse.invalid("Type cannot be empty"));
+    return;
+  }
+  postDao
+    .getAllPost(type, userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+exports.newComment = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const postId = req.params.id;
+    const comment = req.body.comment;
+    if (!userId) {
+      res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+      return;
+    }
+    if (!postId) {
+      res.send(createResponse.invalid(errorMessageConstants.POST_REQUIRED_ID));
+      return;
+    }
+    console.log("kfskhfs", postId, userId);
+    const savedComment = await postService.newComment(postId, userId, comment);
+    res.json(savedComment);
+    return;
+  } catch (error) {
+    console.log(error.message);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
 };
