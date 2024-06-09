@@ -1086,7 +1086,6 @@ exports.getPolicy = async (req, res) => {
 
 exports.searchUsersByInterest = async (req, res) => {
   const { search } = req.params;
-
   userDao
     .searchUsersByInterest(search)
     .then((data) => {

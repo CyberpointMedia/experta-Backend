@@ -319,7 +319,6 @@ module.exports.createOrUpdateUserLanguage = async function (
 
     return createResponse.success(updatedLanguage);
   } catch (error) {
-
     const response = {
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
