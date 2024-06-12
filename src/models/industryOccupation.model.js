@@ -1,12 +1,16 @@
+// /models/IndustryOccupation.js
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const industryOccupationSchema = new mongoose.Schema({
   industry: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Industry',
     required: true,
   },
   occupation: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Occupation',
     required: true,
   },
   registrationNumber: {
@@ -15,7 +19,7 @@ const industryOccupationSchema = new mongoose.Schema({
   certificate: {
     type: String,
   },
-  achievements:[{
+  achievements: [{
     type: String,
   }]
 }, {

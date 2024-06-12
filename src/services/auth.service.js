@@ -132,7 +132,6 @@ module.exports.decodeToken = function (token) {
 };
 
 
-
 module.exports.login = async function (phoneNo) {
   try {
     let user;

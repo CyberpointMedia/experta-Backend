@@ -182,75 +182,75 @@ module.exports.createOrUpdateExpertise = async function (
   }
 };
 
-module.exports.createOrUpdateEducation = async (userId, data) => {
-  try {
-    const { education } = data;
-    let user = await User.findById(userId).populate("basicInfo");
-    if (!user) {
-      const response = {
-        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
-        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
-    }
-    let where = {};
-    if (user.education) where._id = user.education;
-    let educationInfo = await Education.findOneAndUpdate(
-      where,
-      { $set: { education: education } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-    if (!user.education) {
-      user.education = educationInfo._id;
-      await user.save();
-    }
-    return createResponse.success(educationInfo);
-  } catch (error) {
-    console.log("error", error);
-    throw new Error(error.message);
-  }
-};
+// module.exports.createOrUpdateEducation = async (userId, data) => {
+//   try {
+//     const { education } = data;
+//     let user = await User.findById(userId).populate("basicInfo");
+//     if (!user) {
+//       const response = {
+//         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+//         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+//       };
+//       return createResponse.error(response);
+//     }
+//     let where = {};
+//     if (user.education) where._id = user.education;
+//     let educationInfo = await Education.findOneAndUpdate(
+//       where,
+//       { $set: { education: education } },
+//       { new: true, upsert: true, setDefaultsOnInsert: true }
+//     );
+//     if (!user.education) {
+//       user.education = educationInfo._id;
+//       await user.save();
+//     }
+//     return createResponse.success(educationInfo);
+//   } catch (error) {
+//     console.log("error", error);
+//     throw new Error(error.message);
+//   }
+// };
 
-module.exports.createOrUpdateWorkExperience = async function (
-  userId,
-  workExperienceToSave
-) {
-  try {
-    let user = await User.findById(userId).populate("workExperience");
-    if (!user) {
-      const response = {
-        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
-        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
-    }
+// module.exports.createOrUpdateWorkExperience = async function (
+//   userId,
+//   workExperienceToSave
+// ) {
+//   try {
+//     let user = await User.findById(userId).populate("workExperience");
+//     if (!user) {
+//       const response = {
+//         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+//         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+//       };
+//       return createResponse.error(response);
+//     }
 
-    console.log("user", user);
+//     console.log("user", user);
 
-    let where = {};
-    if (user.workExperience) where._id = user.workExperience;
+//     let where = {};
+//     if (user.workExperience) where._id = user.workExperience;
 
-    let updatedWorkExperience = await WorkExperience.findOneAndUpdate(
-      where,
-      { $set: { workExperience: workExperienceToSave } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
+//     let updatedWorkExperience = await WorkExperience.findOneAndUpdate(
+//       where,
+//       { $set: { workExperience: workExperienceToSave } },
+//       { new: true, upsert: true, setDefaultsOnInsert: true }
+//     );
 
-    if (!user.workExperience) {
-      user.workExperience = updatedWorkExperience._id;
-      await user.save();
-    }
+//     if (!user.workExperience) {
+//       user.workExperience = updatedWorkExperience._id;
+//       await user.save();
+//     }
 
-    return createResponse.success(updatedWorkExperience);
-  } catch (error) {
-    console.error("Error:", error);
-    const response = {
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    };
-    return createResponse.error(response);
-  }
-};
+//     return createResponse.success(updatedWorkExperience);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     const response = {
+//       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+//       errorMessage: error.message,
+//     };
+//     return createResponse.error(response);
+//   }
+// };
 
 module.exports.createOrUpdateAbout = async (userId, data) => {
   try {
@@ -502,6 +502,96 @@ module.exports.addFollowerOrFollowing = async (userId, data) => {
     }
   } catch (error) {
     console.log("error", error);
+    throw new Error(error.message);
+  }
+};
+
+
+module.exports.createOrUpdateEducation = async (userId, educationData) => {
+  try {
+    const { _id, degree, schoolCollege, startDate, endDate } = educationData;
+
+    let user = await User.findById(userId);
+    if (!user) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+      };
+      return createResponse.error(response);
+    }
+
+    console.log("user", user);
+
+    let educationEntry;
+    if (_id) {
+
+      educationEntry = await Education.findByIdAndUpdate(
+        _id,
+        { degree, schoolCollege, startDate, endDate },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+    } else {
+      educationEntry = new Education({ degree, schoolCollege, startDate, endDate });
+      await educationEntry.save();
+      console.log("New education entry created:", educationEntry);
+
+      if (!Array.isArray(user.education)) {
+        user.education = [];
+      }
+      user.education.push(educationEntry._id);
+      await user.save();
+      console.log("Updated user education array:", user.education);
+    }
+    return createResponse.success(educationEntry);
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
+  }
+};
+
+
+
+module.exports.createOrUpdateWorkExperience = async (userId, workExperienceData) => {
+  try {
+    const { _id, jobTitle, companyName, isCurrentlyWorking, startDate, endDate } = workExperienceData;
+
+    let user = await User.findById(userId);
+    if (!user) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+      };
+      return createResponse.error(response);
+    }
+
+    console.log("User found:", user);
+
+    let workExperienceEntry;
+    if (_id) {
+      // Update existing work experience entry
+      workExperienceEntry = await WorkExperience.findByIdAndUpdate(
+        _id,
+        { jobTitle, companyName, isCurrentlyWorking, startDate, endDate },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+    } else {
+      // Create new work experience entry
+      workExperienceEntry = new WorkExperience({ jobTitle, companyName, isCurrentlyWorking, startDate, endDate });
+      await workExperienceEntry.save();
+      console.log("New work experience entry created:", workExperienceEntry);
+
+      // Update user's work experience reference
+      if (!Array.isArray(user.workExperience)) {
+        user.workExperience = [];
+      }
+      user.workExperience.push(workExperienceEntry._id);
+      await user.save();
+      console.log("Updated user work experience array:", user.workExperience);
+    }
+
+    return createResponse.success(workExperienceEntry);
+  } catch (error) {
+    console.log("Error:", error);
     throw new Error(error.message);
   }
 };

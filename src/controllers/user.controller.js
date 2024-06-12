@@ -146,6 +146,7 @@ exports.getIndustryOccupation = async (req, res) => {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
+  console.log("userId",userId);
   userDao
     .getIndustryOccupation(userId)
     .then((data) => {
@@ -292,50 +293,50 @@ exports.getExpertiseItems = async (req, res) => {
     });
 };
 
-exports.createOrUpdateEducation = async (req, res) => {
-  try {
-    const userId = req.body.user._id;
-    const { education } = req.body;
-    if (!education || !education.length) {
-      res.send(createResponse.invalid("expertise cannot be empty"));
-      return;
-    }
-    const savedEducation = await userService.createOrUpdateEducation(userId, {
-      education,
-    });
-    return res.json(savedEducation);
-  } catch (error) {
-    console.log(error.message);
-    response = {
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    };
-    return res.json(createResponse.error(response));
-  }
-};
+// exports.createOrUpdateEducation = async (req, res) => {
+//   try {
+//     const userId = req.body.user._id;
+//     const { education } = req.body;
+//     if (!education || !education.length) {
+//       res.send(createResponse.invalid("education cannot be empty"));
+//       return;
+//     }
+//     const savedEducation = await userService.createOrUpdateEducation(userId, {
+//       education,
+//     });
+//     return res.json(savedEducation);
+//   } catch (error) {
+//     console.log(error.message);
+//     response = {
+//       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+//       errorMessage: error.message,
+//     };
+//     return res.json(createResponse.error(response));
+//   }
+// };
 
-exports.createOrUpdateWorkExperience = async (req, res) => {
-  try {
-    const userId = req.body.user._id;
-    const { workExperience } = req.body;
-    if (!workExperience || !workExperience.length) {
-      res.send(createResponse.invalid("Work Experience cannot be empty"));
-      return;
-    }
-    const savedWorkExperience = await userService.createOrUpdateWorkExperience(
-      userId,
-      workExperience
-    );
-    return res.json(savedWorkExperience);
-  } catch (error) {
-    console.log(error.message);
-    response = {
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    };
-    res.json(createResponse.error(response));
-  }
-};
+// exports.createOrUpdateWorkExperience = async (req, res) => {
+//   try {
+//     const userId = req.body.user._id;
+//     const { workExperience } = req.body;
+//     if (!workExperience || !workExperience.length) {
+//       res.send(createResponse.invalid("Work Experience cannot be empty"));
+//       return;
+//     }
+//     const savedWorkExperience = await userService.createOrUpdateWorkExperience(
+//       userId,
+//       workExperience
+//     );
+//     return res.json(savedWorkExperience);
+//   } catch (error) {
+//     console.log(error.message);
+//     response = {
+//       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+//       errorMessage: error.message,
+//     };
+//     res.json(createResponse.error(response));
+//   }
+// };
 
 exports.getWorkExperience = async (req, res) => {
   const userId = req.body.user._id;
@@ -378,6 +379,35 @@ exports.getEducation = async (req, res) => {
     .then((data) => {
       if (null != data && data.education) {
         res.json(createResponse.success(data.education));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+exports.getEducationById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getEducationById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
@@ -979,7 +1009,7 @@ exports.getPosts = async (req, res) => {
     return;
   }
   userDao
-    .getUserData(userId)
+    .getPosts(userId)
     .then((data) => {
       if (null != data) {
         console.log;
@@ -1064,7 +1094,6 @@ exports.getPolicy = async (req, res) => {
 
 exports.searchUsersByInterest = async (req, res) => {
   const { search } = req.params;
-  
   userDao
     .searchUsersByInterest(search)
     .then((data) => {
@@ -1120,6 +1149,172 @@ exports.getCategories = async (req, res) => {
     .getCategories()
     .then((data) => {
       if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+exports.createOrUpdateEducation = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { _id, degree, schoolCollege, startDate, endDate } = req.body;
+
+    if (!degree || !schoolCollege || !startDate || !endDate) {
+      res.send(createResponse.invalid("All education fields are required"));
+      return;
+    }
+
+    const educationData = { _id, degree, schoolCollege, startDate, endDate };
+    const savedEducation = await userService.createOrUpdateEducation(userId, educationData);
+    return res.json(savedEducation);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return res.json(createResponse.error(response));
+  }
+};
+
+
+
+exports.createOrUpdateWorkExperience = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { _id, jobTitle, companyName, isCurrentlyWorking, startDate, endDate } = req.body;
+
+    if (!jobTitle || !companyName || !startDate) {
+      res.send(createResponse.invalid("Job title, company name, and start date are required"));
+      return;
+    }
+
+    const workExperienceData = { _id, jobTitle, companyName, isCurrentlyWorking, startDate, endDate };
+    const savedWorkExperience = await userService.createOrUpdateWorkExperience(userId, workExperienceData);
+    return res.json(savedWorkExperience);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return res.json(createResponse.error(response));
+  }
+};
+
+exports.getWorkExperienceById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getWorkExperienceById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+
+
+// master todo 
+
+exports.getIndustry = async (req, res) => {
+  userDao
+    .getIndustry()
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+exports.getOccupation = async (req, res) => {
+
+  const industryId = req.params.industryId;
+  if (!industryId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getOccupation(industryId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+
+exports.getUserByIndustry = async (req, res) => {
+  const { industryId } = req.params;
+  if (!industryId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getUserData(userId)
+    .then((data) => {
+      if (null != data) {
+        console.log;
         res.json(createResponse.success(data));
       } else {
         response = {

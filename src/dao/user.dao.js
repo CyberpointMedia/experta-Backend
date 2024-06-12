@@ -6,7 +6,6 @@ const IndustryOccupation = require("../models/industryOccupation.model");
 const Expertise = require("../models/expertise.model");
 const ExpertiseItemModel = require("../models/expertiseItem.model");
 
-const Education = require("../models/education.model");
 const WorkExperience = require("../models/workExperience.model");
 const About = require("../models/about.model");
 const InterestItemsModel = require("../models/interestItems.model");
@@ -23,6 +22,9 @@ const Feed = require("../models/feed.model");
 const Policy = require("../models/policy.model");
 const interestItemsModel = require("../models/interestItems.model");
 const Category = require("../models/category.model");
+const Education = require("../models/education.model");
+const IndustryModel = require("../models/Industry.model");
+const OccupationModel = require("../models/occupation.model");
 
 module.exports.getUserDetailsById = function (id) {
   return new Promise((resolve, reject) => {
@@ -76,8 +78,12 @@ module.exports.getBasicInfo = function (userId) {
 module.exports.getIndustryOccupation = function (userId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
-      .populate("industryOccupation")
+      .populate({
+        path: "industryOccupation",
+        populate: { path: "industry occupation" },
+      })
       .then((data) => {
+        console.log("data",data,userId);
         resolve(data);
       })
       .catch((err) => {
@@ -102,18 +108,18 @@ module.exports.createBasicInfo = function (basicInfoToSave) {
   });
 };
 
-module.exports.getIndustryOccupation = function (userId) {
-  return new Promise((resolve, reject) => {
-    IndustryOccupation.findOne({ user: userId })
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
+// module.exports.getIndustryOccupation = function (userId) {
+//   return new Promise((resolve, reject) => {
+//     IndustryOccupation.findOne({ user: userId })
+//       .then((data) => {
+//         resolve(data);
+//       })
+//       .catch((err) => {
+//         console.log(err);
+//         reject(err);
+//       });
+//   });
+// };
 
 module.exports.getExpertise = function (userId) {
   return new Promise((resolve, reject) => {
@@ -175,11 +181,38 @@ module.exports.getEducation = function (userId) {
   });
 };
 
+module.exports.getEducationById = function (id) {
+  return new Promise((resolve, reject) => {
+    Education.findOne({ _id: id })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
 module.exports.getWorkExperience = function (userId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
       .populate("workExperience")
       .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+module.exports.getWorkExperienceById = function (id) {
+  return new Promise((resolve, reject) => {
+    WorkExperience.findOne({ _id: id })
+      .then((data) => {
+        console.log("data", data);
         resolve(data);
       })
       .catch((err) => {
@@ -595,7 +628,10 @@ module.exports.getUserData = function (userId) {
     User.findOne({ _id: userId })
       .populate("basicInfo")
       .populate("education")
-      .populate("industryOccupation")
+      .populate({
+        path: "industryOccupation",
+        populate: { path: "industry occupation" },
+      })
       .populate("workExperience")
       .populate({
         path: "intereset",
@@ -702,6 +738,76 @@ module.exports.getCategories = function (userId) {
   return new Promise((resolve, reject) => {
     Category.find({})
       .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+
+module.exports.getIndustry = function () {
+  return new Promise((resolve, reject) => {
+    IndustryModel.find({})
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+module.exports.getOccupation = function (industryId) {
+  return new Promise((resolve, reject) => {
+    OccupationModel.find({ industry: industryId })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+module.exports.getUserByIndustry = function (industryId) {
+  return new Promise(async (resolve, reject) => {
+    const industryOccupations = await IndustryOccupation.find({ industry: industryId }).select('_id');
+    const industryOccupationIds = industryOccupations.map(io => io._id);
+    User.find({ industryOccupation: { $in: industryOccupationIds } })
+      .populate("basicInfo")
+      .populate("education")
+      .populate({
+        path: "industryOccupation",
+        populate: { path: "industry" },
+        populate: { path: "occupation" },
+      })
+      .populate("workExperience")
+      .populate({
+        path: "intereset",
+        populate: { path: "intereset" },
+      })
+      .populate({
+        path: "language",
+        populate: { path: "language" },
+      })
+      .populate({
+        path: "reviews",
+      })
+      .populate({
+        path: "expertise",
+        populate: { path: "expertise" },
+      })
+      .populate("pricing")
+      .then((data) => {
+        console.log("dat6662a", data);
         resolve(data);
       })
       .catch((err) => {

@@ -253,3 +253,142 @@ exports.getAllReviews = async (req, res) => {
       res.json(createResponse.error(response));
     });
 };
+
+exports.getAllPost = async (req, res) => {
+  const type = req.params.type;
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  if (!type) {
+    res.send(createResponse.invalid("Type cannot be empty"));
+    return;
+  }
+  postDao
+    .getAllPost(type, userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+exports.newComment = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const postId = req.params.id;
+    const comment = req.body.comment;
+    if (!userId) {
+      res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+      return;
+    }
+    if (!postId) {
+      res.send(createResponse.invalid(errorMessageConstants.POST_REQUIRED_ID));
+      return;
+    }
+    console.log("kfskhfs", postId, userId);
+    const savedComment = await postService.newComment(postId, userId, comment);
+    res.json(savedComment);
+    return;
+  } catch (error) {
+    console.log(error.message);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+
+
+
+
+exports.createReview = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+
+  try {
+    const reviewToSave = {
+      rating: req.body.rating,
+      review: req.body.review,
+      reviewBy: userId,
+    };
+    postDao
+      .createReview(reviewToSave, req.body.basicInfoId)
+      .then((data) => {
+        if (null != data) {
+          res.json(createResponse.success(data));
+        } else {
+          response = {
+            errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+            errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+          };
+          res.json(createResponse.error(response));
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        response = {
+          errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+          errorMessage: err,
+        };
+        res.json(createResponse.error(response));
+      });
+  } catch (e) {
+    console.log(e);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: e,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+
+exports.getAllReviews = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  postDao
+    .getAllReview(userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};

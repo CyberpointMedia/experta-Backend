@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Wallet = require('./wallet.model')
 
 const userSchema = new mongoose.Schema(
   {
@@ -40,18 +41,22 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "BasicInfo",
     },
-    education: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Education",
-    },
+    education: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Education",
+      },
+    ],
     industryOccupation: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "IndustryOccupation",
     },
-    workExperience: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "WorkExperience",
-    },
+    workExperience: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "WorkExperience",
+      },
+    ],
     intereset: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Interest",
@@ -67,6 +72,10 @@ const userSchema = new mongoose.Schema(
     pricing: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Pricing",
+    },
+    reviews: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Review",
     },
     noOfBooking: {
       type: Number,

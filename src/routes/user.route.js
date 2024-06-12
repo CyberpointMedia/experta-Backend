@@ -49,7 +49,7 @@ module.exports = (app) => {
   );
 
   router.get("/education", authMiddleware, userController.getEducation);
-
+  router.get("/education/:id", authMiddleware, userController.getEducationById);
   router.post(
     "/create-work-experience",
     authMiddleware,
@@ -60,6 +60,11 @@ module.exports = (app) => {
     "/work-experience",
     authMiddleware,
     userController.getWorkExperience
+  );
+  router.get(
+    "/work-experience/:id",
+    authMiddleware,
+    userController.getWorkExperienceById
   );
 
   router.get("/user-about", authMiddleware, userController.getUserAbout);
