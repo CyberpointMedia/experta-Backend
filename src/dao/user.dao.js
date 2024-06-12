@@ -23,7 +23,7 @@ const Policy = require("../models/policy.model");
 const interestItemsModel = require("../models/interestItems.model");
 const Category = require("../models/category.model");
 const Education = require("../models/education.model");
-const IndustryModel = require("../models/Industry.model");
+const IndustryModel = require("../models/industry.model");
 const OccupationModel = require("../models/occupation.model");
 
 module.exports.getUserDetailsById = function (id) {
