@@ -68,9 +68,9 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Pricing",
     },
-    noOfBooking:{
-      type:Number
-    }
+    noOfBooking: {
+      type: Number,
+    },
   },
   {
     timestamps: true,
@@ -84,5 +84,6 @@ const userSchema = new mongoose.Schema(
     },
   }
 );
+
 
 module.exports = mongoose.model("User", userSchema);

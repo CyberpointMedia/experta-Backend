@@ -606,6 +606,10 @@ module.exports.getUserData = function (userId) {
         populate: { path: "language" },
       })
       .populate({
+        path: "reviews",
+        populate: { path: "reviews" },
+      })
+      .populate({
         path: "expertise",
         populate: { path: "expertise" },
       })
@@ -620,7 +624,6 @@ module.exports.getUserData = function (userId) {
       });
   });
 };
-
 
 module.exports.getTrending = function () {
   return new Promise((resolve, reject) => {
@@ -694,8 +697,6 @@ module.exports.searchUsersByInterest = function (keyword) {
       });
   });
 };
-
-
 
 module.exports.getCategories = function (userId) {
   return new Promise((resolve, reject) => {

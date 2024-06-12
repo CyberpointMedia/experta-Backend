@@ -9,7 +9,7 @@ const bookingSchema = new mongoose.Schema(
     },
     expertId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Expert",
+      ref: "User",
       required: true,
     },
     duration: {

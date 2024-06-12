@@ -1,5 +1,6 @@
 const BasicInfo = require("../models/basicInfo.model");
 const Post = require("../models/post.model");
+const Review = require("../models/review.model");
 
 module.exports.getPostDetails = function (postId, type) {
   return new Promise((resolve, reject) => {
@@ -40,7 +41,7 @@ module.exports.createPost = function (postToSave, basicInfoId) {
         } else resolve(null);
       })
       .catch((err) => {
-        console.log("error",err);
+        console.log("error", err);
         reject(err.message);
       });
   });
@@ -54,6 +55,54 @@ module.exports.getAllPost = function (type, userId) {
       })
       .catch((err) => {
         console.log(err);
+        reject(err);
+      });
+  });
+};
+
+module.exports.createReview = function (postToSave, basicInfoId) {
+  return new Promise((resolve, reject) => {
+    const newReview = new Review(postToSave);
+    newReview
+      .save()
+      .then(async (data) => {
+        if (data) {
+          const basicInfo = await BasicInfo.findById(basicInfoId);
+          basicInfo.reviews.push(data._id);
+          await basicInfo.save();
+          resolve(data);
+        } else resolve(null);
+      })
+      .catch((err) => {
+        console.log("error", err);
+        reject(err.message);
+      });
+  });
+};
+
+module.exports.getAllReview = function (userId) {
+  return new Promise((resolve, reject) => {
+    Review.find({ reviewBy: userId })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log("error",err);
+        reject(err);
+      });
+  });
+};
+
+
+
+module.exports.getAllReviewByUser = function (userId) {
+  return new Promise((resolve, reject) => {
+    Review.find({ reviewBy: userId })
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log("error", err);
         reject(err);
       });
   });

@@ -90,6 +90,7 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
       registrationNumber,
       certificate,
       achievements,
+      expertise,
     } = req.body;
     if (!industry || "" == industry) {
       res.send(createResponse.invalid("Industry cannot be empty"));
@@ -113,6 +114,12 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
       return;
     }
 
+    if (!expertise || !expertise.length) {
+      res.send(createResponse.invalid("expertise cannot be empty"));
+      return;
+    }
+
+
     const savedIndustryOccupation =
       await userService.createOrUpdateIndustryOccupation(userId, {
         industry,
@@ -120,6 +127,7 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
         registrationNumber,
         certificate,
         achievements,
+        expertise,
       });
     res.json(savedIndustryOccupation);
   } catch (error) {

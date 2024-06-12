@@ -1,8 +1,8 @@
-  const globalConstants = require("../constants/global-constants");
+const globalConstants = require("../constants/global-constants");
 const errorMessageConstants = require("../constants/error.messages");
 
 module.exports.success = function (data, token) {
-  if (token) return { status: globalConstants.SUCCESS, data: data,token };
+  if (token) return { status: globalConstants.SUCCESS, data: data, token };
   return { status: globalConstants.SUCCESS, data: data };
 };
 
@@ -29,10 +29,13 @@ module.exports.unauthorized = function (code, message, detailMessage) {
   };
 };
 
-
 module.exports.conflicts = function (message) {
   return {
     status: globalConstants.USER_ALREADY_EXISTS, // Assuming you have a NOT_FOUND constant in globalConstants.js
     message: message,
   };
+};
+
+module.exports.addSuccess = function (data, expertise) {
+  return { status: globalConstants.SUCCESS, data: data, expertise };
 };

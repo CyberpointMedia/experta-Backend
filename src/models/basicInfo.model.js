@@ -37,6 +37,12 @@ const basicInfoSchema = new mongoose.Schema(
         ref: "Post",
       },
     ],
+    reviews: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Review",
+      },
+    ],
     about: {
       type: String,
     },

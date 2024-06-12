@@ -38,8 +38,11 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       registrationNumber,
       certificate,
       achievements,
+      expertise,
     } = data;
-    let user = await User.findById(userId).populate("industryOccupation");
+    let user = await User.findById(userId).populate(
+      "industryOccupation expertise"
+    );
     if (!user) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -64,11 +67,35 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
+    let whereExpertise = {};
+    if (user.expertise) where._id = user.expertise;
+
+    let updatedExpertise = await Expertise.findOneAndUpdate(
+      whereExpertise,
+      { $set: { expertise: expertise } },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+        select: "expertise",
+      }
+    );
+
+    if (!user.expertise) {
+      user.expertise = updatedExpertise._id;
+      await user.save();
+    }
+
     if (!user.industryOccupation) {
       user.industryOccupation = updatedIndustryOccupation._id;
       await user.save();
     }
-    return createResponse.success(updatedIndustryOccupation);
+   
+
+    return createResponse.addSuccess(
+      updatedIndustryOccupation,
+      updatedExpertise.expertise
+    );
   } catch (error) {
     console.error("Error:", error);
     const response = {
@@ -319,7 +346,6 @@ module.exports.createOrUpdateUserLanguage = async function (
 
     return createResponse.success(updatedLanguage);
   } catch (error) {
-    
     const response = {
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,

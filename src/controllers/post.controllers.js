@@ -31,7 +31,7 @@ exports.createPost = async (req, res) => {
     const postToSave = {
       image: req.body.image,
       caption: req.body.caption,
-      location: req.body.coordinates, // example [45.5236, -122.6750],
+      location: req.body.location, // example [45.5236, -122.6750],
       postedBy: userId,
     };
     postDao
@@ -174,4 +174,82 @@ exports.newComment = async (req, res) => {
     };
     res.json(createResponse.error(response));
   }
+};
+
+
+
+
+
+exports.createReview = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+
+  try {
+    const reviewToSave = {
+      rating: req.body.rating,
+      review: req.body.review,
+      reviewBy: userId,
+    };
+    postDao
+      .createReview(reviewToSave, req.body.basicInfoId)
+      .then((data) => {
+        if (null != data) {
+          res.json(createResponse.success(data));
+        } else {
+          response = {
+            errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+            errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+          };
+          res.json(createResponse.error(response));
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        response = {
+          errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+          errorMessage: err,
+        };
+        res.json(createResponse.error(response));
+      });
+  } catch (e) {
+    console.log(e);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: e,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+
+exports.getAllReviews = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  postDao
+    .getAllReview(userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
 };
