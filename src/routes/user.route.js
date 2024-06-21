@@ -1,17 +1,20 @@
 const userController = require("../controllers/user.controller");
 const routes = require("../constants/route.url");
 const { authMiddleware } = require("../middlewares/auth.middleware");
+const uploadMiddleWare = require("../middlewares/file.middleware");
 
 module.exports = (app) => {
   var router = require("express").Router();
   router.get("/basic-info", authMiddleware, userController.getBasicInfo);
   router.post(
     "/create-basic-info",
+    uploadMiddleWare.single("file"),
     authMiddleware,
     userController.createBasicInfo
   );
   router.post(
     "/create-industry-info",
+    uploadMiddleWare.single("file"),
     authMiddleware,
     userController.createOrUpdateIndustryOccupation
   );
@@ -50,6 +53,11 @@ module.exports = (app) => {
 
   router.get("/education", authMiddleware, userController.getEducation);
   router.get("/education/:id", authMiddleware, userController.getEducationById);
+  router.delete(
+    "/education/:id",
+    authMiddleware,
+    userController.deleteEducationById
+  );
   router.post(
     "/create-work-experience",
     authMiddleware,
@@ -60,6 +68,12 @@ module.exports = (app) => {
     "/work-experience",
     authMiddleware,
     userController.getWorkExperience
+  );
+
+  router.delete(
+    "/work-experience/:id",
+    authMiddleware,
+    userController.deleteWorkExperienceById
   );
   router.get(
     "/work-experience/:id",

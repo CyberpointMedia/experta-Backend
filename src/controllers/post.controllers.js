@@ -22,14 +22,21 @@ exports.createPost = async (req, res) => {
     return;
   }
 
-  if (!req.body.image) {
+  if (!req?.file) {
     res.send(createResponse.invalid("Post cannot be empty"));
     return;
   }
 
+   if (!!req?.file) {
+     data = {
+       url: req.file.location,
+       type: req.file.mimetype,
+     };
+   }
+
   try {
     const postToSave = {
-      image: req.body.image,
+      image: data.url,
       caption: req.body.caption,
       location: req.body.location, // example [45.5236, -122.6750],
       postedBy: userId,

@@ -16,4 +16,5 @@ module.exports = Object.freeze({
   AUTH_ERROR: { auth: false, message: "Failed to authenticate token." },
   REQUIRED_ID: "User id is required.",
   POST_REQUIRED_ID: "Post id is required.",
+  UNABLE_TO_DELETE_MESSAGE: "Unable to delete, data not found.",
 });

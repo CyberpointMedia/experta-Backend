@@ -49,6 +49,13 @@ exports.createBasicInfo = async (req, res) => {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
+  let data;
+  if (!!req?.file) {
+    data = {
+      url: req.file.location,
+      type: req.file.mimetype,
+    };
+  }
   // if (!req.body.name) {
   //   res.send(createResponse.invalid("Name cannot be empty"));
   //   return;
@@ -65,6 +72,7 @@ exports.createBasicInfo = async (req, res) => {
       instagram: req.body.instagram,
       twitter: req.body.twitter,
       about: req.body.about,
+      profilePic: data?.url,
     };
     const savedBasicInfo = await userService.createBasicInfo(
       userId,
@@ -88,16 +96,12 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
       industry,
       occupation,
       registrationNumber,
-      certificate,
       achievements,
       expertise,
     } = req.body;
+    const certificate = req?.file;
     if (!industry || "" == industry) {
       res.send(createResponse.invalid("Industry cannot be empty"));
-      return;
-    }
-    if (!occupation || "" == occupation) {
-      res.send(createResponse.invalid("Occupation cannot be empty"));
       return;
     }
     if (!occupation || "" == occupation) {
@@ -118,14 +122,21 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
       res.send(createResponse.invalid("expertise cannot be empty"));
       return;
     }
+    let data;
 
+    if (!!certificate) {
+      data = {
+        url: req.file.location,
+        type: req.file.mimetype,
+      };
+    }
 
     const savedIndustryOccupation =
       await userService.createOrUpdateIndustryOccupation(userId, {
         industry,
         occupation,
         registrationNumber,
-        certificate,
+        certificate: data?.url,
         achievements,
         expertise,
       });
@@ -146,7 +157,7 @@ exports.getIndustryOccupation = async (req, res) => {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
-  console.log("userId",userId);
+  console.log("userId", userId);
   userDao
     .getIndustryOccupation(userId)
     .then((data) => {
@@ -412,6 +423,35 @@ exports.getEducationById = async (req, res) => {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
           errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+exports.deleteEducationById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .deleteEducationById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.UPDATE_NOT_DONE_ERROR_COde,
+          errorMessage: errorMessageConstants.UNABLE_TO_DELETE_MESSAGE,
         };
         return res.json(createResponse.error(response));
       }
@@ -1091,7 +1131,6 @@ exports.getPolicy = async (req, res) => {
     });
 };
 
-
 exports.searchUsersByInterest = async (req, res) => {
   const { search } = req.params;
   userDao
@@ -1118,7 +1157,6 @@ exports.searchUsersByInterest = async (req, res) => {
     });
 };
 
-
 exports.getTrending = async (req, res) => {
   userDao
     .getTrending()
@@ -1142,7 +1180,6 @@ exports.getTrending = async (req, res) => {
       return res.json(createResponse.error(response));
     });
 };
-
 
 exports.getCategories = async (req, res) => {
   userDao
@@ -1179,7 +1216,10 @@ exports.createOrUpdateEducation = async (req, res) => {
     }
 
     const educationData = { _id, degree, schoolCollege, startDate, endDate };
-    const savedEducation = await userService.createOrUpdateEducation(userId, educationData);
+    const savedEducation = await userService.createOrUpdateEducation(
+      userId,
+      educationData
+    );
     return res.json(savedEducation);
   } catch (error) {
     console.log(error.message);
@@ -1191,20 +1231,39 @@ exports.createOrUpdateEducation = async (req, res) => {
   }
 };
 
-
-
 exports.createOrUpdateWorkExperience = async (req, res) => {
   try {
     const userId = req.body.user._id;
-    const { _id, jobTitle, companyName, isCurrentlyWorking, startDate, endDate } = req.body;
+    const {
+      _id,
+      jobTitle,
+      companyName,
+      isCurrentlyWorking,
+      startDate,
+      endDate,
+    } = req.body;
 
     if (!jobTitle || !companyName || !startDate) {
-      res.send(createResponse.invalid("Job title, company name, and start date are required"));
+      res.send(
+        createResponse.invalid(
+          "Job title, company name, and start date are required"
+        )
+      );
       return;
     }
 
-    const workExperienceData = { _id, jobTitle, companyName, isCurrentlyWorking, startDate, endDate };
-    const savedWorkExperience = await userService.createOrUpdateWorkExperience(userId, workExperienceData);
+    const workExperienceData = {
+      _id,
+      jobTitle,
+      companyName,
+      isCurrentlyWorking,
+      startDate,
+      endDate,
+    };
+    const savedWorkExperience = await userService.createOrUpdateWorkExperience(
+      userId,
+      workExperienceData
+    );
     return res.json(savedWorkExperience);
   } catch (error) {
     console.log(error.message);
@@ -1245,9 +1304,36 @@ exports.getWorkExperienceById = async (req, res) => {
     });
 };
 
+exports.deleteWorkExperienceById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .deleteWorkExperienceById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.UPDATE_NOT_DONE_ERROR_COde,
+          errorMessage: errorMessageConstants.UNABLE_TO_DELETE_MESSAGE,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
 
-
-// master todo 
+// master todo
 
 exports.getIndustry = async (req, res) => {
   userDao
@@ -1274,7 +1360,6 @@ exports.getIndustry = async (req, res) => {
 };
 
 exports.getOccupation = async (req, res) => {
-
   const industryId = req.params.industryId;
   if (!industryId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
@@ -1302,7 +1387,6 @@ exports.getOccupation = async (req, res) => {
       res.json(createResponse.error(response));
     });
 };
-
 
 exports.getUserByIndustry = async (req, res) => {
   const { industryId } = req.params;

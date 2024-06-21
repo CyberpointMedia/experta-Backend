@@ -194,6 +194,20 @@ module.exports.getEducationById = function (id) {
   });
 };
 
+module.exports.deleteEducationById = function (id) {
+  return new Promise((resolve, reject) => {
+    Education.findByIdAndDelete(id)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
 module.exports.getWorkExperience = function (userId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
@@ -221,6 +235,22 @@ module.exports.getWorkExperienceById = function (id) {
       });
   });
 };
+
+module.exports.deleteWorkExperienceById = function (id) {
+  return new Promise((resolve, reject) => {
+    WorkExperience.findByIdAndDelete(id)
+      .then((data) => {
+        console.log("data", data);
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
 
 module.exports.getUserAbout = function (userId) {
   return new Promise((resolve, reject) => {

@@ -16,6 +16,9 @@ const basicInfoSchema = new mongoose.Schema(
     bio: {
       type: String,
     },
+    profilePic: {
+      type: String,
+    },
     facebook: {
       type: String,
     },
