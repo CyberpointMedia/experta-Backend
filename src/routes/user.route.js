@@ -132,7 +132,7 @@ module.exports = (app) => {
   router.post(
     "/create-user-availability",
     authMiddleware,
-    userController.createOrUpdateUserAvailability
+    userController.createOrUpdateAvailability
   );
 
   router.get("/user-pricing", authMiddleware, userController.getUserPricing);
@@ -141,6 +141,17 @@ module.exports = (app) => {
     authMiddleware,
     userController.getUserAvailability
   );
+
+   router.get(
+     "/availability/:id",
+     authMiddleware,
+     userController.getAvailabilityById
+   );
+   router.delete(
+     "/availability/:id",
+     authMiddleware,
+     userController.deleteAvailabilityById
+   );
 
   router.get("/getUserData/:userId", userController.getUserData);
 

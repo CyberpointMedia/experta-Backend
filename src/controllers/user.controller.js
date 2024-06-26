@@ -437,6 +437,64 @@ exports.getEducationById = async (req, res) => {
     });
 };
 
+exports.getAvailabilityById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getUserAvailabilityId(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+exports.deleteAvailabilityById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .deleteAvailabilityById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.UPDATE_NOT_DONE_ERROR_COde,
+          errorMessage: errorMessageConstants.UNABLE_TO_DELETE_MESSAGE,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
 exports.deleteEducationById = async (req, res) => {
   const id = req.params.id;
   if (!id) {
@@ -828,30 +886,29 @@ exports.createOrUpdateUserPricing = async (req, res) => {
   }
 };
 
-exports.createOrUpdateUserAvailability = async (req, res) => {
+exports.createOrUpdateAvailability = async (req, res) => {
   try {
     const userId = req.body.user._id;
-    const { slots } = req.body;
-    if (!userId) {
-      res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    const { _id, startTime, endTime, weeklyRepeat } = req.body;
+
+    if (!startTime || !endTime) {
+      res.send(createResponse.invalid("Start time and end time are required"));
       return;
     }
-    if (!slots || !slots.length) {
-      res.send(createResponse.invalid("Slots availability  cannot be empty"));
-      return;
-    }
-    const savedAvailability = await userService.createOrUpdateUserAvailability(
+
+    const availabilityData = { _id, startTime, endTime, weeklyRepeat };
+    const savedAvailability = await userService.createOrUpdateAvailability(
       userId,
-      { slots }
+      availabilityData
     );
     return res.json(savedAvailability);
   } catch (error) {
     console.log(error.message);
-    response = {
+    const response = {
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
     };
-    res.json(createResponse.error(response));
+    return res.json(createResponse.error(response));
   }
 };
 
@@ -864,8 +921,8 @@ exports.getUserAvailability = async (req, res) => {
   userDao
     .getUserAvailability(userId)
     .then((data) => {
-      if (null != data) {
-        res.json(createResponse.success(data));
+      if (null != data && data.availability) {
+        res.json(createResponse.success(data.availability));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,

@@ -207,6 +207,19 @@ module.exports.deleteEducationById = function (id) {
   });
 };
 
+module.exports.deleteAvailabilityById = function (id) {
+  return new Promise((resolve, reject) => {
+    Availability.findByIdAndDelete(id)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
 
 module.exports.getWorkExperience = function (userId) {
   return new Promise((resolve, reject) => {
@@ -375,7 +388,21 @@ module.exports.getUserPricing = function (userId) {
 
 module.exports.getUserAvailability = function (userId) {
   return new Promise((resolve, reject) => {
-    Availability.findOne({ user: userId })
+    User.findOne({ _id: userId })
+      .populate("availability")
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+module.exports.getUserAvailabilityId = function (id) {
+  return new Promise((resolve, reject) => {
+    Availability.findOne({ _id: id })
       .then((data) => {
         resolve(data);
       })

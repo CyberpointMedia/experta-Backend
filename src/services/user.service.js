@@ -356,33 +356,50 @@ module.exports.createOrUpdateUserLanguage = async function (
 
 /// pricing and availability
 
-module.exports.createOrUpdateUserAvailability = async (userId, data) => {
+module.exports.createOrUpdateAvailability = async (
+  userId,
+  availabilityData
+) => {
   try {
-    const { slots } = data;
-    let slotsInfo = await Availability.findOne({ user: userId });
-    if (!slotsInfo) {
-      slotsInfo = new Availability({
-        user: userId,
-        slots,
-      });
-    } else {
-      slotsInfo.slots = slots;
-    }
-    const savedAvailability = await slotsInfo.save();
-    if (savedAvailability != null)
-      return createResponse.success(savedAvailability);
-    else {
-      response = {
-        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+    const { _id, startTime, endTime, weeklyRepeat } = availabilityData;
+
+    let user = await User.findById(userId);
+    if (!user) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
       };
       return createResponse.error(response);
     }
+
+    let availabilityEntry;
+    if (_id) {
+      availabilityEntry = await Availability.findByIdAndUpdate(
+        _id,
+        { startTime, endTime, weeklyRepeat },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+    } else {
+      availabilityEntry = new Availability({
+        startTime,
+        endTime,
+        weeklyRepeat,
+      });
+      await availabilityEntry.save();
+
+      if (!Array.isArray(user.availability)) {
+        user.availability = [];
+      }
+      user.availability.push(availabilityEntry._id);
+      await user.save();
+    }
+    return createResponse.success(availabilityEntry);
   } catch (error) {
     console.log("error", error);
     throw new Error(error.message);
   }
 };
+
 
 module.exports.createOrUpdateUserPricing = async function (
   userId,

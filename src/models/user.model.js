@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Wallet = require('./wallet.model')
+const Wallet = require("./wallet.model");
 
 const userSchema = new mongoose.Schema(
   {
@@ -73,6 +73,12 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Pricing",
     },
+    availability: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Availability",
+      },
+    ],
     reviews: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Review",
@@ -93,6 +99,5 @@ const userSchema = new mongoose.Schema(
     },
   }
 );
-
 
 module.exports = mongoose.model("User", userSchema);
