@@ -86,6 +86,10 @@ const userSchema = new mongoose.Schema(
     noOfBooking: {
       type: Number,
     },
+    online: {
+      type: Boolean,
+      default: false,
+    }
   },
   {
     timestamps: true,
