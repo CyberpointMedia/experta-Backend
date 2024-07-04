@@ -26,7 +26,7 @@ const storage = multerS3({
 });
 
 function checkFileType(file, cb) {
-  const filetypes = /jpeg|jpg|png|gif|mp4|mov|pdf|png/;
+  const filetypes = /jpeg|jpg|png|gif|mp4|mov|pdf|ico|png/;
 
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
 
@@ -35,7 +35,7 @@ function checkFileType(file, cb) {
   if (extname && mimetype) {
     return cb(null, true);
   } else {
-    cb("Error: Images only (jpeg, jpg, png, gif, mp4, mov, png)!");
+    cb("Error: Images only (jpeg, jpg, png, gif, mp4, mov, png,ico)!");
   }
 }
 

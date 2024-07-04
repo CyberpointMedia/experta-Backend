@@ -26,6 +26,7 @@ const Languages = require("../models/languages.model");
 const Availability = require("../models/availability.model");
 const Pricing = require("../models/pricing.model");
 const UserAccount = require("../models/account.model");
+const IndustryModel = require("../models/industry.model");
 
 module.exports.createOrUpdateIndustryOccupation = async function (
   userId,
@@ -66,7 +67,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
-
+    
     let whereExpertise = {};
     if (user.expertise) where._id = user.expertise;
 
@@ -400,7 +401,6 @@ module.exports.createOrUpdateAvailability = async (
   }
 };
 
-
 module.exports.createOrUpdateUserPricing = async function (
   userId,
   pricingToSave
@@ -523,7 +523,6 @@ module.exports.addFollowerOrFollowing = async (userId, data) => {
   }
 };
 
-
 module.exports.createOrUpdateEducation = async (userId, educationData) => {
   try {
     const { _id, degree, schoolCollege, startDate, endDate } = educationData;
@@ -541,14 +540,18 @@ module.exports.createOrUpdateEducation = async (userId, educationData) => {
 
     let educationEntry;
     if (_id) {
-
       educationEntry = await Education.findByIdAndUpdate(
         _id,
         { degree, schoolCollege, startDate, endDate },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );
     } else {
-      educationEntry = new Education({ degree, schoolCollege, startDate, endDate });
+      educationEntry = new Education({
+        degree,
+        schoolCollege,
+        startDate,
+        endDate,
+      });
       await educationEntry.save();
       console.log("New education entry created:", educationEntry);
 
@@ -566,11 +569,19 @@ module.exports.createOrUpdateEducation = async (userId, educationData) => {
   }
 };
 
-
-
-module.exports.createOrUpdateWorkExperience = async (userId, workExperienceData) => {
+module.exports.createOrUpdateWorkExperience = async (
+  userId,
+  workExperienceData
+) => {
   try {
-    const { _id, jobTitle, companyName, isCurrentlyWorking, startDate, endDate } = workExperienceData;
+    const {
+      _id,
+      jobTitle,
+      companyName,
+      isCurrentlyWorking,
+      startDate,
+      endDate,
+    } = workExperienceData;
 
     let user = await User.findById(userId);
     if (!user) {
@@ -593,7 +604,13 @@ module.exports.createOrUpdateWorkExperience = async (userId, workExperienceData)
       );
     } else {
       // Create new work experience entry
-      workExperienceEntry = new WorkExperience({ jobTitle, companyName, isCurrentlyWorking, startDate, endDate });
+      workExperienceEntry = new WorkExperience({
+        jobTitle,
+        companyName,
+        isCurrentlyWorking,
+        startDate,
+        endDate,
+      });
       await workExperienceEntry.save();
       console.log("New work experience entry created:", workExperienceEntry);
 
@@ -610,5 +627,32 @@ module.exports.createOrUpdateWorkExperience = async (userId, workExperienceData)
   } catch (error) {
     console.log("Error:", error);
     throw new Error(error.message);
+  }
+};
+
+module.exports.createOrUpdateIndustryOccupationMaster = async function (data) {
+  try {
+    const { name, icon, id } = data;
+    let where = {};
+    if (id) where._id = id;
+
+    let updatedIndustryMaster = await IndustryModel.findOneAndUpdate(
+      where,
+      {
+        $set: {
+          name,
+          icon,
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    return createResponse.success(updatedIndustryMaster);
+  } catch (error) {
+    console.error("Error:", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
   }
 };

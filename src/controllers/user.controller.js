@@ -1474,3 +1474,38 @@ exports.getUserByIndustry = async (req, res) => {
       return res.json(createResponse.error(response));
     });
 };
+
+exports.createOrUpdateIndustryOccupationMaster = async (req, res) => {
+  try {
+    const { name, id } = req.body;
+    const icon = req?.file;
+    if (!name || "" == name) {
+      res.send(createResponse.invalid("name cannot be empty"));
+      return;
+    }
+
+    let data;
+
+    if (!!icon) {
+      data = {
+        url: req.file.location,
+        type: req.file.mimetype,
+      };
+    }
+
+    const savedIndustryOccupationMaster =
+      await userService.createOrUpdateIndustryOccupationMaster({
+        name,
+        icon: data?.url,
+        id,
+      });
+    res.json(savedIndustryOccupationMaster);
+  } catch (error) {
+    console.log(error.message);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};

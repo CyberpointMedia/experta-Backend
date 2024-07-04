@@ -689,6 +689,10 @@ module.exports.getUserData = function (userId) {
         path: "industryOccupation",
         populate: { path: "industry occupation" },
       })
+      .populate({
+        path: "basicInfo",
+        populate: { path: "posts" },
+      })
       .populate("workExperience")
       .populate({
         path: "intereset",
@@ -721,13 +725,16 @@ module.exports.getUserData = function (userId) {
 module.exports.getTrending = function () {
   return new Promise((resolve, reject) => {
     User.find({})
-      .populate("basicInfo")
       .populate("education")
       .populate("industryOccupation")
       .populate("workExperience")
       .populate({
         path: "intereset",
         populate: { path: "intereset" },
+      })
+      .populate({
+        path: "basicInfo",
+        populate: { path: "posts" },
       })
       .populate({
         path: "language",
