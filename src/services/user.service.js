@@ -2,6 +2,7 @@ const cryptoUtil = require("../utils/crypto.utils");
 
 var jwt = require("jsonwebtoken");
 const config = require("../config/config");
+const mongoose = require("mongoose");
 
 const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
@@ -633,11 +634,9 @@ module.exports.createOrUpdateWorkExperience = async (
 module.exports.createOrUpdateIndustryOccupationMaster = async function (data) {
   try {
     const { name, icon, id } = data;
-    let where = {};
-    if (id) where._id = id;
 
     let updatedIndustryMaster = await IndustryModel.findOneAndUpdate(
-      where,
+      { _id: id ?? new mongoose.Types.ObjectId() },
       {
         $set: {
           name,
