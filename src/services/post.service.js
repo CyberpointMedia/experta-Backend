@@ -6,6 +6,7 @@ const BasicInfo = require("../models/basicInfo.model");
 const Post = require("../models/post.model");
 const errorMessageConstants = require("../constants/error.messages");
 const createResponse = require("../utils/response");
+const {deleteFile}=require("../utils/aws.utlis")
 
 module.exports.likeUnlikePost = async (postId, userId) => {
   try {

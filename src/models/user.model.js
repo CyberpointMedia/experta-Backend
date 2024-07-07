@@ -86,6 +86,11 @@ const userSchema = new mongoose.Schema(
     noOfBooking: {
       type: Number,
     },
+    notifications: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
+    online: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

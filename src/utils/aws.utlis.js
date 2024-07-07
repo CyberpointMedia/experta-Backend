@@ -1,9 +1,5 @@
 const aws = require('aws-sdk');
-const rimraf = require("rimraf");
-const { S3Client } = require("@aws-sdk/client-s3");
-const multer = require("multer");
-const multerS3 = require("multer-s3");
-const shortId = require("shortid");
+
 
 const s3Config = new aws.S3({
   accessKeyId: process.env.AWS_IAM_USER_KEY,
