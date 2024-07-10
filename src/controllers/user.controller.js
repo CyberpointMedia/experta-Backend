@@ -1452,7 +1452,7 @@ exports.getUserByIndustry = async (req, res) => {
     return;
   }
   userDao
-    .getUserData(userId)
+    .getUserByIndustry(industryId)
     .then((data) => {
       if (null != data) {
         console.log;

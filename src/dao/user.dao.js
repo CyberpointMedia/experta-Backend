@@ -683,7 +683,6 @@ module.exports.createPolicy = function (policyToSave) {
 module.exports.getUserData = function (userId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
-      .populate("basicInfo")
       .populate("education")
       .populate({
         path: "industryOccupation",
@@ -850,8 +849,11 @@ module.exports.getUserByIndustry = function (industryId) {
       .populate("education")
       .populate({
         path: "industryOccupation",
-        populate: { path: "industry" },
-        populate: { path: "occupation" },
+        populate: { path: "industry occupation" },
+      })
+      .populate({
+        path: "basicInfo",
+        populate: { path: "posts" },
       })
       .populate("workExperience")
       .populate({
@@ -864,6 +866,7 @@ module.exports.getUserByIndustry = function (industryId) {
       })
       .populate({
         path: "reviews",
+        populate: { path: "reviews" },
       })
       .populate({
         path: "expertise",

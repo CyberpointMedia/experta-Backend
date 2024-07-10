@@ -123,8 +123,7 @@ exports.getPostDetails = async (req, res) => {
 };
 
 exports.getAllPost = async (req, res) => {
-  const type = req.params.type;
-  const userId = req.body.user._id;
+  const { userId, type } = req.body;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
