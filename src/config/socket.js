@@ -180,9 +180,7 @@ exports.configureSocketEvents = (server) => {
       socket.join(userId);
       const user = await UserModel.findOne({ _id: userId });
       user.online = true;
-      console.log("user-120--> ", user);
       await user.save();
-       console.log("user-120--> ", user);
       socket.broadcast.emit("getUserOnline", { userId });
 
       //   onlineUsers.add(userId);

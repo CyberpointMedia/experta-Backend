@@ -22,7 +22,7 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       { users: { $elemMatch: { $eq: loggedInUserId } } },
     ],
   })
-    .populate("users", "-password -notifications")
+    .populate("users", "-notifications")
     .populate({
       path: "lastMessage",
       model: "Message",
@@ -53,15 +53,14 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
 });
 
 exports.fetchChats = asyncHandler(async (req, res) => {
-    console.log("835302--> ",)
   const loggedInUserId = req.body.user._id;
 
   // Fetch all the chats for the currently logged-in user
   const chats = await ChatModel.find({
     users: { $elemMatch: { $eq: loggedInUserId } },
   })
-    .populate("users", "-password -notifications")
-    .populate("groupAdmins", "-password -notifications")
+    .populate("users", "-notifications")
+    .populate("groupAdmins", "-notifications")
     .populate({
       path: "lastMessage",
       model: "Message",
@@ -69,7 +68,8 @@ exports.fetchChats = asyncHandler(async (req, res) => {
       populate: {
         path: "sender",
         model: "User",
-        select: "name email profilePic",
+        select: "email",
+        populate: { path: "basicInfo" },
       },
     })
     .sort({ updatedAt: "desc" }); // (latest to oldest)
@@ -89,6 +89,7 @@ exports.fetchMessages = asyncHandler(async (req, res) => {
       path: "sender",
       model: "User",
       select: "-notifications",
+      populate: { path: "basicInfo" },
     })
     .sort({ createdAt: "desc" });
   // Latest to oldest here, but oldest to latest in frontend
@@ -97,7 +98,6 @@ exports.fetchMessages = asyncHandler(async (req, res) => {
 });
 
 exports.sendMessage = asyncHandler(async (req, res) => {
-    console.log("sendMessage-->");
   const attachment = req?.file;
   const { content, chatId } = req.body;
   const loggedInUser = req.body.user._id;
@@ -107,18 +107,43 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     throw new Error("Invalid request params for sending a message");
   }
 
-  let data;
-
-  if (!!attachment) {
-    data = {
-      url: req?.file?.location,
-      type: req?.file?.mimetype,
+  let attachmentData;
+  if (!attachment) {
+    attachmentData = {
+      fileUrl: null,
+      file_id: null,
+      file_name: null,
+    };
+  } else if (
+    /(\.png|\.jpg|\.jpeg|\.gif|\.svg|\.webp)$/.test(attachment.originalname) // remove this condition
+  ) {
+    attachmentData = {
+      fileUrl: attachment.location || "",
+      file_id: attachment.key || "",
+      file_name:
+        attachment.originalname +
+        "===" +
+        (mediaDuration !== "undefined"
+          ? `${mediaDuration}+++${attachment.size}`
+          : attachment.size),
+    };
+  } else {
+    // For any other file type, it's uploaded via uploadToS3 middleware
+    attachmentData = {
+      fileUrl: attachment.location || "",
+      file_id: attachment.key || "",
+      file_name:
+        attachment.originalname +
+        "===" +
+        (mediaDuration !== "undefined"
+          ? `${mediaDuration}+++${attachment.size}`
+          : attachment.size),
     };
   }
 
   const createdMessage = await MessageModel.create({
     sender: loggedInUser,
-    fileUrl: data?.url,
+    ...attachmentData,
     content: content || "",
     chat: chatId,
   });
@@ -137,6 +162,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
       path: "sender",
       model: "User",
       select: "-notifications",
+      populate: { path: "basicInfo" },
     })
     .populate({
       path: "chat",
@@ -323,4 +349,3 @@ const accessAttachment = asyncHandler(async (req, res) => {
   const fileObj = await s3.getObject(params).promise();
   res.status(200).send(fileObj.Body);
 });
-

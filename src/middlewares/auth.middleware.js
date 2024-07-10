@@ -54,9 +54,7 @@ module.exports.authMiddleware = function (req, res, next) {
         );
         return;
       }
-      console.log("decoded", decoded);
       req.body["user"] = decoded;
-      console.log("decoded112", req.body["user"]);
       next();
     });
   } catch (e) {
