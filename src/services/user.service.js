@@ -68,7 +68,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
-    
+
     let whereExpertise = {};
     if (user.expertise) where._id = user.expertise;
 
@@ -92,7 +92,6 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       user.industryOccupation = updatedIndustryOccupation._id;
       await user.save();
     }
-   
 
     return createResponse.addSuccess(
       updatedIndustryOccupation,
@@ -475,55 +474,64 @@ module.exports.accountSetting = async (userId, data) => {
 module.exports.addFollowerOrFollowing = async (userId, data) => {
   try {
     const { followUserId, followedByUserId } = data;
-    const user = await BasicInfo.findOne({ user: userId });
-    const followUser = followUserId
-      ? await BasicInfo.findOne({ user: followUserId })
-      : null;
-    const followedByUser = followedByUserId
-      ? await BasicInfo.findOne({ user: followedByUserId })
-      : null;
-    if (followUserId && followUser) {
-      if (user.followers.includes(followUserId)) {
-        const response = {
-          errorCode: errorMessageConstants.CONFLICTS,
-          errorMessage: "Already following",
-        };
-        return createResponse.error(response);
-      }
-      user.followers.push(followUserId);
-      followUser.following.push(userId);
-      await followUser.save();
-    }
-    if (followedByUserId && followedByUser) {
-      if (user.following.includes(followedByUserId)) {
-        const response = {
-          errorCode: errorMessageConstants.CONFLICTS,
-          errorMessage: "User is already following",
-        };
-        return createResponse.error(response);
-      }
-      followedByUser.followers.push(userId);
-      if (user?.following) {
-        user.following.push(followedByUserId);
-      }
-      await followedByUser.save();
+
+    // Find the user and their basic info
+    const user = await User.findById(userId).populate("basicInfo");
+    if (!user || !user.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User or BasicInfo not found",
+      });
     }
 
-    const savedUser = await user.save();
-    if (savedUser != null) return createResponse.success(savedUser);
-    else {
-      response = {
-        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+    // Find the follow user and their basic info
+    const followUser = followUserId
+      ? await User.findById(followUserId).populate("basicInfo")
+      : null;
+
+    // Find the followed by user and their basic info
+    const followedByUser = followedByUserId
+      ? await User.findById(followedByUserId).populate("basicInfo")
+      : null;
+
+    if (followUserId && followUser && followUser.basicInfo) {
+      if (user.basicInfo.followers.includes(followUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "Already following",
+        });
+      }
+      user.basicInfo.followers.push(followUserId);
+      followUser.basicInfo.following.push(userId);
+      await followUser.basicInfo.save();
+    }
+
+    if (followedByUserId && followedByUser && followedByUser.basicInfo) {
+      if (user.basicInfo.following.includes(followedByUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "User is already following",
+        });
+      }
+      followedByUser.basicInfo.followers.push(userId);
+      user.basicInfo.following.push(followedByUserId);
+      await followedByUser.basicInfo.save();
+    }
+
+    const savedBasicInfo = await user.basicInfo.save();
+    if (savedBasicInfo) {
+      return createResponse.success(savedBasicInfo);
+    } else {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
+      });
     }
   } catch (error) {
     console.log("error", error);
     throw new Error(error.message);
   }
 };
-
 module.exports.createOrUpdateEducation = async (userId, educationData) => {
   try {
     const { _id, degree, schoolCollege, startDate, endDate } = educationData;
