@@ -611,9 +611,11 @@ module.exports.getAccountSetting = function (userId) {
 
 module.exports.followersandfollowing = function (userId) {
   return new Promise((resolve, reject) => {
-    BasicInfo.findOne({ user: userId })
-      .populate("following", "_id")
-      .populate("followers", "_id")
+    User.findOne({ user: userId })
+      .populate({
+        path: "basicInfo",
+        populate: { path: "following followers" },
+      })
       .then((data) => {
         resolve(data);
       })
