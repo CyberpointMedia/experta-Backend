@@ -1050,37 +1050,8 @@ exports.getfollowersandfollowing = async (req, res) => {
     .followersandfollowing(userId)
     .then(async (data) => {
       console.log("datadfsfs,following", data);
-      if (null != data) {
-        const followerList = await Promise.all(
-          data.followers.map(async (follower) => {
-            const followerUser = await BasicInfo.findOne({
-              user: follower._id,
-            });
-            return {
-              id: followerUser?._id,
-              displayName: followerUser?.displayName,
-              name: followerUser?.name,
-            };
-          })
-        );
-        const followingList = await Promise.all(
-          data.following.map(async (following) => {
-            const followingUser = await BasicInfo.findOne({
-              user: following._id,
-            });
-            return {
-              id: followingUser?._id,
-              displayName: followingUser?.displayName,
-              name: followingUser?.name,
-            };
-          })
-        );
-        res.json(
-          createResponse.success({
-            followers: followerList,
-            following: followingList,
-          })
-        );
+       if (null != data && data.basicInfo) {
+        res.json(createResponse.success(data.basicInfo));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
