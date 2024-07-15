@@ -83,7 +83,6 @@ module.exports.getIndustryOccupation = function (userId) {
         populate: { path: "industry occupation" },
       })
       .then((data) => {
-        console.log("data",data,userId);
         resolve(data);
       })
       .catch((err) => {
@@ -614,8 +613,14 @@ module.exports.followersandfollowing = function (userId) {
     User.findOne({ _id: userId })
       .populate({
         path: "basicInfo",
-        select:"following followers",
-        populate: { path: "following followers" },
+        select: "following followers",
+        populate: {
+          path: "following followers", populate: {
+            path: "basicInfo",
+            select: "-following -followers",
+            populate: "posts reviews"
+          }
+        },
       })
       .then((data) => {
         resolve(data);
