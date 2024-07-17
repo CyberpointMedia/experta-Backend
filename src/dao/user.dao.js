@@ -615,11 +615,40 @@ module.exports.followersandfollowing = function (userId) {
         path: "basicInfo",
         select: "following followers",
         populate: {
-          path: "following followers", populate: {
+          path: "following followers",
+          populate: [{
             path: "basicInfo",
             select: "-following -followers",
-            populate: "posts reviews"
+            populate: ["posts", "reviews"]
+          },
+          {
+            path: "education availability pricing workExperience"
+          },
+          {
+            path: "intereset",
+            populate: { path: "intereset" },
+          },
+          {
+            path: "language",
+            select: "language",
+            populate: { path: "language" },
+          },
+          {
+            path: "reviews",
+            select: "reviews",
+            populate: { path: "reviews" },
+          },
+          {
+            path: "expertise",
+            select: "expertise",
+            populate: { path: "expertise" },
+          },
+          {
+            path: "industryOccupation",
+            select: "industry occupation",
+            populate: { path: "industry occupation" },
           }
+          ]
         },
       })
       .then((data) => {
