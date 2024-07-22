@@ -33,9 +33,12 @@ module.exports.createPost = function (postToSave, basicInfoId) {
     newPost
       .save()
       .then(async (data) => {
+        console.log("data--> ",data);
         if (data) {
           const basicInfo = await BasicInfo.findById(basicInfoId);
+           console.log("basicInfo0--> ",basicInfo);
           basicInfo.posts.push(data._id);
+          console.log("basicInfo--> ",basicInfo);
           await basicInfo.save();
           resolve(data);
         } else resolve(null);
