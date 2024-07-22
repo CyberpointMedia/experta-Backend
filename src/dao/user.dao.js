@@ -170,7 +170,6 @@ module.exports.getEducation = function (userId) {
     User.findOne({ _id: userId })
       .populate("education")
       .then((data) => {
-        console.log("education", data);
         resolve(data);
       })
       .catch((err) => {
@@ -238,7 +237,6 @@ module.exports.getWorkExperienceById = function (id) {
   return new Promise((resolve, reject) => {
     WorkExperience.findOne({ _id: id })
       .then((data) => {
-        console.log("data", data);
         resolve(data);
       })
       .catch((err) => {
@@ -252,7 +250,6 @@ module.exports.deleteWorkExperienceById = function (id) {
   return new Promise((resolve, reject) => {
     WorkExperience.findByIdAndDelete(id)
       .then((data) => {
-        console.log("data", data);
         resolve(data);
       })
       .catch((err) => {
@@ -285,7 +282,6 @@ module.exports.getUserInterest = function (userId) {
         populate: { path: "intereset" },
       })
       .then((data) => {
-        console.log("data888", data);
         resolve(data);
       })
       .catch((err) => {
@@ -361,7 +357,6 @@ module.exports.getUserLanguages = function (userId) {
         populate: { path: "language" },
       })
       .then((data) => {
-        console.log("language", data);
         resolve(data);
       })
       .catch((err) => {
@@ -679,7 +674,6 @@ module.exports.getFeeds = function (userId) {
     Feed.find({ user: userId })
       .populate("likes")
       .then((data) => {
-        console.log("data", data);
         resolve(data);
       })
       .catch((err) => {
@@ -748,7 +742,6 @@ module.exports.getUserData = function (userId) {
       })
       .populate("pricing")
       .then((data) => {
-        console.log("dat6662a", data);
         resolve(data);
       })
       .catch((err) => {
@@ -911,7 +904,6 @@ module.exports.getUserByIndustry = function (industryId) {
       })
       .populate("pricing")
       .then((data) => {
-        console.log("dat6662a", data);
         resolve(data);
       })
       .catch((err) => {

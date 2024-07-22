@@ -322,9 +322,7 @@ module.exports.createOrUpdateUserLanguage = async function (
   languageToSave
 ) {
   try {
-    console.log("dkh222dk", "enen");
     let user = await User.findById(userId).populate("language");
-    console.log("dkhdk", user);
     if (!user) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -532,6 +530,56 @@ module.exports.addFollowerOrFollowing = async (userId, data) => {
     throw new Error(error.message);
   }
 };
+
+module.exports.unfollow = async (userId, unfollowUserId) => {
+  try {
+    // Find the user and their basic info
+    const user = await User.findById(userId).populate("basicInfo");
+    if (!user || !user.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User or BasicInfo not found",
+      });
+    }
+
+    // Find the user to unfollow and their basic info
+    const unfollowUser = await User.findById(unfollowUserId).populate(
+      "basicInfo"
+    );
+    if (!unfollowUser || !unfollowUser.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User to unfollow not found",
+      });
+    }
+
+    // Check if the user is actually following the unfollowUser
+    if (!user.basicInfo.following.includes(unfollowUserId)) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.CONFLICTS,
+        errorMessage: "You are not following this user",
+      });
+    }
+
+    // Remove unfollowUserId from user's following list
+    user.basicInfo.following = user.basicInfo.following.filter(
+      (id) => id.toString() !== unfollowUserId
+    );
+
+    // Remove userId from unfollowUser's followers list
+    unfollowUser.basicInfo.followers = unfollowUser.basicInfo.followers.filter(
+      (id) => id.toString() !== userId
+    );
+
+    // Save changes
+    await user.basicInfo.save();
+    await unfollowUser.basicInfo.save();
+    return createResponse.success(user.basicInfo);
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
+  }
+};
 module.exports.createOrUpdateEducation = async (userId, educationData) => {
   try {
     const { _id, degree, schoolCollege, startDate, endDate } = educationData;
@@ -661,5 +709,74 @@ module.exports.createOrUpdateIndustryOccupationMaster = async function (data) {
       errorMessage: error.message,
     };
     return createResponse.error(response);
+  }
+};
+
+module.exports.removeConnection = async (userId, targetUserId, action) => {
+  try {
+    // Find the current user and their basic info
+    const user = await User.findById(userId).populate("basicInfo");
+    if (!user || !user.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User or BasicInfo not found",
+      });
+    }
+
+    // Find the target user and their basic info
+    const targetUser = await User.findById(targetUserId).populate("basicInfo");
+    if (!targetUser || !targetUser.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Target user not found",
+      });
+    }
+
+    if (action === "unfollow") {
+      // Check if the user is actually following the target user
+      if (!user.basicInfo.following.includes(targetUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "You are not following this user",
+        });
+      }
+
+      // Remove targetUserId from user's following list
+      user.basicInfo.following = user.basicInfo.following.filter(
+        (id) => id.toString() !== targetUserId
+      );
+
+      // Remove userId from target user's followers list
+      targetUser.basicInfo.followers = targetUser.basicInfo.followers.filter(
+        (id) => id.toString() !== userId
+      );
+    } else if (action === "removeFollower") {
+      // Check if the target user is actually following the current user
+      if (!user.basicInfo.followers.includes(targetUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "This user is not following you",
+        });
+      }
+
+      // Remove targetUserId from user's followers list
+      user.basicInfo.followers = user.basicInfo.followers.filter(
+        (id) => id.toString() !== targetUserId
+      );
+
+      // Remove userId from target user's following list
+      targetUser.basicInfo.following = targetUser.basicInfo.following.filter(
+        (id) => id.toString() !== userId
+      );
+    }
+
+    // Save changes
+    await user.basicInfo.save();
+    await targetUser.basicInfo.save();
+
+    return createResponse.success(user.basicInfo);
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
   }
 };

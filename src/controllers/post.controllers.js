@@ -168,7 +168,6 @@ exports.newComment = async (req, res) => {
       res.send(createResponse.invalid(errorMessageConstants.POST_REQUIRED_ID));
       return;
     }
-    console.log("kfskhfs", postId, userId);
     const savedComment = await postService.newComment(postId, userId, comment);
     res.json(savedComment);
     return;
@@ -307,7 +306,6 @@ exports.newComment = async (req, res) => {
       res.send(createResponse.invalid(errorMessageConstants.POST_REQUIRED_ID));
       return;
     }
-    console.log("kfskhfs", postId, userId);
     const savedComment = await postService.newComment(postId, userId, comment);
     res.json(savedComment);
     return;

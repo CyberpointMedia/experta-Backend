@@ -157,7 +157,6 @@ exports.getIndustryOccupation = async (req, res) => {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
-  console.log("userId", userId);
   userDao
     .getIndustryOccupation(userId)
     .then((data) => {
@@ -999,7 +998,6 @@ exports.getUserData = async (req, res) => {
     .getUserData(userId)
     .then((data) => {
       if (null != data) {
-        console.log;
         res.json(createResponse.success(data));
       } else {
         response = {
@@ -1040,6 +1038,23 @@ exports.addFollowerOrFollowing = async (req, res) => {
   }
 };
 
+exports.unfollow = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { unfollowUserId } = req.body;
+
+    const result = await userService.unfollow(userId, unfollowUserId);
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
 exports.getfollowersandfollowing = async (req, res) => {
   const { userId } = req.params;
   if (!userId) {
@@ -1049,7 +1064,6 @@ exports.getfollowersandfollowing = async (req, res) => {
   userDao
     .followersandfollowing(userId)
     .then(async (data) => {
-      console.log("datadfsfs,following", data);
        if (null != data && data.basicInfo) {
         res.json(createResponse.success(data.basicInfo));
       } else {
@@ -1110,7 +1124,6 @@ exports.getFeeds = async (req, res) => {
     .getFeeds(userId)
     .then((data) => {
       if (null != data) {
-        console.log;
         res.json(createResponse.success(data));
       } else {
         response = {
@@ -1426,7 +1439,6 @@ exports.getUserByIndustry = async (req, res) => {
     .getUserByIndustry(industryId)
     .then((data) => {
       if (null != data) {
-        console.log;
         res.json(createResponse.success(data));
       } else {
         response = {
@@ -1474,6 +1486,39 @@ exports.createOrUpdateIndustryOccupationMaster = async (req, res) => {
   } catch (error) {
     console.log(error.message);
     response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+
+
+exports.removeConnection = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { targetUserId, action } = req.body;
+
+    if (!["unfollow", "removeFollower"].includes(action)) {
+      return res.json(
+        createResponse.error({
+          errorCode: errorMessageConstants.BAD_REQUEST,
+          errorMessage:
+            "Invalid action. Must be 'unfollow' or 'removeFollower'",
+        })
+      );
+    }
+
+    const result = await userService.removeConnection(
+      userId,
+      targetUserId,
+      action
+    );
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
     };

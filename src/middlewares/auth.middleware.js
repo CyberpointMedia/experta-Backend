@@ -54,9 +54,7 @@ module.exports.authMiddleware = function (req, res, next) {
         );
         return;
       }
-      console.log("decoded", decoded);
       req.body["user"] = decoded;
-      console.log("decoded112", req.body["user"]);
       next();
     });
   } catch (e) {
@@ -132,7 +130,6 @@ module.exports.authMiddlewareFile = function (req, res, next) {
             return;
           }
           req.body.user = decoded;
-          console.log("User attached to req.body: ", req.body.user); // Add this line
           next();
         }
       );

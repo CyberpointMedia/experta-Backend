@@ -171,6 +171,8 @@ module.exports = (app) => {
     userController.getfollowersandfollowing
   );
 
+  router.post("/removeConnection", authMiddleware, userController.removeConnection);
+
   router.get("/categories", userController.getCategories);
   router.get("/trending", userController.getTrending);
   app.use(routes.API, router);
