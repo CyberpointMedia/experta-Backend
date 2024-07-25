@@ -754,36 +754,45 @@ module.exports.getUserData = function (userId) {
 module.exports.getTrending = function () {
   return new Promise((resolve, reject) => {
     User.find({})
-      .populate("education availability")
+      .select(
+        "_id online rating profilePic displayName industryOccupation pricing"
+      )
       .populate({
         path: "industryOccupation",
-        populate: { path: "industry occupation" },
-      })
-      .populate({
-        path: "basicInfo",
-        populate: { path: "posts" },
-      })
-      .populate("workExperience")
-      .populate({
-        path: "intereset",
-        populate: { path: "intereset" },
-      })
-      .populate({
-        path: "language",
-        populate: { path: "language" },
-      })
-      .populate({
-        path: "reviews",
-        populate: { path: "reviews" },
-      })
-      .populate({
-        path: "expertise",
-        populate: { path: "expertise" },
+        populate: [
+          { path: "industry", select: "name" },
+          { path: "occupation", select: "name" },
+        ],
       })
       .populate("pricing")
-      .sort({ noOfBookings: -1 })
+      .populate("basicInfo")
       .then((data) => {
-        resolve(data);
+        Promise.all(
+          data.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                  pricing: user?.pricing || "",
+                };
+                console.log("user.online", user.online);
+                resolve(filteredUser);
+              })
+          )
+        )
+          .then((filteredData) => {
+            resolve(filteredData);
+          })
+          .catch((err) => {
+            console.log(err);
+            reject(err);
+          });
       })
       .catch((err) => {
         console.log(err);
@@ -879,39 +888,50 @@ module.exports.getOccupation = function (industryId) {
 
 module.exports.getUserByIndustry = function (industryId) {
   return new Promise(async (resolve, reject) => {
-    const industryOccupations = await IndustryOccupation.find({ industry: industryId }).select('_id');
-    const industryOccupationIds = industryOccupations.map(io => io._id);
+    const industryOccupations = await IndustryOccupation.find({
+      industry: industryId,
+    }).select("_id");
+    const industryOccupationIds = industryOccupations.map((io) => io._id);
     User.find({ industryOccupation: { $in: industryOccupationIds } })
-      .populate("basicInfo")
-      .populate("education")
+      .select(
+        "_id online rating profilePic displayName industryOccupation pricing"
+      )
       .populate({
         path: "industryOccupation",
-        populate: { path: "industry occupation" },
-      })
-      .populate({
-        path: "basicInfo",
-        populate: { path: "posts" },
-      })
-      .populate("workExperience")
-      .populate({
-        path: "intereset",
-        populate: { path: "intereset" },
-      })
-      .populate({
-        path: "language",
-        populate: { path: "language" },
-      })
-      .populate({
-        path: "reviews",
-        populate: { path: "reviews" },
-      })
-      .populate({
-        path: "expertise",
-        populate: { path: "expertise" },
+        populate: [
+          { path: "industry", select: "name" },
+          { path: "occupation", select: "name" },
+        ],
       })
       .populate("pricing")
+      .populate("basicInfo")
       .then((data) => {
-        resolve(data);
+        Promise.all(
+          data.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                  pricing: user?.pricing || "",
+                };
+                console.log("user.online", user.online);
+                resolve(filteredUser);
+              })
+          )
+        )
+          .then((filteredData) => {
+            resolve(filteredData);
+          })
+          .catch((err) => {
+            console.log(err);
+            reject(err);
+          });
       })
       .catch((err) => {
         console.log(err);
@@ -919,3 +939,4 @@ module.exports.getUserByIndustry = function (industryId) {
       });
   });
 };
+

@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    online: {
+      type: Boolean,
+      default: false,
+    },
     blockExpiry: Date,
     isDeleted: {
       type: Boolean,
