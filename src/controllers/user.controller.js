@@ -1064,8 +1064,8 @@ exports.getfollowersandfollowing = async (req, res) => {
   userDao
     .followersandfollowing(userId)
     .then(async (data) => {
-       if (null != data && data.basicInfo) {
-        res.json(createResponse.success(data.basicInfo));
+       if (null != data && data) {
+        res.json(createResponse.success(data));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,

@@ -611,43 +611,72 @@ module.exports.followersandfollowing = function (userId) {
         select: "following followers",
         populate: {
           path: "following followers",
-          populate: [{
-            path: "basicInfo",
-            select: "-following -followers",
-            populate: ["posts", "reviews"]
-          },
-          {
-            path: "education availability pricing workExperience"
-          },
-          {
-            path: "intereset",
-            populate: { path: "intereset" },
-          },
-          {
-            path: "language",
-            select: "language",
-            populate: { path: "language" },
-          },
-          {
-            path: "reviews",
-            select: "reviews",
-            populate: { path: "reviews" },
-          },
-          {
-            path: "expertise",
-            select: "expertise",
-            populate: { path: "expertise" },
-          },
-          {
-            path: "industryOccupation",
-            select: "industry occupation",
-            populate: { path: "industry occupation" },
-          }
-          ]
+          select: "_id online industryOccupation",
+          populate: [
+            {
+              path: "basicInfo",
+              select: "rating profilePic displayName",
+            },
+            {
+              path: "industryOccupation",
+              select: "industry occupation",
+              populate: [
+                { path: "industry", select: "name" },
+                { path: "occupation", select: "name" },
+              ],
+            },
+          ],
         },
       })
       .then((data) => {
-        resolve(data);
+        const { following, followers } = data.basicInfo;
+
+        Promise.all(
+          following.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                };
+                resolve(filteredUser);
+              })
+          )
+        )
+          .then((filteredFollowing) =>
+            Promise.all(
+              followers.map(
+                (user) =>
+                  new Promise((resolve) => {
+                    const filteredUser = {
+                      id: user?._id || "",
+                      online: user?.online || false,
+                      rating: user?.basicInfo?.rating || "",
+                      profilePic: user?.basicInfo?.profilePic || "",
+                      displayName: user?.basicInfo?.displayName || "",
+                      industry: user?.industryOccupation?.industry?.name || "",
+                      occupation:
+                        user?.industryOccupation?.occupation?.name || "",
+                    };
+                    resolve(filteredUser);
+                  })
+              )
+            ).then((filteredFollowers) => {
+              resolve({
+                following: filteredFollowing,
+                followers: filteredFollowers,
+              });
+            })
+          )
+          .catch((err) => {
+            console.log(err);
+            reject(err);
+          });
       })
       .catch((err) => {
         console.log(err);
