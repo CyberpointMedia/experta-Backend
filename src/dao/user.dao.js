@@ -808,7 +808,7 @@ module.exports.getTrending = function () {
                   displayName: user?.basicInfo?.displayName || "",
                   industry: user?.industryOccupation?.industry?.name || "",
                   occupation: user?.industryOccupation?.occupation?.name || "",
-                  pricing: user?.pricing || "",
+                  pricing: user?.pricing || {"_id":"","_v":0,"audioCallPrice":0,"messagePrice":0,"videoCallPrice":0},
                 };
                 console.log("user.online", user.online);
                 resolve(filteredUser);
@@ -947,7 +947,7 @@ module.exports.getUserByIndustry = function (industryId) {
                   displayName: user?.basicInfo?.displayName || "",
                   industry: user?.industryOccupation?.industry?.name || "",
                   occupation: user?.industryOccupation?.occupation?.name || "",
-                  pricing: user?.pricing || "",
+                  pricing: user?.pricing || {"_id":"","_v":0,"audioCallPrice":0,"messagePrice":0,"videoCallPrice":0},
                 };
                 console.log("user.online", user.online);
                 resolve(filteredUser);
