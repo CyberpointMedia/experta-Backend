@@ -1174,8 +1174,9 @@ exports.getPolicy = async (req, res) => {
 
 exports.searchUsersByInterest = async (req, res) => {
   const { search } = req.params;
+  const searchTerm = search && search !== ":search" ? search : null;
   userDao
-    .searchUsersByInterest(search)
+    .searchUsersByInterest(searchTerm)
     .then((data) => {
       if (null != data) {
         console.log;

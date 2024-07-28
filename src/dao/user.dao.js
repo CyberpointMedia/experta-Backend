@@ -833,9 +833,8 @@ module.exports.getTrending = function () {
   });
 };
 
-module.exports.searchUsersByInterest = function (keyword) {
+module.exports.searchUsersByInterest = function (query) {
   return new Promise(async (resolve, reject) => {
-    const query = keyword;
     const aggregationPipeline = [
       {
         $lookup: {
@@ -917,6 +916,7 @@ module.exports.searchUsersByInterest = function (keyword) {
         $project: {
           _id: 1,
           online: { $ifNull: ["$online", false] },
+          isVerified: { $ifNull: ["$isVerified", false] },
           noOfBooking: { $ifNull: ["$noOfBooking", 0] },
           rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
           profilePic: {
@@ -941,7 +941,6 @@ module.exports.searchUsersByInterest = function (keyword) {
 
     await User.aggregate(aggregationPipeline)
       .then((data) => {
-        console.log("data--> ", data);
         resolve(data);
       })
       .catch((err) => {
