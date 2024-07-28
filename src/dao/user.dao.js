@@ -218,7 +218,6 @@ module.exports.deleteAvailabilityById = function (id) {
   });
 };
 
-
 module.exports.getWorkExperience = function (userId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
@@ -258,8 +257,6 @@ module.exports.deleteWorkExperienceById = function (id) {
       });
   });
 };
-
-
 
 module.exports.getUserAbout = function (userId) {
   return new Promise((resolve, reject) => {
@@ -808,7 +805,13 @@ module.exports.getTrending = function () {
                   displayName: user?.basicInfo?.displayName || "",
                   industry: user?.industryOccupation?.industry?.name || "",
                   occupation: user?.industryOccupation?.occupation?.name || "",
-                  pricing: user?.pricing || {"_id":"","_v":0,"audioCallPrice":0,"messagePrice":0,"videoCallPrice":0},
+                  pricing: user?.pricing || {
+                    _id: "",
+                    _v: 0,
+                    audioCallPrice: 0,
+                    messagePrice: 0,
+                    videoCallPrice: 0,
+                  },
                 };
                 console.log("user.online", user.online);
                 resolve(filteredUser);
@@ -832,37 +835,113 @@ module.exports.getTrending = function () {
 
 module.exports.searchUsersByInterest = function (keyword) {
   return new Promise(async (resolve, reject) => {
-    const interestItem = await InterestItemsModel.findOne({ name: keyword });
-    const where = {};
-    if (interestItem) where.name = interestItem.name;
-    User.find()
-      .populate({
-        path: "intereset",
-        populate: {
-          path: "intereset",
-          model: "InterestItem",
-          match: where,
+    const query = keyword;
+    const aggregationPipeline = [
+      {
+        $lookup: {
+          from: "basicinfos",
+          localField: "basicInfo",
+          foreignField: "_id",
+          as: "basicInfo",
         },
-      })
-      .populate("basicInfo")
-      .populate("education")
-      .populate("industryOccupation")
-      .populate("workExperience")
-      .populate({
-        path: "intereset",
-        populate: { path: "intereset" },
-      })
-      .populate({
-        path: "language",
-        populate: { path: "language" },
-      })
-      .populate({
-        path: "expertise",
-        populate: { path: "expertise" },
-      })
-      .populate("pricing")
-      .sort({ noOfBookings: -1 })
+      },
+      {
+        $lookup: {
+          from: "industryoccupations",
+          localField: "industryOccupation",
+          foreignField: "_id",
+          as: "industryOccupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "industries",
+          localField: "industryOccupation.industry",
+          foreignField: "_id",
+          as: "industry",
+        },
+      },
+      {
+        $lookup: {
+          from: "occupations",
+          localField: "industryOccupation.occupation",
+          foreignField: "_id",
+          as: "occupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "interests",
+          localField: "intereset",
+          foreignField: "_id",
+          as: "interest",
+        },
+      },
+      {
+        $lookup: {
+          from: "interestitems",
+          localField: "interest.intereset",
+          foreignField: "_id",
+          as: "interestItems",
+        },
+      },
+      {
+        $match: query
+          ? {
+              $or: [
+                { "basicInfo.firstName": { $regex: query, $options: "i" } },
+                { "basicInfo.lastName": { $regex: query, $options: "i" } },
+                { "basicInfo.displayName": { $regex: query, $options: "i" } },
+                { "industry.name": { $regex: query, $options: "i" } },
+                { "occupation.name": { $regex: query, $options: "i" } },
+                { email: { $regex: query, $options: "i" } },
+                { "interestItems.name": { $regex: query, $options: "i" } },
+              ],
+            }
+          : {}, // If query is empty, match all documents,
+      },
+      {
+        $addFields: {
+          sortOrder: {
+            $cond: [{ $eq: ["$isVerified", true] }, 0, 1],
+          },
+        },
+      },
+      {
+        $sort: {
+          sortOrder: 1,
+          noOfBooking: -1,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          online: { $ifNull: ["$online", false] },
+          noOfBooking: { $ifNull: ["$noOfBooking", 0] },
+          rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
+          profilePic: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
+          },
+          displayName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
+          },
+          lastName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
+          },
+          firstName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
+          },
+          industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
+          occupation: {
+            $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
+          },
+        },
+      },
+    ];
+
+    await User.aggregate(aggregationPipeline)
       .then((data) => {
+        console.log("data--> ", data);
         resolve(data);
       })
       .catch((err) => {
@@ -885,8 +964,6 @@ module.exports.getCategories = function (userId) {
   });
 };
 
-
-
 module.exports.getIndustry = function () {
   return new Promise((resolve, reject) => {
     IndustryModel.find({})
@@ -900,7 +977,6 @@ module.exports.getIndustry = function () {
   });
 };
 
-
 module.exports.getOccupation = function (industryId) {
   return new Promise((resolve, reject) => {
     OccupationModel.find({ industry: industryId })
@@ -913,7 +989,6 @@ module.exports.getOccupation = function (industryId) {
       });
   });
 };
-
 
 module.exports.getUserByIndustry = function (industryId) {
   return new Promise(async (resolve, reject) => {
@@ -947,7 +1022,13 @@ module.exports.getUserByIndustry = function (industryId) {
                   displayName: user?.basicInfo?.displayName || "",
                   industry: user?.industryOccupation?.industry?.name || "",
                   occupation: user?.industryOccupation?.occupation?.name || "",
-                  pricing: user?.pricing || {"_id":"","_v":0,"audioCallPrice":0,"messagePrice":0,"videoCallPrice":0},
+                  pricing: user?.pricing || {
+                    _id: "",
+                    _v: 0,
+                    audioCallPrice: 0,
+                    messagePrice: 0,
+                    videoCallPrice: 0,
+                  },
                 };
                 console.log("user.online", user.online);
                 resolve(filteredUser);
@@ -968,4 +1049,3 @@ module.exports.getUserByIndustry = function (industryId) {
       });
   });
 };
-
