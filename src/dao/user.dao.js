@@ -833,7 +833,7 @@ module.exports.getTrending = function () {
   });
 };
 
-module.exports.searchUsersByInterest = function (query) {
+module.exports.getUserBySearch = function (query) {
   return new Promise(async (resolve, reject) => {
     const aggregationPipeline = [
       {
@@ -904,12 +904,14 @@ module.exports.searchUsersByInterest = function (query) {
           sortOrder: {
             $cond: [{ $eq: ["$isVerified", true] }, 0, 1],
           },
+          randomValue: { $rand: {} },
         },
       },
       {
         $sort: {
           sortOrder: 1,
           noOfBooking: -1,
+          randomValue: 1,
         },
       },
       {
@@ -939,6 +941,7 @@ module.exports.searchUsersByInterest = function (query) {
       },
     ];
 
+    // todo:add random 
     await User.aggregate(aggregationPipeline)
       .then((data) => {
         resolve(data);

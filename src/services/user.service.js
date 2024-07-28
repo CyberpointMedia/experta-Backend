@@ -28,6 +28,7 @@ const Availability = require("../models/availability.model");
 const Pricing = require("../models/pricing.model");
 const UserAccount = require("../models/account.model");
 const IndustryModel = require("../models/industry.model");
+const OccupationModel = require("../models/occupation.model");
 
 module.exports.createOrUpdateIndustryOccupation = async function (
   userId,
@@ -702,6 +703,29 @@ module.exports.createOrUpdateIndustryOccupationMaster = async function (data) {
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
     return createResponse.success(updatedIndustryMaster);
+  } catch (error) {
+    console.error("Error:", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
+  }
+};
+
+module.exports.createOrUpdateOccupation = async ({ name, industry, id }) => {
+  try {
+    let updatedOccupationMaster = await OccupationModel.findOneAndUpdate(
+      { _id: id ?? new mongoose.Types.ObjectId() },
+      {
+        $set: {
+          name,
+          industry,
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    return createResponse.success(updatedOccupationMaster);
   } catch (error) {
     console.error("Error:", error);
     const response = {

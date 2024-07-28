@@ -155,10 +155,7 @@ module.exports = (app) => {
 
   router.get("/getUserData/:userId", userController.getUserData);
 
-  router.get(
-    "/getUserByIntreset/:search",
-    userController.searchUsersByInterest
-  );
+  router.get("/getUserBySearch/:search", userController.getUserBySearch);
   /// follwing and follwers
   router.post(
     "/profile/follow",

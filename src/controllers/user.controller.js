@@ -1064,7 +1064,7 @@ exports.getfollowersandfollowing = async (req, res) => {
   userDao
     .followersandfollowing(userId)
     .then(async (data) => {
-       if (null != data && data) {
+      if (null != data && data) {
         res.json(createResponse.success(data));
       } else {
         response = {
@@ -1172,11 +1172,11 @@ exports.getPolicy = async (req, res) => {
     });
 };
 
-exports.searchUsersByInterest = async (req, res) => {
+exports.getUserBySearch = async (req, res) => {
   const { search } = req.params;
   const searchTerm = search && search !== ":search" ? search : null;
   userDao
-    .searchUsersByInterest(searchTerm)
+    .getUserBySearch(searchTerm)
     .then((data) => {
       if (null != data) {
         console.log;
@@ -1494,7 +1494,30 @@ exports.createOrUpdateIndustryOccupationMaster = async (req, res) => {
   }
 };
 
-
+exports.createOrUpdateOccupation = async (req, res) => {
+  try {
+    const { name, industry, id } = req.body;
+    if (!name || name.trim() === "") {
+      return res.json(createResponse.invalid("name cannot be empty"));
+    }
+    if (!industry || industry.trim() === "") {
+      return res.json(createResponse.invalid("industry cannot be empty"));
+    }
+    const savedOccupation = await userService.createOrUpdateOccupation({
+      name,
+      industry,
+      id,
+    });
+    res.json(savedOccupation);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
 
 exports.removeConnection = async (req, res) => {
   try {
