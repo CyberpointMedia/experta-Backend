@@ -1071,10 +1071,47 @@ module.exports.getUserByIndustry = function (industryId) {
 module.exports.getAllBlockedUsers = function (userId) {
   return new Promise((resolve, reject) => {
     User.findById(userId)
-      .populate("blockedUsers", "email phoneNo")
-      .then((user) => {
-        if (user) {
-          resolve(user.blockedUsers);
+      .populate( { 
+        path: "blockedUsers",
+        populate: {
+          path: "basicInfo",
+          select: "_id online industryOccupation",
+          populate: [
+            {
+              path: "basicInfo",
+              select: "rating profilePic displayName",
+            },
+            {
+              path: "industryOccupation",
+              select: "industry occupation",
+              populate: [
+                { path: "industry", select: "name" },
+                { path: "occupation", select: "name" },
+              ],
+            },
+          ],
+        },
+    })
+      .then((data) => {
+        Promise.all(
+          data?.blockedUsers?.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                };
+                resolve(filteredUser);
+              })
+          )
+        )
+        if (filteredUser) {
+          resolve(filteredUser);
         } else {
           resolve(null);
         }
