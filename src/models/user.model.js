@@ -83,13 +83,15 @@ const userSchema = new mongoose.Schema(
         ref: "Availability",
       },
     ],
-    reviews: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Review",
-    },
     noOfBooking: {
       type: Number,
     },
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,

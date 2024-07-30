@@ -737,7 +737,7 @@ module.exports.createPolicy = function (policyToSave) {
   });
 };
 
-module.exports.getUserData = function (userId) {
+module.exports.getUserData = function (userId, ownUserId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
       .populate("education")
@@ -749,6 +749,10 @@ module.exports.getUserData = function (userId) {
         path: "basicInfo",
         populate: { path: "posts" },
       })
+      .populate({
+        path: "basicInfo",
+        populate: { path: "reviews" },
+      })
       .populate("workExperience")
       .populate({
         path: "intereset",
@@ -758,17 +762,29 @@ module.exports.getUserData = function (userId) {
         path: "language",
         populate: { path: "language" },
       })
-      .populate({
-        path: "reviews",
-        populate: { path: "reviews" },
-      })
+      // .populate({
+      //   path: "reviews",
+      //   populate: { path: "reviews" },
+      // })
       .populate({
         path: "expertise",
         populate: { path: "expertise" },
       })
       .populate("pricing")
-      .then((data) => {
-        resolve(data);
+      .then(async (data) => {
+        if (data && data.basicInfo) {
+          // Check if ownUserId is in the followers array of the found user
+          const isFollowing = data.basicInfo.following.some(
+            (followerId) => followerId.toString() === ownUserId
+          );
+
+          // Add isFollowing field to the data object
+          const result = data.toObject(); // Convert to a plain JavaScript object
+          result.isFollowing = isFollowing;
+          const ownUser = await User.findById(ownUserId);
+          result.isBlocked = ownUser.blockedUsers.includes(userId);
+          resolve(result);
+        }
       })
       .catch((err) => {
         console.log(err);
@@ -813,7 +829,6 @@ module.exports.getTrending = function () {
                     videoCallPrice: 0,
                   },
                 };
-                console.log("user.online", user.online);
                 resolve(filteredUser);
               })
           )
@@ -941,7 +956,7 @@ module.exports.getUserBySearch = function (query) {
       },
     ];
 
-    // todo:add random 
+    // todo:add random
     await User.aggregate(aggregationPipeline)
       .then((data) => {
         resolve(data);
@@ -1032,7 +1047,6 @@ module.exports.getUserByIndustry = function (industryId) {
                     videoCallPrice: 0,
                   },
                 };
-                console.log("user.online", user.online);
                 resolve(filteredUser);
               })
           )
@@ -1044,6 +1058,26 @@ module.exports.getUserByIndustry = function (industryId) {
             console.log(err);
             reject(err);
           });
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+// block 
+module.exports.getAllBlockedUsers = function (userId) {
+  return new Promise((resolve, reject) => {
+    User.findById(userId)
+      .populate("blockedUsers", "email phoneNo")
+      .then((user) => {
+        if (user) {
+          resolve(user.blockedUsers);
+        } else {
+          resolve(null);
+        }
       })
       .catch((err) => {
         console.log(err);

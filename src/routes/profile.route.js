@@ -21,5 +21,8 @@ module.exports = (app) => {
     postController.likeUnlikePost
   );
   router.post("/post/comment/:id", authMiddleware, postController.newComment);
+
+  router.post("/reviews", authMiddleware, postController.createReview);
+  router.get("/reviews/:userId", postController.getAllReviews);
   app.use(routes.API, router);
 };

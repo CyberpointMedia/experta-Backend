@@ -15,6 +15,10 @@ const reviewSchema = new mongoose.Schema(
     review: {
       type: String,
     },
+    reviewerName: {
+      type: String,
+      default: "Anonymous",
+    },
   },
   {
     timestamps: true,
@@ -36,32 +40,29 @@ reviewSchema.virtual("formattedDate").get(function () {
 
 // Ensure virtual fields are included when converting to JSON
 
-reviewSchema.virtual("reviewerName").get(async function () {
-  try {
-    const User = mongoose.model("User");
-    const reviewer = await User.findById(
-      this.reviewBy,
-      "basicInfo.firstName basicInfo.lastName basicInfo.displayName"
-    );
+// reviewSchema.virtual("reviewerName").get( async function () {
+//   try {
+//     const User = mongoose.model("User");
+//     const reviewer = await User.findById(this.reviewBy).populate("basicInfo");
 
-    if (!reviewer) return "Unknown User";
+//     if (!reviewer) return "Unknown User";
+//     console.log("reviewer--> ", reviewer);
+//     // console.log("lastName-->>> ", lastName, firstName);
+//     if (reviewer.basicInfo.displayName) {
+//       return reviewer.basicInfo.displayName;
+//     }
 
-    if (reviewer.basicInfo.displayName) {
-      return reviewer.basicInfo.displayName;
-    }
+//     const firstName = reviewer.basicInfo.firstName || "";
+//     const lastName = reviewer.basicInfo.lastName || "";
 
-    const firstName = reviewer.basicInfo.firstName || "";
-    const lastName = reviewer.basicInfo.lastName || "";
-    return `${firstName} ${lastName}`.trim() || "Anonymous";
-  } catch (error) {
-    console.error("Error fetching reviewer name:", error);
-    return "Error Fetching Name";
-  }
-});
-
-reviewSchema.set("toJSON", { virtuals: true });
+//     return `${firstName} ${lastName}`.trim() || "Anonymous";
+//   } catch (error) {
+//     console.error("Error fetching reviewer name:", error);
+//     return "Error Fetching Name";
+//   }
+// });
 
 reviewSchema.set("toObject", { virtuals: true });
-reviewSchema.set("toJSON", { virtuals: true, getters: true });
+reviewSchema.set("toJSON", { virtuals: true });
 
 module.exports = mongoose.model("Review", reviewSchema);

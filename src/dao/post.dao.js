@@ -60,9 +60,9 @@ module.exports.getAllPost = function (type, userId) {
   });
 };
 
-module.exports.createReview = function (postToSave, basicInfoId) {
+module.exports.createReview = function (reviewToSave, basicInfoId) {
   return new Promise((resolve, reject) => {
-    const newReview = new Review(postToSave);
+    const newReview = new Review(reviewToSave);
     newReview
       .save()
       .then(async (data) => {

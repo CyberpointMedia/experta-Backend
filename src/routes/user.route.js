@@ -142,18 +142,18 @@ module.exports = (app) => {
     userController.getUserAvailability
   );
 
-   router.get(
-     "/availability/:id",
-     authMiddleware,
-     userController.getAvailabilityById
-   );
-   router.delete(
-     "/availability/:id",
-     authMiddleware,
-     userController.deleteAvailabilityById
-   );
+  router.get(
+    "/availability/:id",
+    authMiddleware,
+    userController.getAvailabilityById
+  );
+  router.delete(
+    "/availability/:id",
+    authMiddleware,
+    userController.deleteAvailabilityById
+  );
 
-  router.get("/getUserData/:userId", userController.getUserData);
+  router.get("/getUserData", userController.getUserData);
 
   router.get("/getUserBySearch/:search", userController.getUserBySearch);
   /// follwing and follwers
@@ -168,7 +168,22 @@ module.exports = (app) => {
     userController.getfollowersandfollowing
   );
 
-  router.post("/removeConnection", authMiddleware, userController.removeConnection);
+  router.post(
+    "/removeConnection",
+    authMiddleware,
+    userController.removeConnection
+  );
+
+  // block
+  router.get(
+    "/getAllBlockedUsers",
+    authMiddleware,
+    userController.getAllBlockedUsers
+  );
+
+  router.post("/blockUser", authMiddleware, userController.blockUser);
+
+  router.post("/unblockUser", authMiddleware, userController.unblockUser);
 
   router.get("/categories", userController.getCategories);
   router.get("/trending", userController.getTrending);

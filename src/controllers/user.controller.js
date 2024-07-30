@@ -989,13 +989,14 @@ exports.accountSetting = async (req, res) => {
 };
 
 exports.getUserData = async (req, res) => {
-  const { userId } = req.params;
+  const { userId,ownUserId } = req.body;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
+
   userDao
-    .getUserData(userId)
+    .getUserData(userId, ownUserId)
     .then((data) => {
       if (null != data) {
         res.json(createResponse.success(data));
@@ -1549,3 +1550,70 @@ exports.removeConnection = async (req, res) => {
     res.json(createResponse.error(response));
   }
 };
+
+
+// block and unBlock
+
+exports.getAllBlockedUsers = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getAllBlockedUsers(userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+exports.blockUser = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { userToBlockId } = req.body;
+
+    const result = await userService.blockUser(userId, userToBlockId);
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+exports.unblockUser = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { userToUnblockId } = req.body;
+
+    const result = await userService.unblockUser(userId, userToUnblockId);
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+

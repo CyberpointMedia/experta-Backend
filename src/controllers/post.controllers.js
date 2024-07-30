@@ -181,57 +181,8 @@ exports.newComment = async (req, res) => {
   }
 };
 
-
-
-
-
-exports.createReview = async (req, res) => {
-  const userId = req.body.user._id;
-  if (!userId) {
-    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
-    return;
-  }
-
-  try {
-    const reviewToSave = {
-      rating: req.body.rating,
-      review: req.body.review,
-      reviewBy: userId,
-    };
-    postDao
-      .createReview(reviewToSave, req.body.basicInfoId)
-      .then((data) => {
-        if (null != data) {
-          res.json(createResponse.success(data));
-        } else {
-          response = {
-            errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
-            errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-          };
-          res.json(createResponse.error(response));
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        response = {
-          errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-          errorMessage: err,
-        };
-        res.json(createResponse.error(response));
-      });
-  } catch (e) {
-    console.log(e);
-    response = {
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: e,
-    };
-    res.json(createResponse.error(response));
-  }
-};
-
-
 exports.getAllReviews = async (req, res) => {
-  const userId = req.body.user._id;
+  const userId = req.params.userId;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
@@ -320,10 +271,8 @@ exports.newComment = async (req, res) => {
 };
 
 
-
-
-
 exports.createReview = async (req, res) => {
+  console.log("req", req);
   const userId = req.body.user._id;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
@@ -365,34 +314,4 @@ exports.createReview = async (req, res) => {
     };
     res.json(createResponse.error(response));
   }
-};
-
-
-exports.getAllReviews = async (req, res) => {
-  const userId = req.body.user._id;
-  if (!userId) {
-    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
-    return;
-  }
-  postDao
-    .getAllReview(userId)
-    .then((data) => {
-      if (null != data) {
-        res.json(createResponse.success(data));
-      } else {
-        response = {
-          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
-          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
-        };
-        res.json(createResponse.error(response));
-      }
-    })
-    .catch((err) => {
-      console.log(err.message);
-      response = {
-        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-        errorMessage: err.message,
-      };
-      res.json(createResponse.error(response));
-    });
 };

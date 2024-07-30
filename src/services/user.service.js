@@ -804,3 +804,75 @@ module.exports.removeConnection = async (userId, targetUserId, action) => {
     throw new Error(error.message);
   }
 };
+
+// block
+
+module.exports.blockUser = async (userId, userToBlockId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User not found",
+      });
+    }
+
+    if (user.blockedUsers.includes(userToBlockId)) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.CONFLICTS,
+        errorMessage: "User is already blocked",
+      });
+    }
+
+    user.blockedUsers.push(userToBlockId);
+    const savedUser = await user.save();
+
+    if (savedUser) {
+      return createResponse.success(savedUser);
+    } else {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
+  }
+};
+
+module.exports.unblockUser = async (userId, userToUnblockId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User not found",
+      });
+    }
+
+    if (!user.blockedUsers.includes(userToUnblockId)) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.CONFLICTS,
+        errorMessage: "User is not blocked",
+      });
+    }
+
+    user.blockedUsers = user.blockedUsers.filter(
+      (id) => id.toString() !== userToUnblockId
+    );
+    const savedUser = await user.save();
+
+    if (savedUser) {
+      return createResponse.success(savedUser);
+    } else {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
+  }
+};
