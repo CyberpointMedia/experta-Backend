@@ -1105,11 +1105,9 @@ module.exports.getAllBlockedUsers = function (userId) {
               })
           )
         )
-        if (filteredUser) {
-          resolve(filteredUser);
-        } else {
-          resolve(null);
-        }
+        .then((filteredData) => {
+          resolve(filteredData);
+        })
       })
       .catch((err) => {
         console.log(err);
