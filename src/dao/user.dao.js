@@ -1075,11 +1075,8 @@ module.exports.getAllBlockedUsers = function (userId) {
         path: "blockedUsers",
         populate: {
           path: "basicInfo",
+          select: "rating profilePic displayName",
           populate: [
-            {
-              path: "basicInfo",
-              select: "rating profilePic displayName",
-            },
             {
               path: "industryOccupation",
               select: "industry occupation",
