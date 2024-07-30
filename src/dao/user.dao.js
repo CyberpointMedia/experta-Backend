@@ -1106,6 +1106,7 @@ module.exports.getAllBlockedUsers = function (userId) {
                   industry: user?.industryOccupation?.industry?.name || "",
                   occupation: user?.industryOccupation?.occupation?.name || "",
                 };
+                console.log("filteredUser--> ",filteredUser);
                 resolve(filteredUser);
               })
           )
