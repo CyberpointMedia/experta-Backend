@@ -1073,20 +1073,17 @@ module.exports.getAllBlockedUsers = function (userId) {
     User.findById(userId)
       .populate( { 
         path: "blockedUsers",
-        populate: {
+        populate: [{
           path: "basicInfo",
           select: "rating profilePic displayName",
-          populate: [
-            {
+        }, {
               path: "industryOccupation",
               select: "industry occupation",
               populate: [
                 { path: "industry", select: "name" },
                 { path: "occupation", select: "name" },
               ],
-            },
-          ],
-        },
+            },],
     })
       .then((data) => {
          console.log("filteredUser--> ",data);
