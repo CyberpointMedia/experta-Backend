@@ -49,7 +49,7 @@ const basicInfoSchema = new mongoose.Schema(
     about: {
       type: String,
     },
-    rating: { type: String, default: "2" },
+    rating: { type: Number, default: 2 },
   },
   {
     timestamps: true,
