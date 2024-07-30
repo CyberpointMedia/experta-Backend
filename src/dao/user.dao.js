@@ -1093,6 +1093,7 @@ module.exports.getAllBlockedUsers = function (userId) {
         },
     })
       .then((data) => {
+         console.log("filteredUser--> ",data);
         Promise.all(
           data?.blockedUsers?.map(
             (user) =>
