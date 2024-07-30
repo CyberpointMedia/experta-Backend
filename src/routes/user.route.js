@@ -153,7 +153,7 @@ module.exports = (app) => {
     userController.deleteAvailabilityById
   );
 
-  router.get("/getUserData", userController.getUserData);
+  router.post("/getUserData", userController.getUserData);
 
   router.get("/getUserBySearch/:search", userController.getUserBySearch);
   /// follwing and follwers
