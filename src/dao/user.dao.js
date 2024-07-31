@@ -1093,6 +1093,7 @@ module.exports.getAllBlockedUsers = function (userId) {
               new Promise((resolve) => {
                 const filteredUser = {
                   id: user?._id || "",
+                  isVerified:user?.isVerified || "",
                   online: user?.online || false,
                   rating: user?.basicInfo?.rating || "",
                   profilePic: user?.basicInfo?.profilePic || "",

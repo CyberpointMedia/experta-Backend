@@ -107,3 +107,17 @@ module.exports.getAllReviewByUser = function (userId) {
       });
   });
 };
+
+
+module.exports.deleteReviewById = function (id) {
+  return new Promise((resolve, reject) => {
+    Review.findByIdAndDelete(id)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};

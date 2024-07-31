@@ -315,3 +315,34 @@ exports.createReview = async (req, res) => {
     res.json(createResponse.error(response));
   }
 };
+
+
+
+exports.deleteReviewById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  postDao
+    .deleteReviewById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.UPDATE_NOT_DONE_ERROR_COde,
+          errorMessage: errorMessageConstants.UNABLE_TO_DELETE_MESSAGE,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};

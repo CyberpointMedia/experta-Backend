@@ -17,7 +17,9 @@ const reviewSchema = new mongoose.Schema(
     },
     reviewerName: {
       type: String,
-      default: "Anonymous",
+    },
+    profilePic: {
+      type: String,
     },
   },
   {
@@ -38,30 +40,39 @@ reviewSchema.virtual("formattedDate").get(function () {
   return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
 });
 
-// Ensure virtual fields are included when converting to JSON
+reviewSchema.pre("save", async function (next) {
+  if (!this.reviewerName || !this.profilePic) {
+    try {
+      const user = await mongoose
+        .model("User")
+        .findById(this.reviewBy)
+        .populate("basicInfo");
+      if (user && user.basicInfo) {
+        if (!this.reviewerName) {
+          if (user.basicInfo.displayName) {
+            this.reviewerName = user.basicInfo.displayName;
+          } else if (user.basicInfo.firstName) {
+            this.reviewerName =
+              user.basicInfo.firstName +
+              (user.basicInfo.lastName ? " " + user.basicInfo.lastName : "");
+          } else {
+            this.reviewerName = "Anonymous";
+          }
+        }
 
-// reviewSchema.virtual("reviewerName").get( async function () {
-//   try {
-//     const User = mongoose.model("User");
-//     const reviewer = await User.findById(this.reviewBy).populate("basicInfo");
-
-//     if (!reviewer) return "Unknown User";
-//     console.log("reviewer--> ", reviewer);
-//     // console.log("lastName-->>> ", lastName, firstName);
-//     if (reviewer.basicInfo.displayName) {
-//       return reviewer.basicInfo.displayName;
-//     }
-
-//     const firstName = reviewer.basicInfo.firstName || "";
-//     const lastName = reviewer.basicInfo.lastName || "";
-
-//     return `${firstName} ${lastName}`.trim() || "Anonymous";
-//   } catch (error) {
-//     console.error("Error fetching reviewer name:", error);
-//     return "Error Fetching Name";
-//   }
-// });
-
+        if (!this.profilePic && user.basicInfo.profilePic) {
+          this.profilePic = user.basicInfo.profilePic;
+        }
+      } else {
+        this.reviewerName = this.reviewerName || "Anonymous";
+      }
+    } catch (error) {
+      console.error("Error setting reviewer details:", error);
+      this.reviewerName = this.reviewerName || "Anonymous";
+    }
+  }
+  next();
+});
 reviewSchema.set("toObject", { virtuals: true });
 reviewSchema.set("toJSON", { virtuals: true });
 

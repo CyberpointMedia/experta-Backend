@@ -24,5 +24,6 @@ module.exports = (app) => {
 
   router.post("/reviews", authMiddleware, postController.createReview);
   router.get("/reviews/:userId", postController.getAllReviews);
+   router.delete("/reviews/:id", postController.deleteReviewById);
   app.use(routes.API, router);
 };
