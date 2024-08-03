@@ -1066,34 +1066,36 @@ module.exports.getUserByIndustry = function (industryId) {
   });
 };
 
-
-// block 
+// block
 module.exports.getAllBlockedUsers = function (userId) {
   return new Promise((resolve, reject) => {
     User.findById(userId)
-      .populate( { 
+      .populate({
         path: "blockedUsers",
-        populate: [{
-          path: "basicInfo",
-          select: "rating profilePic displayName",
-        }, {
-              path: "industryOccupation",
-              select: "industry occupation",
-              populate: [
-                { path: "industry", select: "name" },
-                { path: "occupation", select: "name" },
-              ],
-            },],
-    })
+        populate: [
+          {
+            path: "basicInfo",
+            select: "rating profilePic displayName",
+          },
+          {
+            path: "industryOccupation",
+            select: "industry occupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+      })
       .then((data) => {
-         console.log("filteredUser--> ",data);
+        console.log("filteredUser--> ", data);
         Promise.all(
           data?.blockedUsers?.map(
             (user) =>
               new Promise((resolve) => {
                 const filteredUser = {
                   id: user?._id || "",
-                  isVerified:user?.isVerified || "",
+                  isVerified: user?.isVerified || "",
                   online: user?.online || false,
                   rating: user?.basicInfo?.rating || "",
                   profilePic: user?.basicInfo?.profilePic || "",
@@ -1101,18 +1103,45 @@ module.exports.getAllBlockedUsers = function (userId) {
                   industry: user?.industryOccupation?.industry?.name || "",
                   occupation: user?.industryOccupation?.occupation?.name || "",
                 };
-                console.log("filteredUser--> ",filteredUser);
+                console.log("filteredUser--> ", filteredUser);
                 resolve(filteredUser);
               })
           )
-        )
-        .then((filteredData) => {
+        ).then((filteredData) => {
           resolve(filteredData);
-        })
+        });
       })
       .catch((err) => {
         console.log(err);
         reject(err);
+      });
+  });
+};
+
+module.exports.getProfileCompletion = function (userId) {
+  return new Promise((resolve, reject) => {
+    User.findById(userId)
+      .populate("basicInfo")
+      .populate("education")
+      .populate("industryOccupation")
+      .populate("workExperience")
+      .populate("intereset")
+      .populate("language")
+      .populate("expertise")
+      .populate("pricing")
+      .populate("availability")
+      .then((user) => {
+        if (user) {
+          const completionDetails = user.calculateProfileCompletion();
+          if (completionDetails) resolve(completionDetails);
+          else resolve(null);
+        } else {
+          resolve(null);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        reject(error);
       });
   });
 };

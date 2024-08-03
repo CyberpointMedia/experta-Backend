@@ -92,6 +92,10 @@ const userSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    profileCompletionPercentage: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -105,5 +109,108 @@ const userSchema = new mongoose.Schema(
     },
   }
 );
+
+userSchema.methods.calculateProfileCompletion = function () {
+  const sections = {
+    basicInfo: { total: 6, completed: 0 },
+    education: { total: 1, completed: 0 },
+    industryOccupation: { total: 5, completed: 0 },
+    workExperience: { total: 1, completed: 0 },
+    interest: { total: 1, completed: 0 },
+    language: { total: 1, completed: 0 },
+    expertise: { total: 1, completed: 0 },
+    pricing: { total: 2, completed: 0 },
+    availability: { total: 1, completed: 0 },
+ 
+  };
+  let totalFields = 0;
+  let completedFields = 0;
+  if (this.basicInfo) {
+    const basicInfoFields = [
+      "firstName",
+      "displayName",
+      "bio",
+      "profilePic",
+      "location",
+      "rating",
+    ];
+    console.log("this.basicInfo", this.basicInfo);
+    basicInfoFields.forEach((field) => {
+      if (this.basicInfo[field]) sections.basicInfo.completed++;
+    });
+  }
+
+  if (this.education && this.education.length > 0)
+    sections.education.completed = 1;
+
+  if (this.industryOccupation) {
+    if (this.industryOccupation.industry)
+      sections.industryOccupation.completed++;
+    if (this.industryOccupation.occupation)
+      sections.industryOccupation.completed++;
+    if (this.industryOccupation.registrationNumber)
+      sections.industryOccupation.completed++;
+    if (this.industryOccupation.certificate)
+      sections.industryOccupation.completed++;
+    if (
+      this.industryOccupation.achievements &&
+      this.industryOccupation.achievements.length > 0
+    )
+      sections.industryOccupation.completed++;
+  }
+
+  if (this.workExperience && this.workExperience.length > 0)
+    sections.workExperience.completed = 1;
+
+  if (
+    this.intereset &&
+    this.intereset.intereset &&
+    this.intereset.intereset.length > 0
+  )
+    sections.interest.completed = 1;
+
+  if (
+    this.language &&
+    this.language.language &&
+    this.language.language.length > 0
+  )
+    sections.language.completed = 1;
+
+  if (
+    this.expertise &&
+    this.expertise.expertise &&
+    this.expertise.expertise.length > 0
+  )
+    sections.expertise.completed = 1;
+
+  if (this.pricing) {
+    if (this.pricing.audioCallPrice) sections.pricing.completed++;
+    if (this.pricing.videoCallPrice) sections.pricing.completed++;
+  }
+
+  if (this.availability && this.availability.length > 0)
+    sections.availability.completed = 1;
+
+  Object.values(sections).forEach((section) => {
+    totalFields += section.total;
+    completedFields += section.completed;
+  });
+
+  const totalCompletionPercentage = Math.round(
+    (completedFields / totalFields) * 100
+  );
+
+  return {
+    totalCompletionPercentage,
+    sectionCompletions: Object.fromEntries(
+      Object.entries(sections).map(([key, value]) => [
+        key,
+        Math.round((value.completed / value.total) * 100),
+      ])
+    ),
+  };
+};
+
+
 
 module.exports = mongoose.model("User", userSchema);

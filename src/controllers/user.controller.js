@@ -989,7 +989,7 @@ exports.accountSetting = async (req, res) => {
 };
 
 exports.getUserData = async (req, res) => {
-  const { userId,ownUserId } = req.body;
+  const { userId, ownUserId } = req.body;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
@@ -1551,7 +1551,6 @@ exports.removeConnection = async (req, res) => {
   }
 };
 
-
 // block and unBlock
 
 exports.getAllBlockedUsers = async (req, res) => {
@@ -1617,3 +1616,33 @@ exports.unblockUser = async (req, res) => {
   }
 };
 
+exports.getProfileCompletion = async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    res
+      .status(400)
+      .send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getProfileCompletion(userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};

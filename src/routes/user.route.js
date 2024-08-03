@@ -2,6 +2,7 @@ const userController = require("../controllers/user.controller");
 const routes = require("../constants/route.url");
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const uploadMiddleWare = require("../middlewares/file.middleware");
+const User=require("../models/user.model")
 
 module.exports = (app) => {
   var router = require("express").Router();
@@ -187,5 +188,9 @@ module.exports = (app) => {
 
   router.get("/categories", userController.getCategories);
   router.get("/trending", userController.getTrending);
+  router.get(
+    "/profile-completion/:userId",
+    userController.getProfileCompletion
+  );
   app.use(routes.API, router);
 };
