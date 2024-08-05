@@ -132,9 +132,11 @@ exports.getAllPost = async (req, res) => {
     res.send(createResponse.invalid("Type cannot be empty"));
     return;
   }
+  console.log("all post--> enter",req.body)
   postDao
     .getAllPost(type, userId)
     .then((data) => {
+        console.log("all data--> enter",data)
       if (null != data) {
         res.json(createResponse.success(data));
       } else {
