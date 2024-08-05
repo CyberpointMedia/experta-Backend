@@ -212,39 +212,39 @@ exports.getAllReviews = async (req, res) => {
     });
 };
 
-exports.getAllPost = async (req, res) => {
-  const type = req.params.type;
-  const userId = req.body.user._id;
-  if (!userId) {
-    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
-    return;
-  }
-  if (!type) {
-    res.send(createResponse.invalid("Type cannot be empty"));
-    return;
-  }
-  postDao
-    .getAllPost(type, userId)
-    .then((data) => {
-      if (null != data) {
-        res.json(createResponse.success(data));
-      } else {
-        response = {
-          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
-          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
-        };
-        res.json(createResponse.error(response));
-      }
-    })
-    .catch((err) => {
-      console.log(err.message);
-      response = {
-        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-        errorMessage: err.message,
-      };
-      res.json(createResponse.error(response));
-    });
-};
+// exports.getAllPost = async (req, res) => {
+//   const type = req.params.type;
+//   const userId = req.body.user._id;
+//   if (!userId) {
+//     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+//     return;
+//   }
+//   if (!type) {
+//     res.send(createResponse.invalid("Type cannot be empty"));
+//     return;
+//   }
+//   postDao
+//     .getAllPost(type, userId)
+//     .then((data) => {
+//       if (null != data) {
+//         res.json(createResponse.success(data));
+//       } else {
+//         response = {
+//           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+//           errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+//         };
+//         res.json(createResponse.error(response));
+//       }
+//     })
+//     .catch((err) => {
+//       console.log(err.message);
+//       response = {
+//         errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+//         errorMessage: err.message,
+//       };
+//       res.json(createResponse.error(response));
+//     });
+// };
 
 exports.newComment = async (req, res) => {
   try {
