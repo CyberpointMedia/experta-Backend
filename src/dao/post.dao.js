@@ -48,6 +48,7 @@ module.exports.createPost = function (postToSave, basicInfoId) {
 };
 
 module.exports.getAllPost = function (type, userId) {
+  console.log("enter--<");
   return new Promise((resolve, reject) => {
     Post.find({ type: type, postedBy: userId })
       .then((data) => {
