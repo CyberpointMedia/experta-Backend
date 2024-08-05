@@ -8,7 +8,7 @@ const { upload } = require("../utils/aws.utlis");
 module.exports = (app) => {
   var router = require("express").Router();
   router.get("/post/detail", postController.getPostDetails);
-  router.get("/posts", postController.getAllPost);
+  router.post("/posts", postController.getAllPost);
   router.post(
     "/post/create",
     uploadMiddleWare.single("file"),
