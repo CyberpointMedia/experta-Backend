@@ -40,6 +40,7 @@ exports.createPost = async (req, res) => {
       caption: req.body.caption,
       location: req.body.location, // example [45.5236, -122.6750],
       postedBy: userId,
+      type:req.body.type,
     };
     postDao
       .createPost(postToSave, req.body.basicInfoId)
