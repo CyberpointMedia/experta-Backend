@@ -96,6 +96,9 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    emailChangeOTP: String,
+    emailChangeOTPExpiry: Date,
+    newEmailRequest: String,
   },
   {
     timestamps: true,
@@ -121,7 +124,6 @@ userSchema.methods.calculateProfileCompletion = function () {
     expertise: { total: 1, completed: 0 },
     pricing: { total: 2, completed: 0 },
     availability: { total: 1, completed: 0 },
- 
   };
   let totalFields = 0;
   let completedFields = 0;
@@ -210,7 +212,5 @@ userSchema.methods.calculateProfileCompletion = function () {
     ),
   };
 };
-
-
 
 module.exports = mongoose.model("User", userSchema);

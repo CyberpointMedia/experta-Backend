@@ -106,3 +106,88 @@ module.exports.newComment = async (postId, userId, comment) => {
     return createResponse.error(response);
   }
 };
+
+module.exports.updateComment = async (postId, commentId, userId, comment) => {
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Post Not Found",
+      };
+      return createResponse.error(response);
+    }
+
+    const commentToUpdate = post.comments.id(commentId);
+    if (!commentToUpdate) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Comment Not Found",
+      };
+      return createResponse.error(response);
+    }
+
+    // Check if the comment belongs to the user
+    if (commentToUpdate.user.toString() !== userId) {
+      const response = {
+        errorCode: errorMessageConstants.UNAUTHORIZED_ERROR_CODE,
+        errorMessage: "User not authorized to update this comment",
+      };
+      return createResponse.error(response);
+    }
+
+    commentToUpdate.comment = comment;
+    const saveComment = await post.save();
+    return createResponse.success(saveComment);
+  } catch (error) {
+    console.log("error", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
+  }
+};
+
+
+module.exports.deleteComment = async (postId, commentId, userId) => {
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Post Not Found",
+      };
+      return createResponse.error(response);
+    }
+
+    const commentToDelete = post.comments.id(commentId);
+    if (!commentToDelete) {
+      const response = {
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Comment Not Found",
+      };
+      return createResponse.error(response);
+    }
+
+    // Check if the comment belongs to the user
+    if (commentToDelete.user.toString() !== userId) {
+      const response = {
+        errorCode: errorMessageConstants.UNAUTHORIZED_ERROR_CODE,
+        errorMessage: "User not authorized to delete this comment",
+      };
+      return createResponse.error(response);
+    }
+
+    post.comments.pull({ _id: commentId });
+    const savePost = await post.save();
+    return createResponse.success(savePost);
+  } catch (error) {
+    console.log("error", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
+  }
+};

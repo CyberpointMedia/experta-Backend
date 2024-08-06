@@ -7,7 +7,7 @@ const { upload } = require("../utils/aws.utlis");
 
 module.exports = (app) => {
   var router = require("express").Router();
-  router.get("/post/detail", postController.getPostDetails);
+  router.get("/post/detail/:postId", postController.getPostDetails);
   router.post("/posts", postController.getAllPost);
   router.post(
     "/post/create",
@@ -21,6 +21,12 @@ module.exports = (app) => {
     postController.likeUnlikePost
   );
   router.post("/post/comment/:id", authMiddleware, postController.newComment);
+  router.delete(
+    "/post/comment",
+    authMiddleware,
+    postController.deleteComment
+  );
+  router.patch("/post/comment", authMiddleware, postController.updateComment);
 
   router.post("/reviews", authMiddleware, postController.createReview);
   router.get("/reviews/:userId", postController.getAllReviews);

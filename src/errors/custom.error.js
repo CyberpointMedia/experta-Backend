@@ -5,5 +5,12 @@ class AuthenticationError extends Error {
         this.errorCode = code;
     }
 }
+class ValidationError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = "ValidationError";
+    this.errorCode = code;
+  }
+}
 
-module.exports = { AuthenticationError }
+module.exports = { AuthenticationError, ValidationError };

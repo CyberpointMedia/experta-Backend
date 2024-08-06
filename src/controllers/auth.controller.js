@@ -8,7 +8,7 @@ const authService = require("../services/auth.service");
 
 const createResponse = require("../utils/response");
 
-const { AuthenticationError } = require("../errors/custom.error");
+const { AuthenticationError,ValidationError } = require("../errors/custom.error");
 
 exports.handleLogin = async (req, res) => {
   if (!req.body.phoneNo || "" == req.body.phoneNo) {
@@ -154,6 +154,78 @@ exports.resendOtp = async (req, res) => {
           "You are unauthorized.",
           e.message
         )
+      );
+    }
+  }
+};
+
+exports.initiateEmailChange = async (req, res) => {
+  if (!req.body.newEmail || req.body.newEmail === "") {
+    return res
+      .status(400)
+      .json(createResponse.invalid("New email cannot be empty"));
+  }
+  try {
+    let responseData = await authService.initiateEmailChange(
+      req.body.user._id,
+      req.body.newEmail
+    );
+    res.json(responseData);
+  } catch (e) {
+    console.log(e.message);
+    if (e instanceof AuthenticationError || e instanceof ValidationError) {
+      res.status(400);
+      res.json(
+        createResponse.error({
+          errorCode: e.errorCode,
+          errorMessage: e.message,
+        })
+      );
+    } else {
+      res.status(500);
+      res.json(
+        createResponse.error({
+          errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+          errorMessage: "An unexpected error occurred.",
+        })
+      );
+    }
+  }
+};
+
+exports.verifyOtpAndChangeEmail = async (req, res) => {
+  if (!req.body.otp || req.body.otp === "") {
+    return res.status(400).json(createResponse.invalid("OTP cannot be empty"));
+  }
+  if (!req.body.newEmail || req.body.newEmail === "") {
+    return res
+      .status(400)
+      .json(createResponse.invalid("New email cannot be empty"));
+  }
+  try {
+    let responseData = await authService.verifyOtpAndChangeEmail(
+      req.body.user._id,
+      req.body.otp,
+      req.body.newEmail
+    );
+    res.json(responseData);
+  } catch (e) {
+    console.log(e.message);
+    if (e instanceof AuthenticationError || e instanceof ValidationError) {
+      res.status(400);
+      res.json(
+        createResponse.error({
+          errorCode: e.errorCode,
+          errorMessage: e.message,
+        })
+      );
+    } else {
+      res.status(500);
+      res.json(
+        createResponse.error({
+          errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+          errorMessage: "An unexpected error occurred.",
+        })
       );
     }
   }

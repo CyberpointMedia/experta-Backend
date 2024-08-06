@@ -12,7 +12,10 @@ const globalConstants = require("../constants/global-constants");
 const jwtUtil = require("../utils/jwt.utils");
 const authUtil = require("../utils/auth.utils");
 const User = require("../models/user.model");
-const { AuthenticationError } = require("../errors/custom.error");
+const {
+  AuthenticationError,
+  ValidationError,
+} = require("../errors/custom.error");
 const BasicInfo = require("../models/basicInfo.model");
 
 module.exports.validateUser = async function (userData) {
@@ -248,5 +251,117 @@ module.exports.resendOtp = async function (phoneNo) {
     } else {
       throw new Error(e.message);
     }
+  }
+};
+
+
+module.exports.initiateEmailChange = async function (userId, newEmail) {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new customError.AuthenticationError(
+        globalConstants.INVALID_USER_CODE,
+        "User not found."
+      );
+    }
+
+    if (user.email === newEmail) {
+      throw new customError.ValidationError(
+        globalConstants.INVALID_INPUT_CODE,
+        "New email is the same as the current email."
+      );
+    }
+
+    // Check if the new email is already in use
+    const existingUser = await User.findOne({ email: newEmail });
+    if (existingUser) {
+      throw new customError.ValidationError(
+        globalConstants.INVALID_INPUT_CODE,
+        "Email already in use."
+      );
+    }
+
+    const otp = authUtil.generateOTP();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    user.emailChangeOTP = otp;
+    user.emailChangeOTPExpiry = otpExpiry;
+    user.newEmailRequest = newEmail;
+    await user.save();
+
+    // TODO: Send OTP to user's phone number
+    // await sendOTP(user.phoneNo, otp);
+
+    return createResponse.success(user);
+  } catch (error) {
+    console.log("error", error);
+    throw error;
+  }
+};
+
+module.exports.verifyOtpAndChangeEmail = async function (
+  userId,
+  otp,
+  newEmail
+) {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new customError.AuthenticationError(
+        globalConstants.INVALID_USER_CODE,
+        "User not found."
+      );
+    }
+
+    const now = Date.now();
+
+    if (
+      !user.emailChangeOTP ||
+      !user.emailChangeOTPExpiry ||
+      !user.newEmailRequest
+    ) {
+      throw new customError.ValidationError(
+        globalConstants.INVALID_INPUT_CODE,
+        "No email change request found."
+      );
+    }
+
+    if (user.newEmailRequest !== newEmail) {
+      throw new customError.ValidationError(
+        globalConstants.INVALID_INPUT_CODE,
+        "New email does not match the requested email change."
+      );
+    }
+
+    if (
+      user.emailChangeOTP !== otp ||
+      now > user.emailChangeOTPExpiry.getTime()
+    ) {
+      throw new customError.AuthenticationError(
+        globalConstants.INVALID_USER_CODE,
+        "Invalid OTP or expired."
+      );
+    }
+
+    // Check again if the new email is still available
+    const existingUser = await User.findOne({ email: newEmail });
+    if (existingUser) {
+      throw new customError.ValidationError(
+        globalConstants.INVALID_INPUT_CODE,
+        "Email is no longer available."
+      );
+    }
+
+    user.email = newEmail;
+    user.emailChangeOTP = undefined;
+    user.emailChangeOTPExpiry = undefined;
+    user.newEmailRequest = undefined;
+
+    await user.save();
+
+    return createResponse.success(user);
+  } catch (error) {
+    console.log("error", error);
+    throw error;
   }
 };

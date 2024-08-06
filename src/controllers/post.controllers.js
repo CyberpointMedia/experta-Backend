@@ -27,12 +27,12 @@ exports.createPost = async (req, res) => {
     return;
   }
 
-   if (!!req?.file) {
-     data = {
-       url: req.file.location,
-       type: req.file.mimetype,
-     };
-   }
+  if (!!req?.file) {
+    data = {
+      url: req.file.location,
+      type: req.file.mimetype,
+    };
+  }
 
   try {
     const postToSave = {
@@ -40,7 +40,7 @@ exports.createPost = async (req, res) => {
       caption: req.body.caption,
       location: req.body.location, // example [45.5236, -122.6750],
       postedBy: userId,
-      type:req.body.type,
+      type: req.body.type,
     };
     postDao
       .createPost(postToSave, req.body.basicInfoId)
@@ -99,9 +99,13 @@ exports.likeUnlikePost = async (req, res) => {
 };
 
 exports.getPostDetails = async (req, res) => {
-  const { postId, type } = req.body;
+  const { postId } = req.params;
+  if (!postId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
   postDao
-    .getPostDetails(postId, type)
+    .getPostDetails(postId)
     .then((data) => {
       if (null != data) {
         res.json(createResponse.success(data));
@@ -133,11 +137,10 @@ exports.getAllPost = async (req, res) => {
     res.send(createResponse.invalid("Type cannot be empty"));
     return;
   }
-  console.log("all post--> enter",req.body)
+  console.log("all post--> enter", req.body);
   postDao
     .getAllPost(type, userId)
     .then((data) => {
-        console.log("all data--> enter",data)
       if (null != data) {
         res.json(createResponse.success(data));
       } else {
@@ -183,6 +186,52 @@ exports.newComment = async (req, res) => {
     res.json(createResponse.error(response));
   }
 };
+
+exports.updateComment = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const postId = req.body.postId;
+    const commentId = req.body.commentId;
+    const comment = req.body.comment;
+
+    if (!userId) {
+      res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+      return;
+    }
+    if (!postId) {
+      res.send(createResponse.invalid(errorMessageConstants.POST_REQUIRED_ID));
+      return;
+    }
+    if (!commentId) {
+      res.send(
+        createResponse.invalid(errorMessageConstants.COMMENT_REQUIRED_ID)
+      );
+      return;
+    }
+    if (!comment) {
+      res.send(createResponse.invalid(errorMessageConstants.REQUIRED_COMMENT));
+      return;
+    }
+
+    const updatedComment = await postService.updateComment(
+      postId,
+      commentId,
+      userId,
+      comment
+    );
+    res.json(updatedComment);
+    return;
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+
 
 exports.getAllReviews = async (req, res) => {
   const userId = req.params.userId;
@@ -213,69 +262,7 @@ exports.getAllReviews = async (req, res) => {
     });
 };
 
-// exports.getAllPost = async (req, res) => {
-//   const type = req.params.type;
-//   const userId = req.body.user._id;
-//   if (!userId) {
-//     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
-//     return;
-//   }
-//   if (!type) {
-//     res.send(createResponse.invalid("Type cannot be empty"));
-//     return;
-//   }
-//   postDao
-//     .getAllPost(type, userId)
-//     .then((data) => {
-//       if (null != data) {
-//         res.json(createResponse.success(data));
-//       } else {
-//         response = {
-//           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
-//           errorMessage: errorMessageConstants.DATA_NOT_FOUND,
-//         };
-//         res.json(createResponse.error(response));
-//       }
-//     })
-//     .catch((err) => {
-//       console.log(err.message);
-//       response = {
-//         errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-//         errorMessage: err.message,
-//       };
-//       res.json(createResponse.error(response));
-//     });
-// };
-
-exports.newComment = async (req, res) => {
-  try {
-    const userId = req.body.user._id;
-    const postId = req.params.id;
-    const comment = req.body.comment;
-    if (!userId) {
-      res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
-      return;
-    }
-    if (!postId) {
-      res.send(createResponse.invalid(errorMessageConstants.POST_REQUIRED_ID));
-      return;
-    }
-    const savedComment = await postService.newComment(postId, userId, comment);
-    res.json(savedComment);
-    return;
-  } catch (error) {
-    console.log(error.message);
-    response = {
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    };
-    res.json(createResponse.error(response));
-  }
-};
-
-
 exports.createReview = async (req, res) => {
-  console.log("req", req);
   const userId = req.body.user._id;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
@@ -319,8 +306,6 @@ exports.createReview = async (req, res) => {
   }
 };
 
-
-
 exports.deleteReviewById = async (req, res) => {
   const id = req.params.id;
   if (!id) {
@@ -349,3 +334,44 @@ exports.deleteReviewById = async (req, res) => {
       return res.json(createResponse.error(response));
     });
 };
+
+
+
+exports.deleteComment = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const postId = req.body.postId;
+    const commentId = req.body.commentId;
+
+    if (!userId) {
+      res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+      return;
+    }
+    if (!postId) {
+      res.send(createResponse.invalid(errorMessageConstants.POST_REQUIRED_ID));
+      return;
+    }
+    if (!commentId) {
+      res.send(
+        createResponse.invalid(errorMessageConstants.COMMENT_REQUIRED_ID)
+      );
+      return;
+    }
+
+    const deletedComment = await postService.deleteComment(
+      postId,
+      commentId,
+      userId
+    );
+    res.json(deletedComment);
+    return;
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+

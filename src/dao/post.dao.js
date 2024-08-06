@@ -2,23 +2,89 @@ const BasicInfo = require("../models/basicInfo.model");
 const Post = require("../models/post.model");
 const Review = require("../models/review.model");
 
-module.exports.getPostDetails = function (postId, type) {
+module.exports.getPostDetails = function (postId) {
   return new Promise((resolve, reject) => {
-    Post.findOne({ _id: postId, type: type })
+    Post.findOne({ _id: postId })
       .populate({
-        path: "postedBy likes",
-        populate: {
-          path: "basicInfo",
-        },
+        path: "postedBy",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
       })
       .populate({
-        path: "comments",
-        populate: {
-          path: "user",
-        },
+        path: "likes",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
       })
-      .then((data) => {
-        resolve(data);
+      .populate({
+        path: "comments.user",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
+      })
+      .then((post) => {
+        console.log("post--> ", post);
+        if (!post) {
+          return resolve(null);
+        }
+
+        const transformUser = (user) => {
+          if (!user) return null;
+          return {
+            id: user._id || "",
+            online: user.online || false,
+            rating: user.basicInfo?.rating || "",
+            profilePic: user.basicInfo?.profilePic || "",
+            displayName: user.basicInfo?.displayName || "",
+            industry: user.industryOccupation?.industry?.name || "",
+            occupation: user.industryOccupation?.occupation?.name || "",
+          };
+        };
+
+        const transformedPost = {
+          type: post.type,
+          id: post._id,
+          formattedDate: post?.formattedDate,
+          image: post?.image,
+          caption: post?.caption,
+          postedBy: transformUser(post.postedBy),
+          likes: post.likes.map(transformUser).filter(Boolean),
+          comments: post.comments.map((comment) => ({
+            comment: comment.comment,
+            formattedDate: comment?.formattedDate,
+            _id: comment._id,
+            user: transformUser(comment.user),
+          })),
+          totalLikes: post.likes.length,
+          totalComments: post.comments.length,
+        };
+
+        resolve(transformedPost);
       })
       .catch((err) => {
         console.log(err);
@@ -48,11 +114,85 @@ module.exports.createPost = function (postToSave, basicInfoId) {
 };
 
 module.exports.getAllPost = function (type, userId) {
-  console.log("enter--<");
   return new Promise((resolve, reject) => {
     Post.find({ type: type, postedBy: userId })
-      .then((data) => {
-        resolve(data);
+      .populate({
+        path: "postedBy",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "likes",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "comments.user",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
+      })
+      .then((posts) => {
+        if (!posts) {
+          return resolve(null);
+        }
+        const transformUser = (user) => {
+          if (!user) return null;
+          return {
+            id: user._id || "",
+            online: user.online || false,
+            rating: user.basicInfo?.rating || "",
+            profilePic: user.basicInfo?.profilePic || "",
+            displayName: user.basicInfo?.displayName || "",
+            industry: user.industryOccupation?.industry?.name || "",
+            occupation: user.industryOccupation?.occupation?.name || "",
+          };
+        };
+        const transformedPosts = posts.map((post) => ({
+          type: post.type,
+          id: post._id,
+          formattedDate: post?.formattedDate,
+          image: post?.image,
+          caption: post?.caption,
+          postedBy: transformUser(post.postedBy),
+          likes: post.likes.map(transformUser).filter(Boolean),
+          comments: post.comments.map((comment) => ({
+            comment: comment.comment,
+            formattedDate: comment?.formattedDate,
+            _id: comment._id,
+            createdAt: comment.createdAt,
+            user: transformUser(comment.user),
+          })),
+          totalLikes: post.likes.length,
+          totalComments: post.comments.length,
+        }));
+        resolve(transformedPosts);
       })
       .catch((err) => {
         console.log(err);
@@ -88,13 +228,11 @@ module.exports.getAllReview = function (userId) {
         resolve(data);
       })
       .catch((err) => {
-        console.log("error",err);
+        console.log("error", err);
         reject(err);
       });
   });
 };
-
-
 
 module.exports.getAllReviewByUser = function (userId) {
   return new Promise((resolve, reject) => {
@@ -108,7 +246,6 @@ module.exports.getAllReviewByUser = function (userId) {
       });
   });
 };
-
 
 module.exports.deleteReviewById = function (id) {
   return new Promise((resolve, reject) => {
