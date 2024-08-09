@@ -96,7 +96,41 @@ module.exports.newComment = async (postId, userId, comment) => {
       comment: comment,
     });
     const saveComment = await post.save();
-    return createResponse.success(saveComment);
+
+    // Populate the user information for the new comment
+    const populatedPost = await Post.findById(postId).populate({
+      path: 'comments.user',
+      populate: [
+        { path: 'basicInfo', select: 'rating profilePic displayName' },
+        {
+          path: 'industryOccupation',
+          populate: [
+            { path: 'industry', select: 'name' },
+            { path: 'occupation', select: 'name' },
+          ],
+        },
+      ],
+      select: '_id online',
+    });
+
+
+
+    // Transform the comments to include detailed user information
+    const transformedComments = populatedPost.comments.map(comment => ({
+      comment: comment.comment,
+      formattedDate: comment.formattedDate || 'some time ago',
+      _id: comment._id,
+      user: {
+        id: comment.user._id || "",
+        online: comment.user.online || false,
+        rating: comment.user.basicInfo?.rating || "",
+        profilePic: comment.user.basicInfo?.profilePic || "",
+        displayName: comment.user.basicInfo?.displayName || "",
+        industry: comment.user.industryOccupation?.industry?.name || "",
+        occupation: comment.user.industryOccupation?.occupation?.name || "",
+      },
+    }));
+    return createResponse.success(transformedComments);
   } catch (error) {
     console.log("error", error);
     const response = {
