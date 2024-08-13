@@ -774,7 +774,7 @@ module.exports.getUserData = function (userId, ownUserId) {
       .then(async (data) => {
         if (data && data.basicInfo) {
           // Check if ownUserId is in the followers array of the found user
-          const isFollowing = data.basicInfo.following.some(
+          const isFollowing = data.basicInfo.followers.some(
             (followerId) => followerId.toString() === ownUserId
           );
 
