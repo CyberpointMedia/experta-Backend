@@ -1,6 +1,8 @@
 const BasicInfo = require("../models/basicInfo.model");
 const Post = require("../models/post.model");
 const Review = require("../models/review.model");
+const Report=require("../models/report.model");
+const ReportReason = require("../models/reportReason.model");
 
 module.exports.getPostDetails = function (postId) {
   return new Promise((resolve, reject) => {
@@ -250,6 +252,63 @@ module.exports.getAllReviewByUser = function (userId) {
 module.exports.deleteReviewById = function (id) {
   return new Promise((resolve, reject) => {
     Review.findByIdAndDelete(id)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+module.exports.getReportReasons = function () {
+  return new Promise((resolve, reject) => {
+    ReportReason.find({})
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+module.exports.getReportById = function (id) {
+  return new Promise((resolve, reject) => {
+    Report.findById(id)
+      .populate("reportedBy")
+      .populate("reason")
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+module.exports.deleteReportById = function (id) {
+  return new Promise((resolve, reject) => {
+    Report.findByIdAndDelete(id)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+module.exports.deleteReportReasonById = function (id) {
+  return new Promise((resolve, reject) => {
+    ReportReason.findByIdAndDelete(id)
       .then((data) => {
         resolve(data);
       })

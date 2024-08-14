@@ -231,8 +231,6 @@ exports.updateComment = async (req, res) => {
   }
 };
 
-
-
 exports.getAllReviews = async (req, res) => {
   const userId = req.params.userId;
   if (!userId) {
@@ -335,8 +333,6 @@ exports.deleteReviewById = async (req, res) => {
     });
 };
 
-
-
 exports.deleteComment = async (req, res) => {
   try {
     const userId = req.body.user._id;
@@ -375,3 +371,166 @@ exports.deleteComment = async (req, res) => {
   }
 };
 
+exports.createReport = async (req, res) => {
+  const { reportedItem, itemType, reason, comment } = req.body;
+  const reportedBy = req.body.user._id;
+
+  if (!reportedBy) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+
+  if (!reportedItem || !itemType || !reason || !comment) {
+    res.send(createResponse.invalid("All fields are required"));
+    return;
+  }
+
+  try {
+    const reportData = { reportedBy, reportedItem, itemType, reason, comment };
+    const savedReport = await postService.createReport(reportData);
+    return res.json(savedReport);
+  } catch (e) {
+    console.log(e);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: e,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+exports.getReportReasons = async (req, res) => {
+  postDao
+    .getReportReasons()
+    .then((data) => {
+      if (data && data.length > 0) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+exports.createReportReason = async (req, res) => {
+  const { reason } = req.body;
+
+  if (!reason) {
+    res.send(createResponse.invalid("Reason cannot be empty"));
+    return;
+  }
+
+  try {
+    const savedReason = await postService.createReportReason({ reason });
+    return res.json(savedReason);
+  } catch (e) {
+    console.log(e);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: e,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+
+//by id
+exports.getReportById = async (req, res) => {
+   const id = req.params.id;
+   if (!id) {
+     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+     return;
+   }
+  postDao
+    .getReportById(id)
+    .then((data) => {
+      if (data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+
+
+exports.deleteReportById = async (req, res) => {
+  const id = req.params.id;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  postDao
+    .deleteReportById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.UPDATE_NOT_DONE_ERROR_COde,
+          errorMessage: errorMessageConstants.UNABLE_TO_DELETE_MESSAGE,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+exports.deleteReportReasonById = async (req, res) => {
+  const id = req.params.reasonId;
+  if (!id) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  postDao
+    .deleteReportReasonById(id)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.UPDATE_NOT_DONE_ERROR_COde,
+          errorMessage: errorMessageConstants.UNABLE_TO_DELETE_MESSAGE,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};

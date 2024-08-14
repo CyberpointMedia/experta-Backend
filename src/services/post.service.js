@@ -2,6 +2,9 @@ const customError = require("../errors/custom.error");
 const globalConstants = require("../constants/global-constants");
 
 const BasicInfo = require("../models/basicInfo.model");
+const Report = require("../models/report.model");
+const ReportReason = require("../models/reportReason.model");
+
 
 const Post = require("../models/post.model");
 const errorMessageConstants = require("../constants/error.messages");
@@ -225,3 +228,35 @@ module.exports.deleteComment = async (postId, commentId, userId) => {
     return createResponse.error(response);
   }
 };
+
+
+module.exports.createReport = async function (reportData) {
+  try {
+    const newReport = new Report(reportData);
+    const savedReport = await newReport.save();
+    return createResponse.success(savedReport);
+  } catch (error) {
+    console.error("Error:", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
+  }
+};
+
+module.exports.createReportReason = async function (reasonData) {
+  try {
+    const newReason = new ReportReason(reasonData);
+    const savedReason = await newReason.save();
+    return createResponse.success(savedReason);
+  } catch (error) {
+    console.error("Error:", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
+  }
+};
+
