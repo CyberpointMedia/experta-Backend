@@ -203,6 +203,105 @@ module.exports.getAllPost = function (type, userId) {
   });
 };
 
+
+module.exports.getAllRandomPost = function (type) {
+  return new Promise((resolve, reject) => {
+    Post.find({ type: type })
+      .populate({
+        path: "postedBy",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "likes",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "comments.user",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+        select: "_id online",
+      })
+      .then((posts) => {
+        if (!posts || posts.length === 0) {
+          return resolve(null);
+        }
+        const transformUser = (user) => {
+          if (!user) return null;
+          return {
+            id: user._id || "",
+            online: user.online || false,
+            rating: user.basicInfo?.rating || "",
+            profilePic: user.basicInfo?.profilePic || "",
+            displayName: user.basicInfo?.displayName || "",
+            industry: user.industryOccupation?.industry?.name || "",
+            occupation: user.industryOccupation?.occupation?.name || "",
+          };
+        };
+        const transformedPosts = posts.map((post) => ({
+          type: post.type,
+          id: post._id,
+          formattedDate: post?.formattedDate,
+          image: post?.image,
+          caption: post?.caption,
+          postedBy: transformUser(post.postedBy),
+          likes: post.likes.map(transformUser).filter(Boolean),
+          comments: post.comments.map((comment) => ({
+            comment: comment.comment,
+            formattedDate: comment?.formattedDate,
+            _id: comment._id,
+            createdAt: comment.createdAt,
+            user: transformUser(comment.user),
+          })),
+          totalLikes: post.likes.length,
+          totalComments: post.comments.length,
+        }));
+
+        // Randomize the order of posts
+        for (let i = transformedPosts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [transformedPosts[i], transformedPosts[j]] = [
+            transformedPosts[j],
+            transformedPosts[i],
+          ];
+        }
+
+        resolve(transformedPosts);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
 module.exports.createReview = function (reviewToSave, basicInfoId) {
   return new Promise((resolve, reject) => {
     const newReview = new Review(reviewToSave);

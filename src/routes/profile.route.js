@@ -9,6 +9,7 @@ module.exports = (app) => {
   var router = require("express").Router();
   router.get("/post/detail/:postId", postController.getPostDetails);
   router.post("/posts", postController.getAllPost);
+  router.get("/posts/random/:type", postController.getAllRandomPost);
   router.post(
     "/post/create",
     uploadMiddleWare.single("file"),
