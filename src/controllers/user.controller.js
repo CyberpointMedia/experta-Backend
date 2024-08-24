@@ -157,7 +157,6 @@ exports.getIndustryOccupation = async (req, res) => {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
-  console.log("userId", userId);
   userDao
     .getIndustryOccupation(userId)
     .then((data) => {
@@ -990,16 +989,16 @@ exports.accountSetting = async (req, res) => {
 };
 
 exports.getUserData = async (req, res) => {
-  const { userId } = req.params;
+  const { userId, ownUserId } = req.body;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
+
   userDao
-    .getUserData(userId)
+    .getUserData(userId, ownUserId)
     .then((data) => {
       if (null != data) {
-        console.log;
         res.json(createResponse.success(data));
       } else {
         response = {
@@ -1040,6 +1039,23 @@ exports.addFollowerOrFollowing = async (req, res) => {
   }
 };
 
+exports.unfollow = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { unfollowUserId } = req.body;
+
+    const result = await userService.unfollow(userId, unfollowUserId);
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
 exports.getfollowersandfollowing = async (req, res) => {
   const { userId } = req.params;
   if (!userId) {
@@ -1049,38 +1065,8 @@ exports.getfollowersandfollowing = async (req, res) => {
   userDao
     .followersandfollowing(userId)
     .then(async (data) => {
-      console.log("datadfsfs,following", data);
-      if (null != data) {
-        const followerList = await Promise.all(
-          data.followers.map(async (follower) => {
-            const followerUser = await BasicInfo.findOne({
-              user: follower._id,
-            });
-            return {
-              id: followerUser?._id,
-              displayName: followerUser?.displayName,
-              name: followerUser?.name,
-            };
-          })
-        );
-        const followingList = await Promise.all(
-          data.following.map(async (following) => {
-            const followingUser = await BasicInfo.findOne({
-              user: following._id,
-            });
-            return {
-              id: followingUser?._id,
-              displayName: followingUser?.displayName,
-              name: followingUser?.name,
-            };
-          })
-        );
-        res.json(
-          createResponse.success({
-            followers: followerList,
-            following: followingList,
-          })
-        );
+      if (null != data && data) {
+        res.json(createResponse.success(data));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
@@ -1139,7 +1125,6 @@ exports.getFeeds = async (req, res) => {
     .getFeeds(userId)
     .then((data) => {
       if (null != data) {
-        console.log;
         res.json(createResponse.success(data));
       } else {
         response = {
@@ -1188,10 +1173,11 @@ exports.getPolicy = async (req, res) => {
     });
 };
 
-exports.searchUsersByInterest = async (req, res) => {
+exports.getUserBySearch = async (req, res) => {
   const { search } = req.params;
+  const searchTerm = search && search !== ":search" ? search : null;
   userDao
-    .searchUsersByInterest(search)
+    .getUserBySearch(searchTerm)
     .then((data) => {
       if (null != data) {
         console.log;
@@ -1452,10 +1438,9 @@ exports.getUserByIndustry = async (req, res) => {
     return;
   }
   userDao
-    .getUserData(userId)
+    .getUserByIndustry(industryId)
     .then((data) => {
       if (null != data) {
-        console.log;
         res.json(createResponse.success(data));
       } else {
         response = {
@@ -1508,4 +1493,156 @@ exports.createOrUpdateIndustryOccupationMaster = async (req, res) => {
     };
     res.json(createResponse.error(response));
   }
+};
+
+exports.createOrUpdateOccupation = async (req, res) => {
+  try {
+    const { name, industry, id } = req.body;
+    if (!name || name.trim() === "") {
+      return res.json(createResponse.invalid("name cannot be empty"));
+    }
+    if (!industry || industry.trim() === "") {
+      return res.json(createResponse.invalid("industry cannot be empty"));
+    }
+    const savedOccupation = await userService.createOrUpdateOccupation({
+      name,
+      industry,
+      id,
+    });
+    res.json(savedOccupation);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+exports.removeConnection = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { targetUserId, action } = req.body;
+
+    if (!["unfollow", "removeFollower"].includes(action)) {
+      return res.json(
+        createResponse.error({
+          errorCode: errorMessageConstants.BAD_REQUEST,
+          errorMessage:
+            "Invalid action. Must be 'unfollow' or 'removeFollower'",
+        })
+      );
+    }
+
+    const result = await userService.removeConnection(
+      userId,
+      targetUserId,
+      action
+    );
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+// block and unBlock
+
+exports.getAllBlockedUsers = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getAllBlockedUsers(userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      res.json(createResponse.error(response));
+    });
+};
+
+exports.blockUser = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { userToBlockId } = req.body;
+
+    const result = await userService.blockUser(userId, userToBlockId);
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+exports.unblockUser = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { userToUnblockId } = req.body;
+
+    const result = await userService.unblockUser(userId, userToUnblockId);
+    res.json(result);
+  } catch (error) {
+    console.log(error.message);
+    response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    res.json(createResponse.error(response));
+  }
+};
+
+exports.getProfileCompletion = async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    res
+      .status(400)
+      .send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getProfileCompletion(userId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
 };

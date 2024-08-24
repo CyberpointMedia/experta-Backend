@@ -83,7 +83,6 @@ module.exports.getIndustryOccupation = function (userId) {
         populate: { path: "industry occupation" },
       })
       .then((data) => {
-        console.log("data",data,userId);
         resolve(data);
       })
       .catch((err) => {
@@ -171,7 +170,6 @@ module.exports.getEducation = function (userId) {
     User.findOne({ _id: userId })
       .populate("education")
       .then((data) => {
-        console.log("education", data);
         resolve(data);
       })
       .catch((err) => {
@@ -220,7 +218,6 @@ module.exports.deleteAvailabilityById = function (id) {
   });
 };
 
-
 module.exports.getWorkExperience = function (userId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
@@ -239,7 +236,6 @@ module.exports.getWorkExperienceById = function (id) {
   return new Promise((resolve, reject) => {
     WorkExperience.findOne({ _id: id })
       .then((data) => {
-        console.log("data", data);
         resolve(data);
       })
       .catch((err) => {
@@ -253,7 +249,6 @@ module.exports.deleteWorkExperienceById = function (id) {
   return new Promise((resolve, reject) => {
     WorkExperience.findByIdAndDelete(id)
       .then((data) => {
-        console.log("data", data);
         resolve(data);
       })
       .catch((err) => {
@@ -262,8 +257,6 @@ module.exports.deleteWorkExperienceById = function (id) {
       });
   });
 };
-
-
 
 module.exports.getUserAbout = function (userId) {
   return new Promise((resolve, reject) => {
@@ -286,7 +279,6 @@ module.exports.getUserInterest = function (userId) {
         populate: { path: "intereset" },
       })
       .then((data) => {
-        console.log("data888", data);
         resolve(data);
       })
       .catch((err) => {
@@ -362,7 +354,6 @@ module.exports.getUserLanguages = function (userId) {
         populate: { path: "language" },
       })
       .then((data) => {
-        console.log("language", data);
         resolve(data);
       })
       .catch((err) => {
@@ -611,11 +602,78 @@ module.exports.getAccountSetting = function (userId) {
 
 module.exports.followersandfollowing = function (userId) {
   return new Promise((resolve, reject) => {
-    BasicInfo.findOne({ user: userId })
-      .populate("following", "_id")
-      .populate("followers", "_id")
+    User.findOne({ _id: userId })
+      .populate({
+        path: "basicInfo",
+        select: "following followers",
+        populate: {
+          path: "following followers",
+          select: "_id online industryOccupation",
+          populate: [
+            {
+              path: "basicInfo",
+              select: "rating profilePic displayName",
+            },
+            {
+              path: "industryOccupation",
+              select: "industry occupation",
+              populate: [
+                { path: "industry", select: "name" },
+                { path: "occupation", select: "name" },
+              ],
+            },
+          ],
+        },
+      })
       .then((data) => {
-        resolve(data);
+        const { following, followers } = data.basicInfo;
+
+        Promise.all(
+          following.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                };
+                resolve(filteredUser);
+              })
+          )
+        )
+          .then((filteredFollowing) =>
+            Promise.all(
+              followers.map(
+                (user) =>
+                  new Promise((resolve) => {
+                    const filteredUser = {
+                      id: user?._id || "",
+                      online: user?.online || false,
+                      rating: user?.basicInfo?.rating || "",
+                      profilePic: user?.basicInfo?.profilePic || "",
+                      displayName: user?.basicInfo?.displayName || "",
+                      industry: user?.industryOccupation?.industry?.name || "",
+                      occupation:
+                        user?.industryOccupation?.occupation?.name || "",
+                    };
+                    resolve(filteredUser);
+                  })
+              )
+            ).then((filteredFollowers) => {
+              resolve({
+                following: filteredFollowing,
+                followers: filteredFollowers,
+              });
+            })
+          )
+          .catch((err) => {
+            console.log(err);
+            reject(err);
+          });
       })
       .catch((err) => {
         console.log(err);
@@ -642,7 +700,6 @@ module.exports.getFeeds = function (userId) {
     Feed.find({ user: userId })
       .populate("likes")
       .then((data) => {
-        console.log("data", data);
         resolve(data);
       })
       .catch((err) => {
@@ -680,10 +737,9 @@ module.exports.createPolicy = function (policyToSave) {
   });
 };
 
-module.exports.getUserData = function (userId) {
+module.exports.getUserData = function (userId, ownUserId) {
   return new Promise((resolve, reject) => {
     User.findOne({ _id: userId })
-      .populate("basicInfo")
       .populate("education")
       .populate({
         path: "industryOccupation",
@@ -692,6 +748,10 @@ module.exports.getUserData = function (userId) {
       .populate({
         path: "basicInfo",
         populate: { path: "posts" },
+      })
+      .populate({
+        path: "basicInfo",
+        populate: { path: "reviews" },
       })
       .populate("workExperience")
       .populate({
@@ -702,18 +762,29 @@ module.exports.getUserData = function (userId) {
         path: "language",
         populate: { path: "language" },
       })
-      .populate({
-        path: "reviews",
-        populate: { path: "reviews" },
-      })
+      // .populate({
+      //   path: "reviews",
+      //   populate: { path: "reviews" },
+      // })
       .populate({
         path: "expertise",
         populate: { path: "expertise" },
       })
       .populate("pricing")
-      .then((data) => {
-        console.log("dat6662a", data);
-        resolve(data);
+      .then(async (data) => {
+        if (data && data.basicInfo) {
+          // Check if ownUserId is in the followers array of the found user
+          const isFollowing = data.basicInfo.followers.some(
+            (followerId) => followerId.toString() === ownUserId
+          );
+
+          // Add isFollowing field to the data object
+          const result = data.toObject(); // Convert to a plain JavaScript object
+          result.isFollowing = isFollowing;
+          const ownUser = await User.findById(ownUserId);
+          result.isBlocked = ownUser.blockedUsers.includes(userId);
+          resolve(result);
+        }
       })
       .catch((err) => {
         console.log(err);
@@ -725,29 +796,50 @@ module.exports.getUserData = function (userId) {
 module.exports.getTrending = function () {
   return new Promise((resolve, reject) => {
     User.find({})
-      .populate("education")
-      .populate("industryOccupation")
-      .populate("workExperience")
+      .select(
+        "_id online rating profilePic displayName industryOccupation pricing"
+      )
       .populate({
-        path: "intereset",
-        populate: { path: "intereset" },
-      })
-      .populate({
-        path: "basicInfo",
-        populate: { path: "posts" },
-      })
-      .populate({
-        path: "language",
-        populate: { path: "language" },
-      })
-      .populate({
-        path: "expertise",
-        populate: { path: "expertise" },
+        path: "industryOccupation",
+        populate: [
+          { path: "industry", select: "name" },
+          { path: "occupation", select: "name" },
+        ],
       })
       .populate("pricing")
-      .sort({ noOfBookings: -1 })
+      .populate("basicInfo")
       .then((data) => {
-        resolve(data);
+        Promise.all(
+          data.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                  pricing: user?.pricing || {
+                    _id: "",
+                    _v: 0,
+                    audioCallPrice: 0,
+                    messagePrice: 0,
+                    videoCallPrice: 0,
+                  },
+                };
+                resolve(filteredUser);
+              })
+          )
+        )
+          .then((filteredData) => {
+            resolve(filteredData);
+          })
+          .catch((err) => {
+            console.log(err);
+            reject(err);
+          });
       })
       .catch((err) => {
         console.log(err);
@@ -756,38 +848,116 @@ module.exports.getTrending = function () {
   });
 };
 
-module.exports.searchUsersByInterest = function (keyword) {
+module.exports.getUserBySearch = function (query) {
   return new Promise(async (resolve, reject) => {
-    const interestItem = await InterestItemsModel.findOne({ name: keyword });
-    const where = {};
-    if (interestItem) where.name = interestItem.name;
-    User.find()
-      .populate({
-        path: "intereset",
-        populate: {
-          path: "intereset",
-          model: "InterestItem",
-          match: where,
+    const aggregationPipeline = [
+      {
+        $lookup: {
+          from: "basicinfos",
+          localField: "basicInfo",
+          foreignField: "_id",
+          as: "basicInfo",
         },
-      })
-      .populate("basicInfo")
-      .populate("education")
-      .populate("industryOccupation")
-      .populate("workExperience")
-      .populate({
-        path: "intereset",
-        populate: { path: "intereset" },
-      })
-      .populate({
-        path: "language",
-        populate: { path: "language" },
-      })
-      .populate({
-        path: "expertise",
-        populate: { path: "expertise" },
-      })
-      .populate("pricing")
-      .sort({ noOfBookings: -1 })
+      },
+      {
+        $lookup: {
+          from: "industryoccupations",
+          localField: "industryOccupation",
+          foreignField: "_id",
+          as: "industryOccupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "industries",
+          localField: "industryOccupation.industry",
+          foreignField: "_id",
+          as: "industry",
+        },
+      },
+      {
+        $lookup: {
+          from: "occupations",
+          localField: "industryOccupation.occupation",
+          foreignField: "_id",
+          as: "occupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "interests",
+          localField: "intereset",
+          foreignField: "_id",
+          as: "interest",
+        },
+      },
+      {
+        $lookup: {
+          from: "interestitems",
+          localField: "interest.intereset",
+          foreignField: "_id",
+          as: "interestItems",
+        },
+      },
+      {
+        $match: query
+          ? {
+              $or: [
+                { "basicInfo.firstName": { $regex: query, $options: "i" } },
+                { "basicInfo.lastName": { $regex: query, $options: "i" } },
+                { "basicInfo.displayName": { $regex: query, $options: "i" } },
+                { "industry.name": { $regex: query, $options: "i" } },
+                { "occupation.name": { $regex: query, $options: "i" } },
+                { email: { $regex: query, $options: "i" } },
+                { "interestItems.name": { $regex: query, $options: "i" } },
+              ],
+            }
+          : {}, // If query is empty, match all documents,
+      },
+      {
+        $addFields: {
+          sortOrder: {
+            $cond: [{ $eq: ["$isVerified", true] }, 0, 1],
+          },
+          randomValue: { $rand: {} },
+        },
+      },
+      {
+        $sort: {
+          sortOrder: 1,
+          noOfBooking: -1,
+          randomValue: 1,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          online: { $ifNull: ["$online", false] },
+          isVerified: { $ifNull: ["$isVerified", false] },
+          noOfBooking: { $ifNull: ["$noOfBooking", 0] },
+          rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
+          profilePic: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
+          },
+          displayName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
+          },
+          lastName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
+          },
+          firstName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
+          },
+          industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
+          occupation: {
+            $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
+          },
+        },
+      },
+    ];
+
+    // todo:add random
+    await User.aggregate(aggregationPipeline)
       .then((data) => {
         resolve(data);
       })
@@ -811,8 +981,6 @@ module.exports.getCategories = function (userId) {
   });
 };
 
-
-
 module.exports.getIndustry = function () {
   return new Promise((resolve, reject) => {
     IndustryModel.find({})
@@ -825,7 +993,6 @@ module.exports.getIndustry = function () {
       });
   });
 };
-
 
 module.exports.getOccupation = function (industryId) {
   return new Promise((resolve, reject) => {
@@ -840,43 +1007,141 @@ module.exports.getOccupation = function (industryId) {
   });
 };
 
-
 module.exports.getUserByIndustry = function (industryId) {
   return new Promise(async (resolve, reject) => {
-    const industryOccupations = await IndustryOccupation.find({ industry: industryId }).select('_id');
-    const industryOccupationIds = industryOccupations.map(io => io._id);
+    const industryOccupations = await IndustryOccupation.find({
+      industry: industryId,
+    }).select("_id");
+    const industryOccupationIds = industryOccupations.map((io) => io._id);
     User.find({ industryOccupation: { $in: industryOccupationIds } })
-      .populate("basicInfo")
-      .populate("education")
+      .select(
+        "_id online rating profilePic displayName industryOccupation pricing"
+      )
       .populate({
         path: "industryOccupation",
-        populate: { path: "industry" },
-        populate: { path: "occupation" },
-      })
-      .populate("workExperience")
-      .populate({
-        path: "intereset",
-        populate: { path: "intereset" },
-      })
-      .populate({
-        path: "language",
-        populate: { path: "language" },
-      })
-      .populate({
-        path: "reviews",
-      })
-      .populate({
-        path: "expertise",
-        populate: { path: "expertise" },
+        populate: [
+          { path: "industry", select: "name" },
+          { path: "occupation", select: "name" },
+        ],
       })
       .populate("pricing")
+      .populate("basicInfo")
       .then((data) => {
-        console.log("dat6662a", data);
-        resolve(data);
+        Promise.all(
+          data.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                  pricing: user?.pricing || {
+                    _id: "",
+                    _v: 0,
+                    audioCallPrice: 0,
+                    messagePrice: 0,
+                    videoCallPrice: 0,
+                  },
+                };
+                resolve(filteredUser);
+              })
+          )
+        )
+          .then((filteredData) => {
+            resolve(filteredData);
+          })
+          .catch((err) => {
+            console.log(err);
+            reject(err);
+          });
       })
       .catch((err) => {
         console.log(err);
         reject(err);
+      });
+  });
+};
+
+// block
+module.exports.getAllBlockedUsers = function (userId) {
+  return new Promise((resolve, reject) => {
+    User.findById(userId)
+      .populate({
+        path: "blockedUsers",
+        populate: [
+          {
+            path: "basicInfo",
+            select: "rating profilePic displayName",
+          },
+          {
+            path: "industryOccupation",
+            select: "industry occupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+      })
+      .then((data) => {
+        console.log("filteredUser--> ", data);
+        Promise.all(
+          data?.blockedUsers?.map(
+            (user) =>
+              new Promise((resolve) => {
+                const filteredUser = {
+                  id: user?._id || "",
+                  isVerified: user?.isVerified || "",
+                  online: user?.online || false,
+                  rating: user?.basicInfo?.rating || "",
+                  profilePic: user?.basicInfo?.profilePic || "",
+                  displayName: user?.basicInfo?.displayName || "",
+                  industry: user?.industryOccupation?.industry?.name || "",
+                  occupation: user?.industryOccupation?.occupation?.name || "",
+                };
+                console.log("filteredUser--> ", filteredUser);
+                resolve(filteredUser);
+              })
+          )
+        ).then((filteredData) => {
+          resolve(filteredData);
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+module.exports.getProfileCompletion = function (userId) {
+  return new Promise((resolve, reject) => {
+    User.findById(userId)
+      .populate("basicInfo")
+      .populate("education")
+      .populate("industryOccupation")
+      .populate("workExperience")
+      .populate("intereset")
+      .populate("language")
+      .populate("expertise")
+      .populate("pricing")
+      .populate("availability")
+      .then((user) => {
+        if (user) {
+          const completionDetails = user.calculateProfileCompletion();
+          if (completionDetails) resolve(completionDetails);
+          else resolve(null);
+        } else {
+          resolve(null);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        reject(error);
       });
   });
 };

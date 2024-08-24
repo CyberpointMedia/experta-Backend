@@ -5,7 +5,7 @@ module.exports = Object.freeze({
   VALIDATION_FAILED: "validation_failed",
   AUTHENTICATION_FAILED: "authentication_failed",
   TOKEN_ISSUE_CODE: 450,
-  
+
   UNAUTHORIZED_ACCESS_CODE: 451,
   INVALID_USER_CODE: 453,
   REVISION_QUESTION_ECT: 30,
@@ -13,4 +13,5 @@ module.exports = Object.freeze({
   PASSWORD_REGEX: new RegExp(/^(?=.*\d).{8,}$/),
   PASSWORD_POLICY: "Minimum 8 characters, Minimum 1 number.",
   USER_ALREADY_EXISTS: "user_already_exists",
+  INVALID_INPUT_CODE:500,
 });

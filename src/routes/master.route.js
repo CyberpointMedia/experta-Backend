@@ -4,22 +4,16 @@ const userController = require("../controllers/user.controller");
 const uploadMiddleWare = require("../middlewares/file.middleware");
 
 module.exports = (app) => {
-    var router = require("express").Router();
-    router.get("/industry", userController.getIndustry);
-    router.get("/occupation/:industryId",userController.getOccupation);
-    router.get("/user/by-industry:industryId", userController.getUserByIndustry);
-     router.post(
-       "/industry",
-       uploadMiddleWare.single("file"),
+  var router = require("express").Router();
+  router.get("/industry", userController.getIndustry);
+  router.get("/occupation/:industryId", userController.getOccupation);
+  router.get("/user/by-industry/:industryId", userController.getUserByIndustry);
+  router.post(
+    "/industry",
+    uploadMiddleWare.single("file"),
     //    authMiddleware,
-       userController.createOrUpdateIndustryOccupationMaster    
-     );
-    //  router.post(
-    //    "/policy",
-    //    authMiddleware,
-    //    userController.createPolicy
-    //  );
-    //  router.get("/policy", authMiddleware, userController.getPolicy);
-     
-    app.use(routes.API, router);
+    userController.createOrUpdateIndustryOccupationMaster
+  );
+  router.post("/occupation", userController.createOrUpdateOccupation);
+  app.use(routes.API, router);
 };

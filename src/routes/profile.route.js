@@ -7,8 +7,9 @@ const { upload } = require("../utils/aws.utlis");
 
 module.exports = (app) => {
   var router = require("express").Router();
-  router.get("/post/detail", postController.getPostDetails);
-  router.get("/posts/:type", authMiddleware, postController.getAllPost);
+  router.get("/post/detail/:postId", postController.getPostDetails);
+  router.post("/posts", postController.getAllPost);
+  router.get("/posts/random/:type", postController.getAllRandomPost);
   router.post(
     "/post/create",
     uploadMiddleWare.single("file"),
@@ -21,5 +22,27 @@ module.exports = (app) => {
     postController.likeUnlikePost
   );
   router.post("/post/comment/:id", authMiddleware, postController.newComment);
+  router.delete("/post/comment", authMiddleware, postController.deleteComment);
+  router.patch("/post/comment", authMiddleware, postController.updateComment);
+
+  router.post("/reviews", authMiddleware, postController.createReview);
+  router.get("/reviews/:userId", postController.getAllReviews);
+  router.delete("/reviews/:id", postController.deleteReviewById);
+
+  router.post("/report", authMiddleware, postController.createReport);
+  router.get("/report/:id", authMiddleware, postController.getReportById);
+
+  router.post(
+    "/reasons",
+    authMiddleware,
+    postController.createReportReason
+  );
+  router.delete(
+    "/reasons/:reasonId",
+    authMiddleware,
+    postController.deleteReportReasonById
+  );
+  router.delete("report/:id", authMiddleware, postController.deleteReportById);
+  router.get("/reasons", postController.getReportReasons);
   app.use(routes.API, router);
 };

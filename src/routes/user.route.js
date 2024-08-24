@@ -2,6 +2,7 @@ const userController = require("../controllers/user.controller");
 const routes = require("../constants/route.url");
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const uploadMiddleWare = require("../middlewares/file.middleware");
+const User=require("../models/user.model")
 
 module.exports = (app) => {
   var router = require("express").Router();
@@ -142,23 +143,20 @@ module.exports = (app) => {
     userController.getUserAvailability
   );
 
-   router.get(
-     "/availability/:id",
-     authMiddleware,
-     userController.getAvailabilityById
-   );
-   router.delete(
-     "/availability/:id",
-     authMiddleware,
-     userController.deleteAvailabilityById
-   );
-
-  router.get("/getUserData/:userId", userController.getUserData);
-
   router.get(
-    "/getUserByIntreset/:search",
-    userController.searchUsersByInterest
+    "/availability/:id",
+    authMiddleware,
+    userController.getAvailabilityById
   );
+  router.delete(
+    "/availability/:id",
+    authMiddleware,
+    userController.deleteAvailabilityById
+  );
+
+  router.post("/getUserData", userController.getUserData);
+
+  router.get("/getUserBySearch/:search", userController.getUserBySearch);
   /// follwing and follwers
   router.post(
     "/profile/follow",
@@ -171,7 +169,28 @@ module.exports = (app) => {
     userController.getfollowersandfollowing
   );
 
+  router.post(
+    "/removeConnection",
+    authMiddleware,
+    userController.removeConnection
+  );
+
+  // block
+  router.get(
+    "/getAllBlockedUsers",
+    authMiddleware,
+    userController.getAllBlockedUsers
+  );
+
+  router.post("/blockUser", authMiddleware, userController.blockUser);
+
+  router.post("/unblockUser", authMiddleware, userController.unblockUser);
+
   router.get("/categories", userController.getCategories);
   router.get("/trending", userController.getTrending);
+  router.get(
+    "/profile-completion/:userId",
+    userController.getProfileCompletion
+  );
   app.use(routes.API, router);
 };

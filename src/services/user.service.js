@@ -28,6 +28,7 @@ const Availability = require("../models/availability.model");
 const Pricing = require("../models/pricing.model");
 const UserAccount = require("../models/account.model");
 const IndustryModel = require("../models/industry.model");
+const OccupationModel = require("../models/occupation.model");
 
 module.exports.createOrUpdateIndustryOccupation = async function (
   userId,
@@ -68,7 +69,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
-    
+
     let whereExpertise = {};
     if (user.expertise) where._id = user.expertise;
 
@@ -92,7 +93,6 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       user.industryOccupation = updatedIndustryOccupation._id;
       await user.save();
     }
-   
 
     return createResponse.addSuccess(
       updatedIndustryOccupation,
@@ -323,9 +323,7 @@ module.exports.createOrUpdateUserLanguage = async function (
   languageToSave
 ) {
   try {
-    console.log("dkh222dk", "enen");
     let user = await User.findById(userId).populate("language");
-    console.log("dkhdk", user);
     if (!user) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -475,48 +473,58 @@ module.exports.accountSetting = async (userId, data) => {
 module.exports.addFollowerOrFollowing = async (userId, data) => {
   try {
     const { followUserId, followedByUserId } = data;
-    const user = await BasicInfo.findOne({ user: userId });
-    const followUser = followUserId
-      ? await BasicInfo.findOne({ user: followUserId })
-      : null;
-    const followedByUser = followedByUserId
-      ? await BasicInfo.findOne({ user: followedByUserId })
-      : null;
-    if (followUserId && followUser) {
-      if (user.followers.includes(followUserId)) {
-        const response = {
-          errorCode: errorMessageConstants.CONFLICTS,
-          errorMessage: "Already following",
-        };
-        return createResponse.error(response);
-      }
-      user.followers.push(followUserId);
-      followUser.following.push(userId);
-      await followUser.save();
-    }
-    if (followedByUserId && followedByUser) {
-      if (user.following.includes(followedByUserId)) {
-        const response = {
-          errorCode: errorMessageConstants.CONFLICTS,
-          errorMessage: "User is already following",
-        };
-        return createResponse.error(response);
-      }
-      followedByUser.followers.push(userId);
-      if (user?.following) {
-        user.following.push(followedByUserId);
-      }
-      await followedByUser.save();
+
+    // Find the user and their basic info
+    const user = await User.findById(userId).populate("basicInfo");
+    if (!user || !user.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User or BasicInfo not found",
+      });
     }
 
-    const savedUser = await user.save();
-    if (savedUser != null) return createResponse.success(savedUser);
-    else {
-      response = {
-        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+    // Find the follow user and their basic info
+    const followUser = followUserId
+      ? await User.findById(followUserId).populate("basicInfo")
+      : null;
+
+    // Find the followed by user and their basic info
+    const followedByUser = followedByUserId
+      ? await User.findById(followedByUserId).populate("basicInfo")
+      : null;
+
+    if (followUserId && followUser && followUser.basicInfo) {
+      if (user.basicInfo.followers.includes(followUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "Already following",
+        });
+      }
+      user.basicInfo.followers.push(followUserId);
+      followUser.basicInfo.following.push(userId);
+      await followUser.basicInfo.save();
+    }
+
+    if (followedByUserId && followedByUser && followedByUser.basicInfo) {
+      if (user.basicInfo.following.includes(followedByUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "User is already following",
+        });
+      }
+      followedByUser.basicInfo.followers.push(userId);
+      user.basicInfo.following.push(followedByUserId);
+      await followedByUser.basicInfo.save();
+    }
+
+    const savedBasicInfo = await user.basicInfo.save();
+    if (savedBasicInfo) {
+      return createResponse.success(savedBasicInfo);
+    } else {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
+      });
     }
   } catch (error) {
     console.log("error", error);
@@ -524,6 +532,55 @@ module.exports.addFollowerOrFollowing = async (userId, data) => {
   }
 };
 
+module.exports.unfollow = async (userId, unfollowUserId) => {
+  try {
+    // Find the user and their basic info
+    const user = await User.findById(userId).populate("basicInfo");
+    if (!user || !user.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User or BasicInfo not found",
+      });
+    }
+
+    // Find the user to unfollow and their basic info
+    const unfollowUser = await User.findById(unfollowUserId).populate(
+      "basicInfo"
+    );
+    if (!unfollowUser || !unfollowUser.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User to unfollow not found",
+      });
+    }
+
+    // Check if the user is actually following the unfollowUser
+    if (!user.basicInfo.following.includes(unfollowUserId)) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.CONFLICTS,
+        errorMessage: "You are not following this user",
+      });
+    }
+
+    // Remove unfollowUserId from user's following list
+    user.basicInfo.following = user.basicInfo.following.filter(
+      (id) => id.toString() !== unfollowUserId
+    );
+
+    // Remove userId from unfollowUser's followers list
+    unfollowUser.basicInfo.followers = unfollowUser.basicInfo.followers.filter(
+      (id) => id.toString() !== userId
+    );
+
+    // Save changes
+    await user.basicInfo.save();
+    await unfollowUser.basicInfo.save();
+    return createResponse.success(user.basicInfo);
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
+  }
+};
 module.exports.createOrUpdateEducation = async (userId, educationData) => {
   try {
     const { _id, degree, schoolCollege, startDate, endDate } = educationData;
@@ -653,5 +710,169 @@ module.exports.createOrUpdateIndustryOccupationMaster = async function (data) {
       errorMessage: error.message,
     };
     return createResponse.error(response);
+  }
+};
+
+module.exports.createOrUpdateOccupation = async ({ name, industry, id }) => {
+  try {
+    let updatedOccupationMaster = await OccupationModel.findOneAndUpdate(
+      { _id: id ?? new mongoose.Types.ObjectId() },
+      {
+        $set: {
+          name,
+          industry,
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    return createResponse.success(updatedOccupationMaster);
+  } catch (error) {
+    console.error("Error:", error);
+    const response = {
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    };
+    return createResponse.error(response);
+  }
+};
+
+module.exports.removeConnection = async (userId, targetUserId, action) => {
+  try {
+    // Find the current user and their basic info
+    const user = await User.findById(userId).populate("basicInfo");
+    if (!user || !user.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User or BasicInfo not found",
+      });
+    }
+
+    // Find the target user and their basic info
+    const targetUser = await User.findById(targetUserId).populate("basicInfo");
+    if (!targetUser || !targetUser.basicInfo) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Target user not found",
+      });
+    }
+
+    if (action === "unfollow") {
+      // Check if the user is actually following the target user
+      if (!user.basicInfo.following.includes(targetUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "You are not following this user",
+        });
+      }
+
+      // Remove targetUserId from user's following list
+      user.basicInfo.following = user.basicInfo.following.filter(
+        (id) => id.toString() !== targetUserId
+      );
+
+      // Remove userId from target user's followers list
+      targetUser.basicInfo.followers = targetUser.basicInfo.followers.filter(
+        (id) => id.toString() !== userId
+      );
+    } else if (action === "removeFollower") {
+      // Check if the target user is actually following the current user
+      if (!user.basicInfo.followers.includes(targetUserId)) {
+        return createResponse.error({
+          errorCode: errorMessageConstants.CONFLICTS,
+          errorMessage: "This user is not following you",
+        });
+      }
+
+      // Remove targetUserId from user's followers list
+      user.basicInfo.followers = user.basicInfo.followers.filter(
+        (id) => id.toString() !== targetUserId
+      );
+
+      // Remove userId from target user's following list
+      targetUser.basicInfo.following = targetUser.basicInfo.following.filter(
+        (id) => id.toString() !== userId
+      );
+    }
+
+    // Save changes
+    await user.basicInfo.save();
+    await targetUser.basicInfo.save();
+
+    return createResponse.success(user.basicInfo);
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
+  }
+};
+
+// block
+
+module.exports.blockUser = async (userId, userToBlockId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User not found",
+      });
+    }
+
+    if (user.blockedUsers.includes(userToBlockId)) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.CONFLICTS,
+        errorMessage: "User is already blocked",
+      });
+    }
+
+    user.blockedUsers.push(userToBlockId);
+    const savedUser = await user.save();
+
+    if (savedUser) {
+      return createResponse.success(savedUser);
+    } else {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
+  }
+};
+
+module.exports.unblockUser = async (userId, userToUnblockId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User not found",
+      });
+    }
+
+    if (!user.blockedUsers.includes(userToUnblockId)) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.CONFLICTS,
+        errorMessage: "User is not blocked",
+      });
+    }
+
+    user.blockedUsers = user.blockedUsers.filter(
+      (id) => id.toString() !== userToUnblockId
+    );
+    const savedUser = await user.save();
+
+    if (savedUser) {
+      return createResponse.success(savedUser);
+    } else {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
+      });
+    }
+  } catch (error) {
+    console.log("error", error);
+    throw new Error(error.message);
   }
 };
