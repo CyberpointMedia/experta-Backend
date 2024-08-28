@@ -162,12 +162,14 @@ const { Server } = require("socket.io");
 const { addNotification, deleteNotifOnMsgDelete } = require("../dao/chat.dao");
 
 const UserModel = require("../models/user.model");
+const ChatModel = require("../models/chat.model");
+const MessageModel = require("../models/message.model");
 
 exports.configureSocketEvents = (server) => {
   const io = new Server(server, {
     pingTimeout: 120000,
     cors: {
-      origin: "http://localhost:3000", // Replace with your client URL
+      origin: "*", // Replace with your client URL
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -195,19 +197,19 @@ exports.configureSocketEvents = (server) => {
     });
 
     // Message events
-    socket.on("new_msg_sent", async (newMsg) => {
-      const { chat } = newMsg;
-      if (!chat) return;
+    // socket.on("new_msg_sent", async (newMsg) => {
+    //   const { chat } = newMsg;
+    //   if (!chat) return;
 
-      await Promise.all(
-        chat.users.map(async (userId) => {
-          if (userId !== newMsg.sender._id) {
-            const { notifications } = await addNotification(newMsg._id, userId);
-            socket.to(userId).emit("new_msg_received", newMsg, notifications);
-          }
-        })
-      );
-    });
+    //   await Promise.all(
+    //     chat.users.map(async (userId) => {
+    //       if (userId !== newMsg.sender.id) {
+    //         // const { notifications } = await addNotification(newMsg.id, userId);
+    //         socket.to(userId).emit("new_msg_received", newMsg);
+    //       }
+    //     })
+    //   );
+    // });
 
     socket.on("msg_deleted", async (deletedMsgData) => {
       const { deletedMsgId, senderId, chat } = deletedMsgData;
@@ -293,13 +295,61 @@ exports.configureSocketEvents = (server) => {
       });
     });
 
+    socket.on("new_msg_sent", async (newMsg) => {
+      const { chat } = newMsg;
+      if (!chat) return;
+
+      await Promise.all(
+        chat.users.map(async (userId) => {
+          if (userId !== newMsg.sender._id) {
+            // const { notifications } = await addNotification(newMsg._id, userId);
+            socket.to(userId).emit("new_msg_received", newMsg);
+
+            // Emit updated unread count
+            const updatedChat = await ChatModel.findById(chat._id);
+            const userUnreadCountObj = updatedChat.unreadCounts.find(
+              (count) => count.user.toString() === userId.toString()
+            );
+            if (userUnreadCountObj) {
+              const unreadCount = userUnreadCountObj.count;
+              socket
+                .to(userId)
+                .emit("update_unread_count", { chatId: chat._id, unreadCount });
+            }
+          }
+        })
+      );
+    });
+
+    socket.on("mark_messages_read", async ({ chatId, userId }) => {
+      await MessageModel.updateMany(
+        { chat: chatId, readBy: { $ne: userId } },
+        { $addToSet: { readBy: userId } }
+      );
+
+      // Reset unread count for this user in this chat
+      await ChatModel.findByIdAndUpdate(
+        chatId,
+        {
+          $set: {
+            "unreadCounts.$[elem].count": 0,
+          },
+        },
+        {
+          arrayFilters: [{ "elem.user": userId }],
+          new: true,
+        }
+      );
+      socket.to(chatId).emit("messages_marked_read", { chatId, userId });
+    });
+
     // Disconnect event
     socket.on("disconnect", async () => {
       if (socket.userId) {
         const user = await UserModel.findOne({ _id: socket.userId });
         user.online = false;
         await user.save();
-        socket.broadcast.emit("getUserOffline", { userId:socket?.userId });
+        socket.broadcast.emit("getUserOffline", { userId: socket?.userId });
         io.emit("user_disconnected", socket.userId);
       }
       console.log("user disconnected");

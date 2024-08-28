@@ -8,6 +8,5 @@ module.exports = (app) => {
     .route("/chat")
     .post(authMiddleware, chatController.createOrRetrieveChat)
     .get(authMiddleware, chatController.fetchChats);
-
   app.use(routes.API, router);
 };

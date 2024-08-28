@@ -99,7 +99,7 @@ exports.fetchMessages = asyncHandler(async (req, res) => {
 
 exports.sendMessage = asyncHandler(async (req, res) => {
   const attachment = req?.file;
-  const { content, chatId } = req.body;
+  const { content, chatId, mediaDuration } = req.body;
   const loggedInUser = req.body.user._id;
 
   if ((!content && !attachment) || !chatId) {
@@ -120,12 +120,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     attachmentData = {
       fileUrl: attachment.location || "",
       file_id: attachment.key || "",
-      file_name:
-        attachment.originalname +
-        "===" +
-        (mediaDuration !== "undefined"
-          ? `${mediaDuration}+++${attachment.size}`
-          : attachment.size),
+      file_name: attachment.originalname,
     };
   } else {
     // For any other file type, it's uploaded via uploadToS3 middleware
@@ -146,12 +141,28 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     ...attachmentData,
     content: content || "",
     chat: chatId,
+    readBy: [loggedInUser], // Mark as read by sender
   });
 
   if (!createdMessage) {
     res.status(404);
     throw new Error("Message not found");
   }
+  const chat = await ChatModel.findById(chatId);
+
+  if (!chat) {
+    res.status(404);
+    throw new Error("Chat not found");
+  }
+
+  chat.unreadCounts.forEach((item) => {
+    if (item.user.toString() !== loggedInUser.toString()) {
+      item.count += 1;
+    }
+  });
+
+  await chat.save();
+
   // Update the lastMessage of current chat with newly created message
   const updateChatPromise = ChatModel.findByIdAndUpdate(chatId, {
     lastMessage: createdMessage._id,
@@ -179,6 +190,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Chat not found while updating lastMessage");
   }
+
   res.status(201).json(populatedMessage);
 });
 
@@ -348,4 +360,31 @@ const accessAttachment = asyncHandler(async (req, res) => {
   const params = { Bucket: s3_bucket, Key: filename };
   const fileObj = await s3.getObject(params).promise();
   res.status(200).send(fileObj.Body);
+});
+
+exports.markMessagesAsRead = asyncHandler(async (req, res) => {
+  const { chatId } = req.params;
+  const userId = req.body.user._id;
+
+  // Mark all messages in the chat as read by this user
+  await MessageModel.updateMany(
+    { chat: chatId, readBy: { $ne: userId } },
+    { $addToSet: { readBy: userId } }
+  );
+
+  // Reset unread count for this user in this chat
+  await ChatModel.findByIdAndUpdate(
+    chatId,
+    {
+      $set: {
+        "unreadCounts.$[elem].count": 0,
+      },
+    },
+    {
+      arrayFilters: [{ "elem.user": userId }],
+      new: true,
+    }
+  );
+
+  res.status(200).json({ message: "Messages marked as read" });
 });

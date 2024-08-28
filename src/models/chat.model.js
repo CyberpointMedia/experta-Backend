@@ -11,6 +11,12 @@ const chatSchema = new Schema(
     groupAdmins: [{ type: ObjectId, ref: "User" }],
     lastMessage: { type: ObjectId, ref: "Message" },
     chatDisplayPic: { type: String, trim: true },
+    unreadCounts: [
+      {
+        user: { type: ObjectId, ref: "User" },
+        count: { type: Number, default: 0 },
+      },
+    ],
   },
   { timestamps: true }
 );

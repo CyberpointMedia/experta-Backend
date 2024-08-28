@@ -23,5 +23,6 @@ module.exports = (app) => {
       chatController.sendMessage
     );
   router.get("/:chatId", authMiddleware, chatController.fetchMessages);
+  router.post("/read/:chatId", authMiddleware, chatController.markMessagesAsRead);
   app.use(routes.MESSAGE_API, router);
 };
