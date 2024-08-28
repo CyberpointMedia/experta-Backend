@@ -6,6 +6,8 @@ const bcrypt = require("bcryptjs");
 dotenv.config();
 const config = require("./config/config");
 const connectDB = require("./config/db");
+const {configureSocketEvents} = require("./config/socket");
+const {notFoundHandler,appErrorHandler} =require("./middlewares/error.middleware")
 
 const app = express();
 app.use(cors());
@@ -19,10 +21,19 @@ app.get("/", (req, res) => {
 });
 require("./routes/auth.route")(app);
 require("./routes/user.route")(app);
-require("./routes/account.route")(app)
-require('./routes/profile.route')(app)
-require('./routes/master.route')(app)
-
+require("./routes/account.route")(app);
+require("./routes/profile.route")(app);
+require("./routes/master.route")(app);
+require("./routes/message.routes")(app);
+require("./routes/chat.route")(app);
 
 const port = process.env.PORT || 5000;
-app.listen(port, () => console.log(`Server listening on port ${port}`));
+
+// Error middlewares
+app.all("*", notFoundHandler);
+app.use(appErrorHandler);
+const server = app.listen(port, () =>
+  console.log(`📍 Server started at port ${port}`)
+);
+
+configureSocketEvents(server);

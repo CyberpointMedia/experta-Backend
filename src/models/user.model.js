@@ -31,10 +31,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    online: {
-      type: Boolean,
-      default: false,
-    },
     blockExpiry: Date,
     isDeleted: {
       type: Boolean,
@@ -85,6 +81,11 @@ const userSchema = new mongoose.Schema(
     ],
     noOfBooking: {
       type: Number,
+    },
+    notifications: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
+    online: {
+      type: Boolean,
+      default: false,
     },
     blockedUsers: [
       {
