@@ -172,14 +172,14 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     .populate({
       path: "sender",
       model: "User",
-      select: "-notifications",
-      populate: { path: "basicInfo" },
+      select: "email phoneNo resendCount online basicInfo", // Select only required fields
+      populate: {
+        path: "basicInfo",
+        select: "firstName lastName displayName profilePic", // Select only required fields
+      },
     })
-    .populate({
-      path: "chat",
-      model: "Chat",
-      select: "-groupAdmins",
-    });
+    .select("-chat.groupAdmins") // Remove any unnecessary fields
+    .lean();
   // Parallel execution of independent promises
   const [updatedChat, populatedMessage] = await Promise.all([
     updateChatPromise,
