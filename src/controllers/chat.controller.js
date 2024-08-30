@@ -73,7 +73,6 @@ exports.fetchChats = asyncHandler(async (req, res) => {
         select: "firstName lastName displayName profilePic", // Select only required fields
       },
     })
-    .select("-chat.groupAdmins") // Remove any unnecessary fields
     .lean()
     .sort({ updatedAt: "desc" }); // (latest to oldest)
 
