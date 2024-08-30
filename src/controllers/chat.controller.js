@@ -60,7 +60,6 @@ exports.fetchChats = asyncHandler(async (req, res) => {
     users: { $elemMatch: { $eq: loggedInUserId } },
   })
     .populate("users", "-notifications")
-    .populate("groupAdmins", "-notifications")
     .populate({
       path: "lastMessage",
       model: "Message",
