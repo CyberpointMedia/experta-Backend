@@ -56,7 +56,7 @@ exports.fetchChats = asyncHandler(async (req, res) => {
   const loggedInUserId = req.body.user._id;
 
   // Fetch all the chats for the currently logged-in user
-  const chats = await ChatModel.find({
+ const chats = await ChatModel.find({
     users: { $elemMatch: { $eq: loggedInUserId } },
   })
     .populate("users", "email phoneNo resendCount online basicInfo")
@@ -65,14 +65,16 @@ exports.fetchChats = asyncHandler(async (req, res) => {
       model: "Message",
       // Nested populate in mongoose
       populate: {
-      path: "sender",
-      model: "User",
-      select: "email phoneNo resendCount online basicInfo", // Select only required fields
-      populate: {
-        path: "basicInfo",
-        select: "firstName lastName displayName profilePic", // Select only required fields
-      },
+        path: "sender",
+        model: "User",
+        select: "email phoneNo resendCount online basicInfo", // Select only required fields
+        populate: {
+          path: "basicInfo",
+          select: "firstName lastName displayName profilePic", // Select only required fields
+        },
+      }
     })
+    .select("-chat.groupAdmins")
     .lean()
     .sort({ updatedAt: "desc" }); // (latest to oldest)
 
