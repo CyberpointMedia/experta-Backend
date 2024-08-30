@@ -22,7 +22,7 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       { users: { $elemMatch: { $eq: loggedInUserId } } },
     ],
   })
-    .populate("users", "-notifications")
+    .populate("users", "email phoneNo resendCount online basicInfo")
     .populate({
       path: "lastMessage",
       model: "Message",
@@ -59,19 +59,21 @@ exports.fetchChats = asyncHandler(async (req, res) => {
   const chats = await ChatModel.find({
     users: { $elemMatch: { $eq: loggedInUserId } },
   })
-    .populate("users", "-notifications")
+    .populate("users", "email phoneNo resendCount online basicInfo")
     .populate({
       path: "lastMessage",
       model: "Message",
       // Nested populate in mongoose
       populate: {
-        path: "sender",
-        model: "User",
-        select: "email",
-        populate: { path: "basicInfo" },
+      path: "sender",
+      model: "User",
+      select: "email phoneNo resendCount online basicInfo", // Select only required fields
+      populate: {
+        path: "basicInfo",
+        select: "firstName lastName displayName profilePic", // Select only required fields
       },
-    })
-    .sort({ updatedAt: "desc" }); // (latest to oldest)
+    }).select("-chat.groupAdmins") // Remove any unnecessary fields
+    .lean().sort({ updatedAt: "desc" }); // (latest to oldest)
 
   res.status(200).json(chats);
 });
