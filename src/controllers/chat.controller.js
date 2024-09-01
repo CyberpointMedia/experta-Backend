@@ -55,30 +55,67 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
 exports.fetchChats = asyncHandler(async (req, res) => {
   const loggedInUserId = req.body.user._id;
 
-  // Fetch all the chats for the currently logged-in user
- const chats = await ChatModel.find({
+  const chats = await ChatModel.find({
     users: { $elemMatch: { $eq: loggedInUserId } },
   })
-    .populate("users", "email phoneNo resendCount online basicInfo")
+    .populate({
+      path: "users",
+      select: "email phoneNo online basicInfo isVerified",
+      populate: {
+        path: "basicInfo",
+        select: "firstName lastName displayName profilePic",
+      },
+    })
     .populate({
       path: "lastMessage",
-      model: "Message",
-      // Nested populate in mongoose
+      select: "fileUrl file_id file_name content readBy createdAt updatedAt",
       populate: {
         path: "sender",
-        model: "User",
-        select: "email phoneNo resendCount online basicInfo", // Select only required fields
+        select: "email phoneNo online basicInfo",
         populate: {
           path: "basicInfo",
-          select: "firstName lastName displayName profilePic", // Select only required fields
+          select: "firstName lastName displayName profilePic",
         },
-      }
+      },
     })
-    .select("-chat.groupAdmins")
+    .select("-groupAdmins")
     .lean()
-    .sort({ updatedAt: "desc" }); // (latest to oldest)
+    .sort({ updatedAt: "desc" });
 
-  res.status(200).json(chats);
+  const formattedChats = chats.map((chat) => ({
+    _id: chat._id,
+    chatName: chat.chatName,
+    users: chat.users.map((user) => ({
+      _id: user._id,
+      email: user.email,
+      phoneNo: user.phoneNo,
+      basicInfo: user.basicInfo,
+      online: user.online,
+    })),
+    createdAt: chat.createdAt,
+    updatedAt: chat.updatedAt,
+    __v: chat.__v,
+    lastMessage: chat.lastMessage
+      ? {
+          _id: chat.lastMessage._id,
+          fileUrl: chat.lastMessage.fileUrl,
+          file_id: chat.lastMessage.file_id,
+          file_name: chat.lastMessage.file_name,
+          content: chat.lastMessage.content,
+          readBy: chat.lastMessage.readBy,
+          time: new Date(chat.lastMessage.createdAt).toLocaleTimeString(
+            "en-US",
+            { hour: "2-digit", minute: "2-digit" }
+          ),
+          createdAt: chat.lastMessage.createdAt,
+          updatedAt: chat.lastMessage.updatedAt,
+          __v: chat.lastMessage.__v,
+        }
+      : null,
+    unreadCounts: chat.unreadCounts || [],
+  }));
+
+  res.status(200).json(formattedChats);
 });
 
 exports.fetchMessages = asyncHandler(async (req, res) => {
@@ -92,9 +129,14 @@ exports.fetchMessages = asyncHandler(async (req, res) => {
     .populate({
       path: "sender",
       model: "User",
-      select: "-notifications",
-      populate: { path: "basicInfo" },
+      select: "email phoneNo online basicInfo", // Select only required fields
+      populate: {
+        path: "basicInfo",
+        select: "firstName lastName displayName profilePic", // Select only required fields
+      },
     })
+    .select("-chat.groupAdmins") // Remove any unnecessary fields
+    .lean()
     .sort({ createdAt: "desc" });
   // Latest to oldest here, but oldest to latest in frontend
   // as it's 'd-flex flex-column-reverse' for msg list
@@ -176,7 +218,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     .populate({
       path: "sender",
       model: "User",
-      select: "email phoneNo resendCount online basicInfo", // Select only required fields
+      select: "email phoneNo online basicInfo", // Select only required fields
       populate: {
         path: "basicInfo",
         select: "firstName lastName displayName profilePic", // Select only required fields

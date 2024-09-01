@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const Wallet = require("./wallet.model");
 
 const userSchema = new mongoose.Schema(
   {
