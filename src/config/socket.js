@@ -164,7 +164,7 @@ const { addNotification, deleteNotifOnMsgDelete } = require("../dao/chat.dao");
 const UserModel = require("../models/user.model");
 const ChatModel = require("../models/chat.model");
 const MessageModel = require("../models/message.model");
-
+const { ObjectId } = require("mongodb");
 exports.configureSocketEvents = (server) => {
   const io = new Server(server, {
     pingTimeout: 120000,
@@ -174,15 +174,21 @@ exports.configureSocketEvents = (server) => {
       credentials: true,
     },
   });
+  
+  const onlineUsers = new Set();
 
   io.on("connection", (socket) => {
     // Initialize user
     socket.on("init_user", async (userId) => {
       socket.userId = userId;
       socket.join(userId);
-      const user = await UserModel.findOne({ _id: userId });
-      user.online = true;
-      await user.save();
+        onlineUsers.add(userId);
+        const user = await UserModel.findByIdAndUpdate(
+          userId,
+          { online: true },
+          { new: true }
+        );
+      // await user.save();
       socket.broadcast.emit("getUserOnline", { userId });
 
       //   onlineUsers.add(userId);
@@ -297,28 +303,40 @@ exports.configureSocketEvents = (server) => {
 
     socket.on("new_msg_sent", async (newMsg) => {
       const { chat } = newMsg;
-      if (!chat) return;
+      if (!chat) {
+        console.error("Invalid chat object received:", chat);
+        return;
+      }
+      const chatUser = await ChatModel.findById(chat);
+        if (!chatUser) return;
+          await Promise.all(
+            chatUser.users.map(async (userId) => {
+            const senderId=  new ObjectId(newMsg.sender._id);
+           const areEqual  = userId.equals(senderId);
+              if (!areEqual) {
+                socket.to(userId).emit("new_msg_received", newMsg);
 
-      await Promise.all(
-        chat.users.map(async (userId) => {
-          if (userId !== newMsg.sender._id) {
-            // const { notifications } = await addNotification(newMsg._id, userId);
-            socket.to(userId).emit("new_msg_received", newMsg);
-
-            // Emit updated unread count
-            const updatedChat = await ChatModel.findById(chat._id);
-            const userUnreadCountObj = updatedChat.unreadCounts.find(
-              (count) => count.user.toString() === userId.toString()
-            );
-            if (userUnreadCountObj) {
-              const unreadCount = userUnreadCountObj.count;
-              socket
-                .to(userId)
-                .emit("update_unread_count", { chatId: chat._id, unreadCount });
-            }
-          }
-        })
-      );
+                // Emit updated unread count
+                try {
+                  const updatedChat = await ChatModel.findById(chat._id);
+                  if (updatedChat) {
+                    const userUnreadCountObj = updatedChat.unreadCounts.find(
+                      (count) => count.user.toString() === userId.toString()
+                    );
+                    if (userUnreadCountObj) {
+                      const unreadCount = userUnreadCountObj.count;
+                      socket.to(userId).emit("update_unread_count", {
+                        chatId: chat._id,
+                        unreadCount,
+                      });
+                    }
+                  }
+                } catch (error) {
+                  console.error("Error updating unread count:", error);
+                }
+              }
+            })
+          );
     });
 
     socket.on("mark_messages_read", async ({ chatId, userId }) => {
@@ -346,9 +364,8 @@ exports.configureSocketEvents = (server) => {
     // Disconnect event
     socket.on("disconnect", async () => {
       if (socket.userId) {
-        const user = await UserModel.findOne({ _id: socket.userId });
-        user.online = false;
-        await user.save();
+         onlineUsers.delete(socket.userId);
+          await UserModel.findByIdAndUpdate(socket.userId, { online: false });
         socket.broadcast.emit("getUserOffline", { userId: socket?.userId });
         io.emit("user_disconnected", socket.userId);
       }
