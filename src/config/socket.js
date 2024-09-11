@@ -183,7 +183,7 @@ exports.configureSocketEvents = (server) => {
       socket.userId = userId;
       socket.join(userId);
         onlineUsers.add(userId);
-        const user = await UserModel.findByIdAndUpdate(
+         await UserModel.findByIdAndUpdate(
           userId,
           { online: true },
           { new: true }
@@ -301,43 +301,47 @@ exports.configureSocketEvents = (server) => {
       });
     });
 
-    socket.on("new_msg_sent", async (newMsg) => {
-      const { chat } = newMsg;
-      if (!chat) {
-        console.error("Invalid chat object received:", chat);
-        return;
-      }
-      const chatUser = await ChatModel.findById(chat);
-        if (!chatUser) return;
-          await Promise.all(
-            chatUser.users.map(async (userId) => {
-            const senderId=  new ObjectId(newMsg.sender._id);
-           const areEqual  = userId.equals(senderId);
-              if (!areEqual) {
-                socket.to(userId).emit("new_msg_received", newMsg);
+ socket.on("new_msg_sent", async (newMsg) => {
+   const { chat } = newMsg;
+   if (!chat) {
+     console.error("Invalid chat object received:", chat);
+     return;
+   }
+   const chatUser = await ChatModel.findById(chat);
+   if (!chatUser) return;
 
-                // Emit updated unread count
-                try {
-                  const updatedChat = await ChatModel.findById(chat._id);
-                  if (updatedChat) {
-                    const userUnreadCountObj = updatedChat.unreadCounts.find(
-                      (count) => count.user.toString() === userId.toString()
-                    );
-                    if (userUnreadCountObj) {
-                      const unreadCount = userUnreadCountObj.count;
-                      socket.to(userId).emit("update_unread_count", {
-                        chatId: chat._id,
-                        unreadCount,
-                      });
-                    }
-                  }
-                } catch (error) {
-                  console.error("Error updating unread count:", error);
-                }
-              }
-            })
-          );
-    });
+   await Promise.all(
+     chatUser.users.map(async (userId) => {
+       const senderId = new ObjectId(newMsg.sender._id);
+       const areEqual = userId.equals(senderId);
+       if (!areEqual) {
+         console.log("Emitting new_msg_received to user:", userId.toString());
+         const stringId = userId.toString();
+         socket.to(stringId).emit("new_msg_received", newMsg);
+      
+         // Emit updated unread count
+         try {
+           const updatedChat = await ChatModel.findById(chat);
+           if (updatedChat) {
+             const userUnreadCountObj = updatedChat.unreadCounts.find(
+               (count) => count.user.toString() === userId.toString()
+             );
+             if (userUnreadCountObj) {
+               const unreadCount = userUnreadCountObj.count;
+               socket.to(userId.toString()).emit("update_unread_count", {
+                 chatId: chat._id,
+                 unreadCount,
+               });
+             }
+           }
+         } catch (error) {
+           console.error("Error updating unread count:", error);
+         }
+       }
+     })
+   );
+ });
+
 
     socket.on("mark_messages_read", async ({ chatId, userId }) => {
       await MessageModel.updateMany(
