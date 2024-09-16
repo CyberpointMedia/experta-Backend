@@ -49,6 +49,7 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       select: "-notifications",
     });
     res.status(201).json(populatedChat);
+    req.app.get('io').emit("new_chat_created", populatedChat);
   }
 });
 

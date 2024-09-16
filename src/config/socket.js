@@ -174,7 +174,7 @@ exports.configureSocketEvents = (server) => {
       credentials: true,
     },
   });
-  
+
   const onlineUsers = new Set();
 
   io.on("connection", (socket) => {
@@ -182,12 +182,12 @@ exports.configureSocketEvents = (server) => {
     socket.on("init_user", async (userId) => {
       socket.userId = userId;
       socket.join(userId);
-        onlineUsers.add(userId);
-         await UserModel.findByIdAndUpdate(
-          userId,
-          { online: true },
-          { new: true }
-        );
+      onlineUsers.add(userId);
+      await UserModel.findByIdAndUpdate(
+        userId,
+        { online: true },
+        { new: true }
+      );
       // await user.save();
       socket.broadcast.emit("getUserOnline", { userId });
 
@@ -216,6 +216,83 @@ exports.configureSocketEvents = (server) => {
     //     })
     //   );
     // });
+
+    socket.on("fetch_chats", async (userId) => {
+      try {
+        console.log("enter--> ");
+        const chats = await ChatModel.find({
+          users: { $elemMatch: { $eq: userId } },
+        })
+          .populate({
+            path: "users",
+            select: "email phoneNo online basicInfo isVerified",
+            populate: {
+              path: "basicInfo",
+              select: "firstName lastName displayName profilePic",
+            },
+          })
+          .populate({
+            path: "lastMessage",
+            select:
+              "fileUrl file_id file_name content readBy createdAt updatedAt",
+            populate: {
+              path: "sender",
+              select: "email phoneNo online basicInfo",
+              populate: {
+                path: "basicInfo",
+                select: "firstName lastName displayName profilePic",
+              },
+            },
+          })
+          .select("-groupAdmins")
+          .lean()
+          .sort({ updatedAt: "desc" });
+
+        const formattedChats = chats.map((chat) => ({
+          _id: chat._id,
+          chatName: chat.chatName,
+          users: chat.users.map((user) => ({
+            _id: user._id,
+            email: user.email,
+            phoneNo: user.phoneNo,
+            basicInfo: user.basicInfo,
+            online: user.online,
+          })),
+          createdAt: chat.createdAt,
+          updatedAt: chat.updatedAt,
+          __v: chat.__v,
+          lastMessage: chat.lastMessage
+            ? {
+                _id: chat.lastMessage._id,
+                fileUrl: chat.lastMessage.fileUrl,
+                file_id: chat.lastMessage.file_id,
+                file_name: chat.lastMessage.file_name,
+                content: chat.lastMessage.content,
+                readBy: chat.lastMessage.readBy,
+                time: new Date(chat.lastMessage.createdAt).toLocaleTimeString(
+                  "en-US",
+                  { hour: "2-digit", minute: "2-digit" }
+                ),
+                createdAt: chat.lastMessage.createdAt,
+                updatedAt: chat.lastMessage.updatedAt,
+                __v: chat.lastMessage.__v,
+              }
+            : null,
+          unreadCounts: chat.unreadCounts || [],
+        }));
+
+        socket.emit("chats_fetched", formattedChats);
+      } catch (error) {
+        console.error("Error fetching chats:", error);
+        socket.emit("chats_fetch_error", { message: "Failed to fetch chats" });
+      }
+    });
+
+    socket.on("new_chat_created", (newChat) => {
+      newChat.users.forEach((userId) => {
+        socket.to(userId).emit("chat_list_updated", newChat);
+      });
+    });
 
     socket.on("msg_deleted", async (deletedMsgData) => {
       const { deletedMsgId, senderId, chat } = deletedMsgData;
@@ -301,47 +378,53 @@ exports.configureSocketEvents = (server) => {
       });
     });
 
- socket.on("new_msg_sent", async (newMsg) => {
-   const { chat } = newMsg;
-   if (!chat) {
-     console.error("Invalid chat object received:", chat);
-     return;
-   }
-   const chatUser = await ChatModel.findById(chat);
-   if (!chatUser) return;
+    socket.on("new_msg_sent", async (newMsg) => {
+      const { chat } = newMsg;
+      if (!chat) {
+        console.error("Invalid chat object received:", chat);
+        return;
+      }
+      const chatUser = await ChatModel.findById(chat);
+      if (!chatUser) return;
 
-   await Promise.all(
-     chatUser.users.map(async (userId) => {
-       const senderId = new ObjectId(newMsg.sender._id);
-       const areEqual = userId.equals(senderId);
-       if (!areEqual) {
-         console.log("Emitting new_msg_received to user:", userId.toString());
-         const stringId = userId.toString();
-         socket.to(stringId).emit("new_msg_received", newMsg);
-      
-         // Emit updated unread count
-         try {
-           const updatedChat = await ChatModel.findById(chat);
-           if (updatedChat) {
-             const userUnreadCountObj = updatedChat.unreadCounts.find(
-               (count) => count.user.toString() === userId.toString()
-             );
-             if (userUnreadCountObj) {
-               const unreadCount = userUnreadCountObj.count;
-               socket.to(userId.toString()).emit("update_unread_count", {
-                 chatId: chat._id,
-                 unreadCount,
-               });
-             }
-           }
-         } catch (error) {
-           console.error("Error updating unread count:", error);
-         }
-       }
-     })
-   );
- });
+      await Promise.all(
+        chatUser.users.map(async (userId) => {
+          const senderId = new ObjectId(newMsg.sender._id);
+          const areEqual = userId.equals(senderId);
+          if (!areEqual) {
+            console.log(
+              "Emitting new_msg_received to user:",
+              userId.toString()
+            );
+            const stringId = userId.toString();
+            socket.to(stringId).emit("new_msg_received", newMsg);
 
+            // Emit updated unread count
+            try {
+              await ChatModel.findOneAndUpdate(
+                { _id: chat, "unreadCounts.user":  userId.toString() },
+                { $inc: { "unreadCounts.$.count": 1 } }
+              );
+              const updatedChat = await ChatModel.findById(chat);
+              if (updatedChat) {
+                const userUnreadCountObj = updatedChat.unreadCounts.find(
+                  (count) => count.user.toString() === userId.toString()
+                );
+                if (userUnreadCountObj) {
+                  const unreadCount = userUnreadCountObj.count;
+                  socket.to(userId.toString()).emit("update_unread_count", {
+                    chatId: chat,
+                    unreadCount: unreadCount,
+                  });
+                }
+              }
+            } catch (error) {
+              console.error("Error updating unread count:", error);
+            }
+          }
+        })
+      );
+    });
 
     socket.on("mark_messages_read", async ({ chatId, userId }) => {
       await MessageModel.updateMany(
@@ -350,26 +433,23 @@ exports.configureSocketEvents = (server) => {
       );
 
       // Reset unread count for this user in this chat
-      await ChatModel.findByIdAndUpdate(
-        chatId,
-        {
-          $set: {
-            "unreadCounts.$[elem].count": 0,
-          },
-        },
-        {
-          arrayFilters: [{ "elem.user": userId }],
-          new: true,
-        }
+      await ChatModel.findOneAndUpdate(
+        { _id: chatId, "unreadCounts.user": userId },
+        { $set: { "unreadCounts.$.count": 0 } }
       );
-      socket.to(chatId).emit("messages_marked_read", { chatId, userId });
-    });
 
+      // Notify other users that messages have been read
+      socket.to(chatId).emit("messages_marked_read", { chatId, userId });
+
+      // Emit updated unread count to the user who marked messages as read
+      socket.emit("update_unread_count", { chatId, unreadCount: 0 });
+    });
+ 
     // Disconnect event
     socket.on("disconnect", async () => {
       if (socket.userId) {
-         onlineUsers.delete(socket.userId);
-          await UserModel.findByIdAndUpdate(socket.userId, { online: false });
+        onlineUsers.delete(socket.userId);
+        await UserModel.findByIdAndUpdate(socket.userId, { online: false });
         socket.broadcast.emit("getUserOffline", { userId: socket?.userId });
         io.emit("user_disconnected", socket.userId);
       }
