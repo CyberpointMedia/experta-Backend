@@ -378,73 +378,96 @@ exports.configureSocketEvents = (server) => {
       });
     });
 
-    socket.on("new_msg_sent", async (newMsg) => {
-      const { chat } = newMsg;
-      if (!chat) {
-        console.error("Invalid chat object received:", chat);
-        return;
-      }
-      const chatUser = await ChatModel.findById(chat);
-      if (!chatUser) return;
+  socket.on("new_msg_sent", async (newMsg) => {
+    const { chat } = newMsg;
+    if (!chat) {
+      console.error("Invalid chat object received:", chat);
+      return;
+    }
 
-      await Promise.all(
-        chatUser.users.map(async (userId) => {
-          const senderId = new ObjectId(newMsg.sender._id);
-          const areEqual = userId.equals(senderId);
-          if (!areEqual) {
-            console.log(
-              "Emitting new_msg_received to user:",
-              userId.toString()
+    const chatUser = await ChatModel.findById(chat);
+    if (!chatUser) return;
+
+    // Iterate through chat users and process individually
+    for (const userId of chatUser.users) {
+      const senderId = new ObjectId(newMsg.sender._id);
+      const areEqual = userId.equals(senderId);
+
+      if (!areEqual) {
+        const stringId = userId.toString();
+        socket.to(stringId).emit("new_msg_received", newMsg);
+
+        try {
+          // Update unread count
+          let updatedChat = await ChatModel.findOneAndUpdate(
+            { _id: chat, "unreadCounts.user": userId },
+            { $inc: { "unreadCounts.$.count": 1 } },
+            { new: true, upsert: true }
+          );
+          console.log("updatedChat22211--> ", updatedChat);
+
+          if (!updatedChat) {
+            updatedChat = await ChatModel.findByIdAndUpdate(
+              chat,
+              { $push: { unreadCounts: { user: userId, count: 1 } } },
+              { new: true }
             );
-            const stringId = userId.toString();
-            socket.to(stringId).emit("new_msg_received", newMsg);
+            console.log("updatedChat2--> ", updatedChat);
+          }
 
-            // Emit updated unread count
-            try {
-              await ChatModel.findOneAndUpdate(
-                { _id: chat, "unreadCounts.user":  userId.toString() },
-                { $inc: { "unreadCounts.$.count": 1 } }
-              );
-              const updatedChat = await ChatModel.findById(chat);
-              if (updatedChat) {
-                const userUnreadCountObj = updatedChat.unreadCounts.find(
-                  (count) => count.user.toString() === userId.toString()
-                );
-                if (userUnreadCountObj) {
-                  const unreadCount = userUnreadCountObj.count;
-                  socket.to(userId.toString()).emit("update_unread_count", {
-                    chatId: chat,
-                    unreadCount: unreadCount,
-                  });
-                }
-              }
-            } catch (error) {
-              console.error("Error updating unread count:", error);
+          if (updatedChat) {
+            const userUnreadCountObj = updatedChat.unreadCounts.find(
+              (count) => count.user.toString() === stringId
+            );
+            console.log("updatedChat3--> ", updatedChat);
+            if (userUnreadCountObj) {
+              console.log("updatedChat4--> ", updatedChat);
+              socket.to(stringId).emit("update_unread_count", {
+                chatId: chat,
+                unreadCount: userUnreadCountObj.count,
+              });
             }
           }
-        })
-      );
-    });
+        } catch (error) {
+          console.error("Error updating unread count:", error);
+        }
+      }
+    }
+  });
 
     socket.on("mark_messages_read", async ({ chatId, userId }) => {
-      await MessageModel.updateMany(
-        { chat: chatId, readBy: { $ne: userId } },
-        { $addToSet: { readBy: userId } }
-      );
+      try {
+        await MessageModel.updateMany(
+          { chat: chatId, readBy: { $ne: userId } },
+          { $addToSet: { readBy: userId } }
+        );
 
-      // Reset unread count for this user in this chat
-      await ChatModel.findOneAndUpdate(
-        { _id: chatId, "unreadCounts.user": userId },
-        { $set: { "unreadCounts.$.count": 0 } }
-      );
+        let updatedChat = await ChatModel.findOneAndUpdate(
+          { _id: chatId, "unreadCounts.user": userId },
+          { $set: { "unreadCounts.$.count": 0 } },
+          { new: true }
+        );
 
-      // Notify other users that messages have been read
-      socket.to(chatId).emit("messages_marked_read", { chatId, userId });
+        if (!updatedChat) {
+          updatedChat = await ChatModel.findByIdAndUpdate(
+            chatId,
+            { $push: { unreadCounts: { user: userId, count: 0 } } },
+            { new: true }
+          );
+        }
 
-      // Emit updated unread count to the user who marked messages as read
-      socket.emit("update_unread_count", { chatId, unreadCount: 0 });
+        if (updatedChat) {
+          // Notify other users that messages have been read
+          socket.to(chatId).emit("messages_marked_read", { chatId, userId });
+
+          // Emit updated unread count to the user who marked messages as read
+          socket.emit("update_unread_count", { chatId, unreadCount: 0 });
+        }
+      } catch (error) {
+        console.error("Error marking messages as read:", error);
+      }
     });
- 
+
     // Disconnect event
     socket.on("disconnect", async () => {
       if (socket.userId) {
