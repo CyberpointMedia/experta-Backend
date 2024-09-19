@@ -1,5 +1,4 @@
 const cryptoUtil = require("../utils/crypto.utils");
-
 var jwt = require("jsonwebtoken");
 const config = require("../config/config");
 
@@ -17,7 +16,9 @@ const {
   ValidationError,
 } = require("../errors/custom.error");
 const BasicInfo = require("../models/basicInfo.model");
+const twilio = require("twilio");
 
+const client = twilio(config.twilio.accountSid, config.twilio.twilioAuthToken);
 module.exports.validateUser = async function (userData) {
   try {
     const { firstName, lastName, email, phoneNo } = userData;
@@ -48,7 +49,7 @@ module.exports.validateUser = async function (userData) {
       basicInfo: basicInfoDetails._id,
     });
      user = await user.save();
-    // await sendOTP(phone, otp);   TODO: add twillio
+    await this.sendOTP(phone, otp);   
     const userResponse = {
       lastName,
       firstName,
@@ -67,6 +68,9 @@ module.exports.validateUser = async function (userData) {
     throw new Error(error.message);
   }
 };
+
+
+
 
 module.exports.verifyOtp = async function (userData) {
   try {
@@ -174,7 +178,7 @@ module.exports.login = async function (phoneNo) {
     user.otp = otp;
     user.otpExpiry = otpExpiry;
     user = await user.save();
-    // await sendOTP(phone, otp);     TODO: add twillio
+   await this.sendOTP(phone, otp);    
     return createResponse.success(user);
   } catch (e) {
     console.log("error", e);
@@ -185,19 +189,19 @@ module.exports.login = async function (phoneNo) {
     }
   }
 };
-// module.exports.sendOTP = async function sendOTP(phone, otp) {
-//   try {
-//     // Replace with your SMS provider integration code
-//     await twilio.messages.create({
-//       body: `Your OTP is ${otp}`,
-//       from: "[Your Twilio phone number]",
-//       to: phone,
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     throw new Error("Failed to send OTP");
-//   }
-// };
+module.exports.sendOTP = async function sendOTP(phone, otp) {
+  try {
+    // Replace with your SMS provider integration code
+    await client.messages.create({
+      body: `Your OTP is ${otp}`,
+      from: "",
+      to: phone,
+    });
+  } catch (err) {
+    console.error(err);
+    throw new Error("Failed to send OTP");
+  }
+};
 
 module.exports.resendOtp = async function (phoneNo) {
   try {
@@ -243,7 +247,7 @@ module.exports.resendOtp = async function (phoneNo) {
     user.otp = otp;
     user.otpExpiry = otpExpiry;
     user = await user.save();
-    // await sendOTP(phone, otp);     TODO: add twillio
+     await this.sendOTP(phone, otp);   
     return createResponse.success(user);
   } catch (e) {
     if (e instanceof AuthenticationError) {
@@ -290,7 +294,7 @@ module.exports.initiateEmailChange = async function (userId, newEmail) {
     await user.save();
 
     // TODO: Send OTP to user's phone number
-    // await sendOTP(user.phoneNo, otp);
+     await this.sendOTP(user.phoneNo, otp);
 
     return createResponse.success(user);
   } catch (error) {
