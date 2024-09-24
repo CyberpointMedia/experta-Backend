@@ -49,7 +49,7 @@ module.exports.validateUser = async function (userData) {
       basicInfo: basicInfoDetails._id,
     });
      user = await user.save();
-    await this.sendOTP(phone, otp);   
+   await this.sendOTP(user.phoneNo, otp); 
     const userResponse = {
       lastName,
       firstName,
@@ -178,7 +178,7 @@ module.exports.login = async function (phoneNo) {
     user.otp = otp;
     user.otpExpiry = otpExpiry;
     user = await user.save();
-   await this.sendOTP(phone, otp);    
+   await this.sendOTP(user?.phoneNo, otp);    
     return createResponse.success(user);
   } catch (e) {
     console.log("error", e);
@@ -193,9 +193,9 @@ module.exports.sendOTP = async function sendOTP(phone, otp) {
   try {
     // Replace with your SMS provider integration code
     await client.messages.create({
-      body: `Your OTP is ${otp}`,
-      from: "",
-      to: phone,
+      body: `Your OTP is ${otp}. Please enter this code to verify your identity. This code is valid for 5 minutes. Do not share it with anyone.\n\nThank you,\nYour Cyberpoint`,
+      from: "+918376033570",
+      to: `+91${phone}`,
     });
   } catch (err) {
     console.error(err);
@@ -247,7 +247,7 @@ module.exports.resendOtp = async function (phoneNo) {
     user.otp = otp;
     user.otpExpiry = otpExpiry;
     user = await user.save();
-     await this.sendOTP(phone, otp);   
+     await this.sendOTP(user?.phoneNo, otp);   
     return createResponse.success(user);
   } catch (e) {
     if (e instanceof AuthenticationError) {
