@@ -1,4 +1,5 @@
 const cryptoUtil = require("../utils/crypto.utils");
+const { generateQRCode } = require("../utils/qrCode.utils");
 
 var jwt = require("jsonwebtoken");
 const config = require("../config/config");
@@ -874,5 +875,34 @@ module.exports.unblockUser = async (userId, userToUnblockId) => {
   } catch (error) {
     console.log("error", error);
     throw new Error(error.message);
+  }
+};
+
+
+module.exports.shareProfile = async function (userId) {
+  try {
+    const user = await User.findById(userId).populate("basicInfo");
+    if (!user) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+      });
+    }
+    const profileData = {
+      id: user._id,
+      name: `${user.basicInfo.firstName} ${user.basicInfo.lastName}`,
+      title: user.basicInfo.displayName || "User",
+    };
+    const qrCode = await generateQRCode(JSON.stringify(profileData));
+    user.basicInfo.qrCode = qrCode;
+    await user.basicInfo.save();
+
+    return createResponse.success({ qrCode, profileData });
+  } catch (error) {
+    console.error("Error sharing profile:", error);
+    return createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    });
   }
 };

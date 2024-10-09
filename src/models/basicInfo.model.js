@@ -50,6 +50,9 @@ const basicInfoSchema = new mongoose.Schema(
       type: String,
     },
     rating: { type: Number, default: 2 },
+    qrCode: {
+      type: String,
+    },
   },
   {
     timestamps: true,
