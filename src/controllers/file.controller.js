@@ -1,29 +1,64 @@
 const fileUploadService = require("../services/fileUpload.service");
 const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
-const multer = require("multer");
-const upload = multer().single("file");
 
-exports.uploadFile = async (req, res) => {
-  upload(req, res, async (err) => {
+exports.uploadFile = (req, res) => {
+  fileUploadService.upload.single("file")(req, res, async (err) => {
     if (err) {
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json(
+        createResponse.error({
+          errorCode: errorMessageConstants.BAD_REQUEST,
+          errorMessage: err.message,
+        })
+      );
     }
 
     if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+      return res.status(400).json(
+        createResponse.error({
+          errorCode: errorMessageConstants.BAD_REQUEST,
+          errorMessage: "No file uploaded",
+        })
+      );
     }
 
     try {
-      const s3Url = await fileUploadService.uploadFile(req.file);
+      const s3Url = req.file.location; // multer-s3 already uploaded the file
       res.json(createResponse.success({ fileUrl: s3Url }));
     } catch (err) {
-      console.error("Error uploading file:", err);
-      const response = {
-        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-        errorMessage: err.message,
-      };
-      res.json(createResponse.error(response));
+      console.error("Error processing uploaded file:", err);
+      res.status(500).json(
+        createResponse.error({
+          errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+          errorMessage: err.message,
+        })
+      );
     }
   });
+};
+
+exports.deleteFile = async (req, res) => {
+  const { fileUrl } = req.body;
+
+  if (!fileUrl) {
+    return res.status(400).json(
+      createResponse.error({
+        errorCode: errorMessageConstants.BAD_REQUEST,
+        errorMessage: "File URL is required",
+      })
+    );
+  }
+
+  try {
+    const result = await fileUploadService.deleteFile(fileUrl);
+    res.json(createResponse.success(result));
+  } catch (err) {
+    console.error("Error deleting file:", err);
+    res.status(500).json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      })
+    );
+  }
 };
