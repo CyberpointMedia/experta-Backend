@@ -194,7 +194,7 @@ module.exports.sendOTP = async function sendOTP(phone, otp) {
     // Replace with your SMS provider integration code
     await client.messages.create({
       body: `Your OTP is ${otp}. Please enter this code to verify your identity. This code is valid for 5 minutes. Do not share it with anyone.\n\nThank you,\nYour Cyberpoint`,
-      from: "+918376033570",
+      from: "+13344313201",
       to: `+91${phone}`,
     });
   } catch (err) {
