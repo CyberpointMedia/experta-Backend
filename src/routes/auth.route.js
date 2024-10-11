@@ -13,10 +13,11 @@ module.exports = (app) => {
     authMiddleware,
     authController.initiateEmailChange
   );
-   router.post(
-     "/verify-otp-change-email",
-     authMiddleware,
-     authController.verifyOtpAndChangeEmail
-   );
+  router.post(
+    "/verify-otp-change-email",
+    authMiddleware,
+    authController.verifyOtpAndChangeEmail
+  );
+  router.get("/check-token", authController.checkTokenValidity);
   app.use(routes.API, router);
 };

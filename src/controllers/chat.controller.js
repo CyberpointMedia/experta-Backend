@@ -8,6 +8,7 @@ const { deleteFile } = require("../utils/aws.utlis.js");
 exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
   const receiverUserId = req.body?.userId;
   const loggedInUserId = req.body.user._id;
+  console.log("receiverUserId", req.body.user);
 
   if (!receiverUserId) {
     res.status(400);
@@ -22,19 +23,65 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       { users: { $elemMatch: { $eq: loggedInUserId } } },
     ],
   })
-    .populate("users", "email phoneNo resendCount online basicInfo")
     .populate({
-      path: "lastMessage",
-      model: "Message",
-      populate: {
-        path: "sender",
-        model: "User",
-        select: "email",
-      },
-    });
+        path: "users",
+        select: "email phoneNo online basicInfo isVerified",
+        populate: {
+          path: "basicInfo",
+          select: "firstName lastName displayName profilePic",
+        },
+      })
+      .populate({
+        path: "lastMessage",
+        select: "fileUrl file_id file_name content readBy createdAt updatedAt",
+        populate: {
+          path: "sender",
+          select: "email phoneNo online basicInfo",
+          populate: {
+            path: "basicInfo",
+            select: "firstName lastName displayName profilePic",
+          },
+        },
+      })
+      .select("-groupAdmins")
+      .lean()
+      .sort({ updatedAt: "desc" });
 
   if (existingChats.length > 0) {
-    res.status(200).json(existingChats[0]);
+    const chats=existingChats[0];
+    const formattedChats = {
+      _id: chats._id,
+      chatName: chats.chatName,
+      users: chats.users.map((user) => ({
+        _id: user._id,
+        email: user.email,
+        phoneNo: user.phoneNo,
+        basicInfo: user.basicInfo,
+        online: user.online,
+      })),
+      createdAt: chats.createdAt,
+      updatedAt: chats.updatedAt,
+      __v: chats.__v,
+      lastMessage: chats.lastMessage
+        ? {
+            _id: chats.lastMessage._id,
+            fileUrl: chats.lastMessage.fileUrl,
+            file_id: chats.lastMessage.file_id,
+            file_name: chats.lastMessage.file_name,
+            content: chats.lastMessage.content,
+            readBy: chats.lastMessage.readBy,
+            time: new Date(chats.lastMessage.createdAt).toLocaleTimeString(
+              "en-US",
+              { hour: "2-digit", minute: "2-digit" }
+            ),
+            createdAt: chats.lastMessage.createdAt,
+            updatedAt: chats.lastMessage.updatedAt,
+            __v: chats.lastMessage.__v,
+          }
+        : null,
+      unreadCounts: chats.unreadCounts || [],
+    };
+    res.status(200).json(formattedChats);
   } else {
     // If it doesn't exist, then create a new chat
     const createdChat = await ChatModel.create({
@@ -43,13 +90,67 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       users: [receiverUserId, loggedInUserId],
     });
 
-    const populatedChat = await ChatModel.findById(createdChat._id).populate({
-      path: "users",
-      model: "User",
-      select: "-notifications",
-    });
-    res.status(201).json(populatedChat);
-    req.app.get('io').emit("new_chat_created", populatedChat);
+    const chats = await ChatModel.findById(createdChat._id)
+      .populate({
+        path: "users",
+        select: "email phoneNo online basicInfo isVerified",
+        populate: {
+          path: "basicInfo",
+          select: "firstName lastName displayName profilePic",
+        },
+      })
+      .populate({
+        path: "lastMessage",
+        select: "fileUrl file_id file_name content readBy createdAt updatedAt",
+        populate: {
+          path: "sender",
+          select: "email phoneNo online basicInfo",
+          populate: {
+            path: "basicInfo",
+            select: "firstName lastName displayName profilePic",
+          },
+        },
+      })
+      .select("-groupAdmins")
+      .lean()
+      .sort({ updatedAt: "desc" });
+      console.log("populatedChat", chats);
+    const formattedChats = {
+      _id: chats._id,
+      chatName: chats.chatName,
+      users: chats.users.map((user) => ({
+        _id: user._id,
+        email: user.email,
+        phoneNo: user.phoneNo,
+        basicInfo: user.basicInfo,
+        online: user.online,
+      })),
+      createdAt: chats.createdAt,
+      updatedAt: chats.updatedAt,
+      __v: chats.__v,
+      lastMessage: chats.lastMessage
+        ? {
+            _id: chats.lastMessage._id,
+            fileUrl: chats.lastMessage.fileUrl,
+            file_id: chats.lastMessage.file_id,
+            file_name: chats.lastMessage.file_name,
+            content: chats.lastMessage.content,
+            readBy: chats.lastMessage.readBy,
+            time: new Date(chats.lastMessage.createdAt).toLocaleTimeString(
+              "en-US",
+              { hour: "2-digit", minute: "2-digit" }
+            ),
+            createdAt: chats.lastMessage.createdAt,
+            updatedAt: chats.lastMessage.updatedAt,
+            __v: chats.lastMessage.__v,
+          }
+        : null,
+      unreadCounts: chats.unreadCounts || [],
+    };
+    console.log("formattedChats", formattedChats);
+    res.status(201).json(formattedChats);
+    req.app.get("io").emit("new_chat_created", formattedChats);
+    return ;
   }
 });
 

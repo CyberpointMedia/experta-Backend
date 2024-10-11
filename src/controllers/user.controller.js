@@ -1646,3 +1646,24 @@ exports.getProfileCompletion = async (req, res) => {
       return res.json(createResponse.error(response));
     });
 };
+
+exports.shareProfile = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+
+  try {
+    const result = await userService.shareProfile(userId);
+    res.json(result);
+  } catch (error) {
+    console.error("Error in shareProfile controller:", error);
+    res.status(500).json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};

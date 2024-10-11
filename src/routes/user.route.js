@@ -192,5 +192,6 @@ module.exports = (app) => {
     "/profile-completion/:userId",
     userController.getProfileCompletion
   );
+  router.post("/share-profile", authMiddleware, userController.shareProfile);
   app.use(routes.API, router);
 };

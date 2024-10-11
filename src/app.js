@@ -26,6 +26,8 @@ require("./routes/profile.route")(app);
 require("./routes/master.route")(app);
 require("./routes/message.routes")(app);
 require("./routes/chat.route")(app);
+require("./routes/file.route")(app);
+require("./routes/ticket.route")(app);
 
 const port = process.env.PORT || 5000;
 
