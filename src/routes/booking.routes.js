@@ -1,4 +1,4 @@
-const bookingPaymentController = require("../controllers/bookingPayment.controller");
+const bookingPaymentController = require("../controllers/booking.controller");
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const routes = require("../constants/route.url");
 

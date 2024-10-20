@@ -1,4 +1,4 @@
-const bookingPaymentService = require("../services/bookingPayment.service");
+const bookingPaymentService = require("../services/booking.service");
 const errorMessageConstants = require("../constants/error.messages");
 const createResponse = require("../utils/response");
 

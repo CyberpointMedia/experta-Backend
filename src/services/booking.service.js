@@ -1,4 +1,4 @@
-const bookingPaymentDao = require("../dao/bookingPayment.dao");
+const bookingPaymentDao = require("../dao/booking.dao");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const errorMessageConstants = require("../constants/error.messages");
