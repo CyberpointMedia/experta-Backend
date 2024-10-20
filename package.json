@@ -26,8 +26,9 @@
     "multer-s3": "^3.0.1",
     "nodemon": "^3.1.0",
     "qrcode": "^1.5.4",
+    "razorpay": "^2.9.4",
     "shortid": "^2.2.16",
     "socket.io": "^4.7.5",
-    "twilio": "^5.3.3"
+    "twilio": "^5.3.4"
   }
 }

@@ -294,7 +294,7 @@ module.exports.initiateEmailChange = async function (userId, newEmail) {
     await user.save();
 
     // TODO: Send OTP to user's phone number
-     await this.sendOTP(user.phoneNo, otp);
+     await this.sendOTP(user?.phoneNo, otp);
 
     return createResponse.success(user);
   } catch (error) {
