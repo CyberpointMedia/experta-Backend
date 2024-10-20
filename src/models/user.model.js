@@ -99,6 +99,18 @@ const userSchema = new mongoose.Schema(
     emailChangeOTP: String,
     emailChangeOTPExpiry: Date,
     newEmailRequest: String,
+    wallet: {
+      balance: {
+        type: Number,
+        default: 0,
+      },
+      transactions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Transaction",
+        },
+      ],
+    },
   },
   {
     timestamps: true,

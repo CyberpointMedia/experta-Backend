@@ -1,4 +1,3 @@
-
 module.exports = Object.freeze({
   UNAUTHORISED_ERROR_CODE: "403",
   UNAUTHORISED_ERROR_MESSAGE: "You are not authorised to login to our system.",
@@ -17,4 +16,17 @@ module.exports = Object.freeze({
   REQUIRED_ID: "User id is required.",
   POST_REQUIRED_ID: "Post id is required.",
   UNABLE_TO_DELETE_MESSAGE: "Unable to delete, data not found.",
+
+  INSUFFICIENT_FUNDS: "422",
+  INSUFFICIENT_FUNDS_MESSAGE: "Insufficient coins in wallet.",
+  INVALID_OPERATION: "400",
+  INVALID_OPERATION_MESSAGE: "Invalid operation.",
+  BOOKING_CONFLICT: "409",
+  BOOKING_CONFLICT_MESSAGE: "Expert is not available at the requested time.",
+  PAYMENT_VERIFICATION_FAILED: "400",
+  PAYMENT_VERIFICATION_FAILED_MESSAGE: "Payment verification failed.",
+  UNAUTHORIZED: "401",
+  UNAUTHORIZED_MESSAGE: "You are not authorized to perform this action.",
+  BAD_REQUEST: "400",
+  BAD_REQUEST_MESSAGE: "Bad request.",
 });
