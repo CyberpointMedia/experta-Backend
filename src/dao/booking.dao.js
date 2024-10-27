@@ -133,10 +133,50 @@ exports.updateUserWallet = function (
 exports.getBookingsAsClient = function (userId) {
   return new Promise((resolve, reject) => {
     Booking.find({ client: userId })
-      .populate("expert", "basicInfo")
+      .populate({
+        path: "expert",
+        select: "_id online isVerified",
+        populate: [
+          {
+            path: "basicInfo",
+            select: "rating profilePic displayName",
+          },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+      })
       .sort({ createdAt: -1 })
-      .then((data) => {
-        resolve(data);
+      .then((bookings) => {
+        const processedBookings = bookings.map((booking) => {
+          const expert = booking.expert;
+          return {
+            _id: booking._id,
+            expert: {
+              id: expert._id,
+              online: expert.online || false,
+              isVerified: expert.isVerified || false,
+              rating: expert.basicInfo?.rating || "",
+              profilePic: expert.basicInfo?.profilePic || "",
+              displayName: expert.basicInfo?.displayName || "",
+              industry: expert.industryOccupation?.industry?.name || "",
+              occupation: expert.industryOccupation?.occupation?.name || "",
+            },
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            duration: booking.duration,
+            type: booking.type,
+            status: booking.status,
+            price: booking.price,
+            createdAt: booking.createdAt,
+            updatedAt: booking.updatedAt,
+          };
+        });
+        resolve(processedBookings);
       })
       .catch((err) => {
         console.log(err);
@@ -148,10 +188,50 @@ exports.getBookingsAsClient = function (userId) {
 exports.getBookingsAsExpert = function (userId) {
   return new Promise((resolve, reject) => {
     Booking.find({ expert: userId })
-      .populate("client", "basicInfo")
+      .populate({
+        path: "client",
+        select: "_id online isVerified",
+        populate: [
+          {
+            path: "basicInfo",
+            select: "rating profilePic displayName",
+          },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "industry", select: "name" },
+              { path: "occupation", select: "name" },
+            ],
+          },
+        ],
+      })
       .sort({ createdAt: -1 })
-      .then((data) => {
-        resolve(data);
+      .then((bookings) => {
+        const processedBookings = bookings.map((booking) => {
+          const client = booking.client;
+          return {
+            _id: booking._id,
+            client: {
+              id: client._id,
+              online: client.online || false,
+              isVerified: client.isVerified || false,
+              rating: client.basicInfo?.rating || "",
+              profilePic: client.basicInfo?.profilePic || "",
+              displayName: client.basicInfo?.displayName || "",
+              industry: client.industryOccupation?.industry?.name || "",
+              occupation: client.industryOccupation?.occupation?.name || "",
+            },
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            duration: booking.duration,
+            type: booking.type,
+            status: booking.status,
+            price: booking.price,
+            createdAt: booking.createdAt,
+            updatedAt: booking.updatedAt,
+          };
+        });
+        resolve(processedBookings);
       })
       .catch((err) => {
         console.log(err);
@@ -159,7 +239,6 @@ exports.getBookingsAsExpert = function (userId) {
       });
   });
 };
-
 exports.getBookingById = function (bookingId) {
   return new Promise((resolve, reject) => {
     Booking.findById(bookingId)
