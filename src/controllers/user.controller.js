@@ -940,6 +940,36 @@ exports.getUserAvailability = async (req, res) => {
     });
 };
 
+exports.getUserAvailabilityByExpertaId = async (req, res) => {
+  const {userId} = req.params;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getUserAvailability(userId)
+    .then((data) => {
+      if (null != data && data.availability) {
+        res.json(createResponse.success(data.availability));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+
 exports.getAccountSetting = async (req, res) => {
   const userId = req.body.user._id;
   if (!userId) {

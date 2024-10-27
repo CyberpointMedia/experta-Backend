@@ -143,6 +143,12 @@ module.exports = (app) => {
     userController.getUserAvailability
   );
 
+    router.get(
+      "/user-availability/:userId",
+      authMiddleware,
+      userController.getUserAvailabilityByExpertaId
+    );
+
   router.get(
     "/availability/:id",
     authMiddleware,
