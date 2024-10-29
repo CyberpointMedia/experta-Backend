@@ -1,12 +1,14 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const aboutSchema = new mongoose.Schema({
-
-  about: {
-    type: String, // Change the type to String
+const aboutSchema = new mongoose.Schema(
+  {
+    about: {
+      type: String,
+    },
   },
-}, {
-  timestamps: true,
-});
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model('About', aboutSchema);
+module.exports = mongoose.model("About", aboutSchema);

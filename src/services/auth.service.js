@@ -33,7 +33,6 @@ module.exports.validateUser = async function (userData) {
     const otp = authUtil.generateOTP();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-   
     // let name = firstName;
     // if (lastName) name = name + " " + lastName;
     let basicInfo = new BasicInfo({
@@ -48,8 +47,8 @@ module.exports.validateUser = async function (userData) {
       otpExpiry,
       basicInfo: basicInfoDetails._id,
     });
-     user = await user.save();
-   await this.sendOTP(user.phoneNo, otp); 
+    user = await user.save();
+    await this.sendOTP(user.phoneNo, otp);
     const userResponse = {
       lastName,
       firstName,
@@ -68,9 +67,6 @@ module.exports.validateUser = async function (userData) {
     throw new Error(error.message);
   }
 };
-
-
-
 
 module.exports.verifyOtp = async function (userData) {
   try {
@@ -117,8 +113,12 @@ module.exports.verifyOtp = async function (userData) {
     user.isVerified = true;
     user.resendCount = 0;
     const data = await user.save();
-
-    const token = await jwtUtil.generateToken(data);
+    const finalData = {
+      _id: data?.id,
+      email: data?.email,
+      phoneNo: data?.phoneNo,
+    };
+    const token = await jwtUtil.generateToken(finalData);
     const responseData = createResponse.success(data, token);
     return responseData;
   } catch (e) {
@@ -137,7 +137,6 @@ module.exports.decodeToken = function (token) {
     return createResponse.success(decoded);
   });
 };
-
 
 module.exports.login = async function (phoneNo) {
   try {
@@ -178,7 +177,7 @@ module.exports.login = async function (phoneNo) {
     user.otp = otp;
     user.otpExpiry = otpExpiry;
     user = await user.save();
-   await this.sendOTP(user?.phoneNo, otp);    
+    await this.sendOTP(user?.phoneNo, otp);
     return createResponse.success(user);
   } catch (e) {
     console.log("error", e);
@@ -247,7 +246,7 @@ module.exports.resendOtp = async function (phoneNo) {
     user.otp = otp;
     user.otpExpiry = otpExpiry;
     user = await user.save();
-     await this.sendOTP(user?.phoneNo, otp);   
+    await this.sendOTP(user?.phoneNo, otp);
     return createResponse.success(user);
   } catch (e) {
     if (e instanceof AuthenticationError) {
@@ -257,7 +256,6 @@ module.exports.resendOtp = async function (phoneNo) {
     }
   }
 };
-
 
 module.exports.initiateEmailChange = async function (userId, newEmail) {
   try {
@@ -294,7 +292,7 @@ module.exports.initiateEmailChange = async function (userId, newEmail) {
     await user.save();
 
     // TODO: Send OTP to user's phone number
-     await this.sendOTP(user?.phoneNo, otp);
+    await this.sendOTP(user?.phoneNo, otp);
 
     return createResponse.success(user);
   } catch (error) {

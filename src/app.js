@@ -29,6 +29,7 @@ require("./routes/chat.route")(app);
 require("./routes/file.route")(app);
 require("./routes/ticket.route")(app);
 require("./routes/booking.routes")(app);
+require("./routes/kyc.routes")(app);
 
 const port = process.env.PORT || 5000;
 

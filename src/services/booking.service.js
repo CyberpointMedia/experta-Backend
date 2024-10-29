@@ -288,17 +288,16 @@ exports.withdrawFromWallet = async function (userId, amount, accountDetails) {
     }
 
     const taxRate = 0.18; // 18% tax
-    const platformFeeRate = 0.02; // 2% platform fee
+    const platformFeeRate = 0.02; 
     const totalDeductionRate = taxRate + platformFeeRate;
 
     const totalDeduction = amount * totalDeductionRate;
     const amountAfterDeduction = amount - totalDeduction;
 
-    // Create a payout using Razorpay
     const payout = await razorpay.payouts.create({
       account_number: process.env.RAZORPAY_ACCOUNT_NUMBER,
       fund_account_id: accountDetails.fund_account_id,
-      amount: Math.round(amountAfterDeduction * 100), // Amount in paise
+      amount: Math.round(amountAfterDeduction * 100), 
       currency: "INR",
       mode: "IMPS",
       purpose: "payout",
@@ -307,22 +306,20 @@ exports.withdrawFromWallet = async function (userId, amount, accountDetails) {
       narration: "Withdrawal from wallet",
     });
 
-    // Create a withdrawal transaction
     const withdrawalTransaction = await bookingPaymentDao.createTransaction({
       user: userId,
       type: "withdrawal",
-      amount: amount, // Positive amount as per your schema
-      status: "pending", // Set to pending until confirmed by Razorpay webhook
+      amount: amount, 
+      status: "pending", 
       paymentMethod: "razorpay",
       description: `Withdrawal to bank account. Tax: ${
         taxRate * 100
       }%, Platform fee: ${platformFeeRate * 100}%`,
     });
 
-    // Create transactions for tax and platform fee
     const taxTransaction = await bookingPaymentDao.createTransaction({
       user: userId,
-      type: "withdrawal", // Using withdrawal type for deductions as well
+      type: "withdrawal", 
       amount: amount * taxRate,
       status: "completed",
       paymentMethod: "wallet",
@@ -331,14 +328,13 @@ exports.withdrawFromWallet = async function (userId, amount, accountDetails) {
 
     const platformFeeTransaction = await bookingPaymentDao.createTransaction({
       user: userId,
-      type: "withdrawal", // Using withdrawal type for deductions as well
+      type: "withdrawal", 
       amount: amount * platformFeeRate,
       status: "completed",
       paymentMethod: "wallet",
       description: `Platform fee for withdrawal of ${amount}`,
     });
 
-    // Update user's wallet balance
     await bookingPaymentDao.updateUserWallet(userId, -amount);
 
     return createResponse.success({

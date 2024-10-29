@@ -5,8 +5,8 @@ const config = require("../config/config");
 const tokenExpires = 604800;
 
 module.exports.generateToken = function (dataToEncrypt) {
-  var token = jwt.sign(dataToEncrypt.toObject(), config.jwt.secret, {
-    expiresIn: tokenExpires, // expires in 24 hours
+  var token = jwt.sign(dataToEncrypt, config.jwt.secret, {
+    expiresIn: tokenExpires, 
   });
 
   return token;
