@@ -59,6 +59,25 @@ module.exports.updateFaceMatch = async function (userId, data) {
   }
 };
 
+module.exports.updatePanVerification = async function (userId, data) {
+  try {
+    return await KYC.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          "panVerification.panNumber": data.panNumber,
+          "panVerification.verificationStatus": data.verificationStatus,
+          "panVerification.panDetails": data.panDetails,
+          "panVerification.updatedAt": data.updatedAt,
+        },
+      },
+      { new: true, upsert: true }
+    );
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports.getKycStatus = async function (userId) {
   try {
     return await KYC.findOne({ userId }).lean();

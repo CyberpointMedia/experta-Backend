@@ -65,6 +65,26 @@ const faceMatchSchema = new mongoose.Schema({
   },
 });
 
+const panVerificationSchema = new mongoose.Schema({
+  panNumber: {
+    type: String,
+    default: null,
+  },
+  verificationStatus: {
+    type: Boolean,
+    default: null,
+  },
+  panDetails: {
+    type: Object,
+    default: null,
+  },
+  updatedAt: {
+    type: Date,
+    default: null,
+  },
+});
+
+
 const kycSchema = new mongoose.Schema(
   {
     userId: {
@@ -75,15 +95,19 @@ const kycSchema = new mongoose.Schema(
     },
     bankVerification: {
       type: bankVerificationSchema,
-      default: () => ({}), 
+      default: () => ({}),
     },
     faceLiveness: {
       type: faceLivenessSchema,
-      default: () => ({}), 
+      default: () => ({}),
     },
     faceMatch: {
       type: faceMatchSchema,
-      default: () => ({}), 
+      default: () => ({}),
+    },
+    panVerification: {
+      type: panVerificationSchema,
+      default: () => ({}),
     },
   },
   {
@@ -97,13 +121,15 @@ kycSchema.virtual("kycStatus").get(function () {
   const bankVerified = this.bankVerification?.verificationStatus || false;
   const livenessVerified = this.faceLiveness?.status || false;
   const faceMatchVerified = this.faceMatch?.status || false;
+  const panVerified = this.panVerification?.verificationStatus || false;
 
   return {
-    isComplete: bankVerified && livenessVerified && faceMatchVerified,
+    isComplete: bankVerified && livenessVerified && faceMatchVerified && panVerified,
     steps: {
       bankVerification: bankVerified,
       faceLiveness: livenessVerified,
       faceMatch: faceMatchVerified,
+      panVerification: panVerified,
     },
   };
 });

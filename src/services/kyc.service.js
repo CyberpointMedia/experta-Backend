@@ -120,6 +120,37 @@ module.exports.verifyFaceMatch = async function (userId, selfie, idCard) {
   }
 };
 
+exports.verifyPan = async function (userId, panNumber) {
+  try {
+    const response = await axios.post(
+      `${SUREPASS_API_URL}/pan/pan`,
+      {
+        id_number: panNumber,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${SUREPASS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.data.success) {
+      await kycDao.updatePanVerification(userId, {
+        panNumber,
+        verificationStatus: true,
+        panDetails: response.data.data,
+        updatedAt: new Date(),
+      });
+    }
+
+    return createResponse.success(response.data);
+  } catch (error) {
+    console.error("PAN verification error:", error);
+    throw error;
+  }
+};
+
 module.exports.getKycStatus = async function (userId) {
   try {
     const kycStatus = await kycDao.getKycStatus(userId);

@@ -1,8 +1,7 @@
+// dao/booking.dao.js
 const User = require("../models/user.model");
 const Booking = require("../models/booking.model");
-const { Transaction } = require("../models/payment.model");
-const Availability = require("../models/availability.model");
-const Pricing = require("../models/pricing.model");
+const { CoinTransaction, PaymentTransaction } = require("../models/transaction.model");
 const mongoose = require("mongoose");
 
 exports.getUserById = function (userId) {
@@ -49,90 +48,38 @@ exports.createBooking = function (
       });
   });
 };
-exports.checkExpertAvailability = function (expertId, startTime, endTime) {
-  return new Promise((resolve, reject) => {
-    User.findById(expertId)
-      .populate("availability")
-      .then((user) => {
-        if (!user || !user.availability) {
-          resolve(false);
-          return;
-        }
 
-        const requestedDay = new Date(startTime).getDay();
-        const dayNames = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-
-        const isAvailable = user.availability.some((slot) => {
-          return (
-            slot.weeklyRepeat.includes(dayNames[requestedDay]) &&
-            slot.startTime <= startTime &&
-            slot.endTime >= endTime
-          );
-        });
-
-        resolve(isAvailable);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
+exports.createCoinTransaction = async function (transactionData, session) {
+  const transaction = new CoinTransaction(transactionData);
+  return await transaction.save({ session });
 };
 
-exports.getExpertPrice = async function (expertId, type) {
-  const expert = await User.findById(expertId).populate("pricing");
-  if (!expert || !expert.pricing) {
-    throw new Error("Expert or pricing not found");
-  }
-
-  switch (type) {
-    case "audio":
-      return expert.pricing.audioCallPrice;
-    case "video":
-      return expert.pricing.videoCallPrice;
-    case "message":
-      return expert.pricing.messagePrice;
-    default:
-      throw new Error("Invalid booking type");
-  }
-};
-exports.updateUserWallet = function (
-  userId,
-  amount,
-  transactionType,
-  relatedBooking = null
-) {
-  return new Promise((resolve, reject) => {
-    User.findById(userId)
-      .then(async (user) => {
-        if (!user) {
-          reject(new Error("User not found"));
-          return;
-        }
-        user.wallet.balance += amount;
-        const transaction = new Transaction({
-          user: userId,
-          type: transactionType,
-          amount: Math.abs(amount),
-          status: "completed",
-          paymentMethod: transactionType === "deposit" ? "razorpay" : "wallet",
-          relatedBooking,
-        });
-        user.wallet.transactions.push(transaction._id);
-        await user.save();
-        await transaction.save();
-        resolve(user);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
+exports.createPaymentTransaction = async function (transactionData, session) {
+  const transaction = new PaymentTransaction(transactionData);
+  return await transaction.save({ session });
 };
 
-exports.getBookingsAsClient = function (userId) {
+exports.updateUserWallet = async function (userId, amount, session) {
+  return await User.findByIdAndUpdate(
+    userId,
+    { $inc: { "wallet.balance": amount } },
+    { new: true, session }
+  );
+};
+
+exports.getBookingsAsClient = function (userId, filters = {}) {
   return new Promise((resolve, reject) => {
-    Booking.find({ client: userId })
+    const query = { client: userId };
+    
+    if (filters.startDate || filters.endDate) {
+      query.startTime = {};
+      if (filters.startDate) query.startTime.$gte = new Date(filters.startDate);
+      if (filters.endDate) query.startTime.$lte = new Date(filters.endDate);
+    }
+    if (filters.status) query.status = filters.status;
+    if (filters.type) query.type = filters.type;
+
+    Booking.find(query)
       .populate({
         path: "expert",
         select: "_id online isVerified",
@@ -152,31 +99,7 @@ exports.getBookingsAsClient = function (userId) {
       })
       .sort({ createdAt: -1 })
       .then((bookings) => {
-        const processedBookings = bookings.map((booking) => {
-          const expert = booking.expert;
-          return {
-            _id: booking._id,
-            expert: {
-              id: expert._id,
-              online: expert.online || false,
-              isVerified: expert.isVerified || false,
-              rating: expert.basicInfo?.rating || "",
-              profilePic: expert.basicInfo?.profilePic || "",
-              displayName: expert.basicInfo?.displayName || "",
-              industry: expert.industryOccupation?.industry?.name || "",
-              occupation: expert.industryOccupation?.occupation?.name || "",
-            },
-            startTime: booking.startTime,
-            endTime: booking.endTime,
-            duration: booking.duration,
-            type: booking.type,
-            status: booking.status,
-            price: booking.price,
-            createdAt: booking.createdAt,
-            updatedAt: booking.updatedAt,
-          };
-        });
-        resolve(processedBookings);
+        resolve(bookings);
       })
       .catch((err) => {
         console.log(err);
@@ -185,12 +108,124 @@ exports.getBookingsAsClient = function (userId) {
   });
 };
 
-exports.getBookingsAsExpert = function (userId) {
+exports.getBookingsAsExpert = function (userId, filters = {}) {
   return new Promise((resolve, reject) => {
-    Booking.find({ expert: userId })
+    const query = { expert: userId };
+    
+    if (filters.startDate || filters.endDate) {
+      query.startTime = {};
+      if (filters.startDate) query.startTime.$gte = new Date(filters.startDate);
+      if (filters.endDate) query.startTime.$lte = new Date(filters.endDate);
+    }
+    if (filters.status) query.status = filters.status;
+    if (filters.type) query.type = filters.type;
+
+    Booking.find(query)
       .populate({
         path: "client",
         select: "_id online isVerified",
+        populate: [
+          {
+            path: "basicInfo",
+            select: "rating profilePic displayName",
+          },
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .then((bookings) => {
+        resolve(bookings);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+exports.getFilteredTransactions = async function (userId, filters = {}) {
+  try {
+    const query = {};
+    
+    // Add date filters if provided
+    if (filters.startDate || filters.endDate) {
+      query.createdAt = {};
+      if (filters.startDate) {
+        query.createdAt.$gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        query.createdAt.$lte = new Date(filters.endDate);
+      }
+    }
+
+    // Add status filter if provided
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    let transactions = [];
+
+    // Get payment transactions if requested
+    if (!filters.type || filters.type === 'payment') {
+      const paymentQuery = { ...query, user: userId };
+      if (filters.paymentType) {
+        paymentQuery.type = filters.paymentType;
+      }
+      const paymentTransactions = await PaymentTransaction.find(paymentQuery)
+        .populate('user', 'basicInfo')
+        .sort({ createdAt: -1 });
+      transactions = transactions.concat(paymentTransactions);
+    }
+
+    // Get coin transactions if requested
+    if (!filters.type || filters.type === 'coin') {
+      const coinQuery = {
+        ...query,
+        $or: [{ sender: userId }, { receiver: userId }]
+      };
+      if (filters.coinType) {
+        coinQuery.type = filters.coinType;
+      }
+      const coinTransactions = await CoinTransaction.find(coinQuery)
+        .populate('sender receiver', 'basicInfo')
+        .populate('relatedBooking')
+        .sort({ createdAt: -1 });
+      transactions = transactions.concat(coinTransactions);
+    }
+
+    // Sort combined transactions by date
+    return transactions.sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.updateBookingStatus = async function (bookingId, status, session) {
+  return await Booking.findByIdAndUpdate(
+    bookingId,
+    { status },
+    { new: true, session }
+  );
+}
+
+exports.getTransactionById = function (transactionId) {
+  return new Promise((resolve, reject) => {
+    PaymentTransaction.findById(transactionId)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+exports.getBookingById = function (bookingId) {
+  return new Promise((resolve, reject) => {
+    Booking.findById(bookingId)
+      .populate({
+        path: "expert",
+        select: "_id online isVerified pricing",
         populate: [
           {
             path: "basicInfo",
@@ -205,94 +240,19 @@ exports.getBookingsAsExpert = function (userId) {
           },
         ],
       })
-      .sort({ createdAt: -1 })
-      .then((bookings) => {
-        const processedBookings = bookings.map((booking) => {
-          const client = booking.client;
-          return {
-            _id: booking._id,
-            client: {
-              id: client._id,
-              online: client.online || false,
-              isVerified: client.isVerified || false,
-              rating: client.basicInfo?.rating || "",
-              profilePic: client.basicInfo?.profilePic || "",
-              displayName: client.basicInfo?.displayName || "",
-              industry: client.industryOccupation?.industry?.name || "",
-              occupation: client.industryOccupation?.occupation?.name || "",
-            },
-            startTime: booking.startTime,
-            endTime: booking.endTime,
-            duration: booking.duration,
-            type: booking.type,
-            status: booking.status,
-            price: booking.price,
-            createdAt: booking.createdAt,
-            updatedAt: booking.updatedAt,
-          };
-        });
-        resolve(processedBookings);
+      .populate({
+        path: "client",
+        select: "_id online isVerified",
+        populate: {
+          path: "basicInfo",
+          select: "rating profilePic displayName",
+        },
       })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
-exports.getBookingById = function (bookingId) {
-  return new Promise((resolve, reject) => {
-    Booking.findById(bookingId)
-      .populate("client", "basicInfo")
-      .populate("expert", "basicInfo")
       .then((data) => {
         resolve(data);
       })
       .catch((err) => {
         console.log(err);
-        reject(err);
-      });
-  });
-};
-
-exports.updateBookingStatus = function (bookingId, status) {
-  return new Promise((resolve, reject) => {
-    Booking.findByIdAndUpdate(bookingId, { status }, { new: true })
-      .populate("client", "basicInfo")
-      .populate("expert", "basicInfo")
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
-
-exports.getTransactionsByUserId = function (userId) {
-  return new Promise((resolve, reject) => {
-    Transaction.find({ user: userId })
-      .sort({ createdAt: -1 })
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
-
-exports.createTransaction = function (transactionData) {
-  return new Promise((resolve, reject) => {
-    const transaction = new Transaction(transactionData);
-    transaction
-      .save()
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        console.error(err);
         reject(err);
       });
   });
