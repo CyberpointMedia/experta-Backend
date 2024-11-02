@@ -30,6 +30,7 @@ require("./routes/file.route")(app);
 require("./routes/ticket.route")(app);
 require("./routes/booking.routes")(app);
 require("./routes/kyc.routes")(app);
+require("./routes/notification.route")(app);
 
 const port = process.env.PORT || 5000;
 

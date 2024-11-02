@@ -4,6 +4,7 @@ const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
 const mongoose = require("mongoose");
 const Razorpay = require("razorpay");
+const BookingNotificationService=require("./bookingNotification.service")
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -102,6 +103,22 @@ exports.updateBookingStatus = async function (bookingId, status, userId) {
     if (status === 'accepted') {
       booking.status = 'accepted';
       await booking.save({ session });
+      const endTime = new Date(booking.endTime);
+            const now = new Date();
+            if (endTime > now) {
+                const delay = endTime.getTime() - now.getTime();
+                setTimeout(async () => {
+                    const updatedBooking = await bookingDao.getBookingById(bookingId);
+                    if (updatedBooking && updatedBooking.status === 'accepted') {
+                        updatedBooking.status = 'completed';
+                        await updatedBooking.save();
+                        await BookingNotificationService.notifyBookingStatusUpdate(
+                            updatedBooking,
+                            'accepted'
+                        );
+                    }
+                }, delay);
+            }
 
     } else if (status === 'rejected') {
       // Create refund transaction
@@ -122,10 +139,12 @@ exports.updateBookingStatus = async function (bookingId, status, userId) {
 
       booking.status = 'rejected';
       await booking.save({ session });
+      await BookingNotificationService.notifyPaymentUpdate(booking, 'refund');
     }
-
+    await BookingNotificationService.notifyBookingStatusUpdate(booking, previousStatus);
     await session.commitTransaction();
     return createResponse.success(booking);
+
 
   } catch (error) {
     await session.abortTransaction();
@@ -241,6 +260,13 @@ exports.verifyPayment = async function (userId, paymentData) {
 
     // Add amount to user's wallet
     await bookingDao.updateUserWallet(userId, transaction.amount, session);
+
+    if (transaction.status === 'completed') {
+      const booking = await bookingDao.getBookingById(transaction.relatedBooking);
+      if (booking) {
+          await BookingNotificationService.notifyPaymentUpdate(booking, 'payment');
+      }
+  }
 
     await session.commitTransaction();
     return createResponse.success({
@@ -363,6 +389,21 @@ exports.createBooking = async function (clientId, expertId, startTime, endTime, 
 
     // 11. Update expert's booking count
     await User.findByIdAndUpdate(expertId, { $inc: { noOfBooking: 1 } }, { session });
+
+    const bookingStartTime = new Date(startTime);
+    const reminderTime = new Date(bookingStartTime.getTime() - 15 * 60000); // 15 minutes before
+    if (reminderTime > now) {
+        const delay = reminderTime.getTime() - now.getTime();
+        setTimeout(async () => {
+            await BookingNotificationService.notifyUpcomingBooking(booking);
+        }, delay);
+    }
+
+    // Send immediate notification about booking creation
+    await BookingNotificationService.notifyBookingCreated(booking);
+    
+    // If successful payment, notify about payment
+    await BookingNotificationService.notifyPaymentUpdate(booking, 'payment');
 
     await session.commitTransaction();
     return createResponse.success(booking);
