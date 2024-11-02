@@ -1,3 +1,4 @@
+// routes/booking.routes.js
 const bookingPaymentController = require("../controllers/booking.controller");
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const routes = require("../constants/route.url");
@@ -52,5 +53,20 @@ module.exports = (app) => {
     bookingPaymentController.verifyPayment
   );
 
+   // withdraw
+  router.post(
+    "/withdraw",
+    authMiddleware,
+    bookingPaymentController.initiateWithdrawal
+  );
+  
+  router.get(
+    "/withdraw/status/:withdrawalId",
+    authMiddleware,
+    bookingPaymentController.getWithdrawalStatus
+  );
+
+
   app.use(routes.API, router);
 };
+

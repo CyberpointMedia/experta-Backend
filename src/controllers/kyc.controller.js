@@ -95,3 +95,26 @@ exports.getKycStatus = async (req, res) => {
     );
   }
 };
+
+exports.verifyPan = async (req, res) => {
+  const userId = req.body.user._id;
+  const { panNumber } = req.body;
+
+  if (!userId || !panNumber) {
+    res.send(createResponse.invalid("User ID and PAN number required"));
+    return;
+  }
+
+  try {
+    const verificationResult = await kycService.verifyPan(userId, panNumber);
+    res.json(verificationResult);
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};

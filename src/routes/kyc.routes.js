@@ -17,5 +17,6 @@ module.exports = (app) => {
     kycController.verifyFaceMatch
   );
   router.get("/status", authMiddleware, kycController.getKycStatus);
+  router.post("/verify-pan", authMiddleware, kycController.verifyPan);
   app.use("/api/kyc", router);
 };
