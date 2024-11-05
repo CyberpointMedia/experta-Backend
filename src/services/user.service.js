@@ -881,17 +881,25 @@ module.exports.unblockUser = async (userId, userToUnblockId) => {
 
 module.exports.shareProfile = async function (userId) {
   try {
-    const user = await User.findById(userId).populate("basicInfo");
+    const user = await User.findById(userId).populate("basicInfo").populate({
+      path: "industryOccupation",
+      populate: { path: "industry occupation" },
+    });
     if (!user) {
       return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.DATA_NOT_FOUND,
       });
     }
+
+    console.log("3.110.252.174-_> ",user);
     const profileData = {
       id: user._id,
       name: `${user.basicInfo.firstName} ${user.basicInfo.lastName}`,
       title: user.basicInfo.displayName || "User",
+      profilePic:user.basicInfo.profilePic || "",
+      industry:user.industryOccupation?.industry?.name,
+      occupation:user.industryOccupation?.occupation?.name,
     };
     const qrCode = await generateQRCode(JSON.stringify(profileData));
     user.basicInfo.qrCode = qrCode;
