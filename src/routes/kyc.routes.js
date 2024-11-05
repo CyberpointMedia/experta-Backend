@@ -18,5 +18,10 @@ module.exports = (app) => {
   );
   router.get("/status", authMiddleware, kycController.getKycStatus);
   router.post("/verify-pan", authMiddleware, kycController.verifyPan);
+  router.post(
+    "/face-liveness-client",
+    authMiddleware,
+    kycController.updateFaceLivenessClient
+  );
   app.use("/api/kyc", router);
 };
