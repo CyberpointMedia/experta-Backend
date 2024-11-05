@@ -797,7 +797,7 @@ module.exports.getTrending = function () {
   return new Promise((resolve, reject) => {
     User.find({})
       .select(
-        "_id online rating profilePic displayName industryOccupation pricing"
+        "_id online rating profilePic displayName industryOccupation pricing language expertise"
       )
       .populate({
         path: "industryOccupation",
@@ -807,7 +807,13 @@ module.exports.getTrending = function () {
         ],
       })
       .populate("pricing")
-      .populate("basicInfo")
+      .populate("basicInfo").populate({
+        path: "expertise",
+        populate: { path: "expertise" },
+      }).populate({
+        path:"language",
+        populate:{path:"language"}
+      })
       .then((data) => {
         Promise.all(
           data.map(
@@ -821,6 +827,8 @@ module.exports.getTrending = function () {
                   displayName: user?.basicInfo?.displayName || "",
                   industry: user?.industryOccupation?.industry?.name || "",
                   occupation: user?.industryOccupation?.occupation?.name || "",
+                  language:user?.language?.language,
+                  expertise:user?.expertise?.expertise,
                   pricing: user?.pricing || {
                     _id: "",
                     _v: 0,
