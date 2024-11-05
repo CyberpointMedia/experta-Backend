@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 
 exports.getUserById = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findById(userId)
+    User.findById(userId).populate('pricing')
       .then((data) => {
         resolve(data);
       })

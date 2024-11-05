@@ -4,8 +4,9 @@ const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
 const mongoose = require("mongoose");
 const Razorpay = require("razorpay");
-const BookingNotificationService=require("./bookingNotification.service")
-
+const BookingNotificationService=require("./bookingNotification.service");
+const Booking=require("../models/booking.model");
+const User=require("../models/user.model");
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -95,8 +96,9 @@ exports.updateBookingStatus = async function (bookingId, status, userId) {
     if (!booking) {
       throw new Error("Booking not found");
     }
+    const previousStatus=booking?.status;
 
-    if (booking.expert.toString() !== userId) {
+    if (booking.expert._id.toString() !== userId) {
       throw new Error("Not authorized to update this booking");
     }
 
@@ -307,6 +309,8 @@ exports.createBooking = async function (clientId, expertId, startTime, endTime, 
       throw new Error("Expert has not set their pricing");
     }
 
+
+    console.log("expert--> ",expert);
     // 3. Get pricing based on booking type
     let price;
     if (type === 'audio') {
@@ -355,6 +359,8 @@ exports.createBooking = async function (clientId, expertId, startTime, endTime, 
         }
       ]
     });
+
+
 
     if (conflictingBooking) {
       throw new Error(errorMessageConstants.BOOKING_CONFLICT_MESSAGE);
