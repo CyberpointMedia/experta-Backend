@@ -892,7 +892,6 @@ module.exports.shareProfile = async function (userId) {
       });
     }
 
-    console.log("3.110.252.174-_> ",user);
     const profileData = {
       id: user._id,
       name: `${user.basicInfo.firstName} ${user.basicInfo.lastName}`,

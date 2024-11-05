@@ -118,3 +118,34 @@ exports.verifyPan = async (req, res) => {
     );
   }
 };
+
+exports.updateFaceLivenessClient = async (req, res) => {
+  const userId = req.body.user._id;
+  const { livenessStatus } = req.body;
+   
+  if (!userId || livenessStatus === undefined) {
+    res.send(createResponse.invalid("User ID and liveness status required"));
+    return;
+  }
+
+  try {
+    const data = {
+      livenessStatus,
+      confidence: 100, 
+      imageUrl: null, 
+      updatedAt: new Date()
+    };
+
+    const result = await kycService.updateFaceLivenessClient(userId, data);
+    res.json(createResponse.success(result));
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+

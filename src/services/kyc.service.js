@@ -160,3 +160,13 @@ module.exports.getKycStatus = async function (userId) {
     throw error;
   }
 };
+
+module.exports.updateFaceLivenessClient = async function (userId, data) {
+  try {
+    const result = await kycDao.updateFaceLiveness(userId, data);
+    return createResponse.success(result);
+  } catch (error) {
+    console.error("Face liveness client update error:", error);
+    throw error;
+  }
+};
