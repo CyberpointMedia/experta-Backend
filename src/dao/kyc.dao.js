@@ -1,4 +1,5 @@
 const KYC = require("../models/kyc.model");
+const User=require("../models/user.model");
 
 module.exports.updateBankVerification = async function (userId, data) {
   try {
@@ -80,7 +81,11 @@ module.exports.updatePanVerification = async function (userId, data) {
 
 module.exports.getKycStatus = async function (userId) {
   try {
-    return await KYC.findOne({ userId }).lean();
+    const data= await KYC.findOne({ userId }).lean();
+    const userData = await User.findById(userId).select('email phoneNo').lean();
+    console.log("data--> ",data);
+    return {userData,...data}
+  
   } catch (error) {
     throw error;
   }
