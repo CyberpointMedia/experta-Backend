@@ -311,76 +311,133 @@ module.exports.createOrUpdateAbout = async (userId, data) => {
   }
 };
 
-module.exports.createOrUpdateUserInterest = async function (
-  userId,
-  interestsToSave
-) {
+module.exports.createOrUpdateUserInterest = async function (userId, interestsToSave) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    let user = await User.findById(userId).populate("intereset");
+    const user = await User.findById(userId)
+      .populate("intereset")
+      .session(session);
+
     if (!user) {
-      const response = {
+      await session.abortTransaction();
+      return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
+      });
     }
-    let where = {};
-    if (user.intereset) where._id = user.intereset;
-    let updatedInterests = await Interest.findOneAndUpdate(
-      where,
-      { $set: { intereset: interestsToSave } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
 
-    if (!user.intereset) {
+    let updatedInterests;
+
+    // If user already has interests
+    if (user.intereset) {
+      // Delete existing interests
+      await Interest.findByIdAndDelete(user.intereset._id).session(session);
+      
+      // Create new interests document
+      updatedInterests = new Interest({
+        intereset: interestsToSave
+      });
+      await updatedInterests.save({ session });
+      
+      // Update user's interest reference
       user.intereset = updatedInterests._id;
-      await user.save();
+      await user.save({ session });
+    } else {
+      // First time user - create new interests
+      updatedInterests = new Interest({
+        intereset: interestsToSave
+      });
+      await updatedInterests.save({ session });
+
+      // Link new interests to user
+      user.intereset = updatedInterests._id;
+      await user.save({ session });
     }
 
-    return createResponse.success(updatedInterests);
+    // Populate and return complete data
+    const populatedInterests = await Interest.findById(updatedInterests._id)
+      .populate('intereset', 'name')
+      .session(session);
+
+    await session.commitTransaction();
+    return createResponse.success(populatedInterests);
+
   } catch (error) {
-    console.error("Error:", error);
-    const response = {
+    await session.abortTransaction();
+    console.error("Error in createOrUpdateUserInterest:", error);
+    return createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
-    };
-    return createResponse.error(response);
+    });
+  } finally {
+    session.endSession();
   }
 };
 
-module.exports.createOrUpdateUserLanguage = async function (
-  userId,
-  languageToSave
-) {
+module.exports.createOrUpdateUserLanguage = async function (userId, languageToSave) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    let user = await User.findById(userId).populate("language");
+    const user = await User.findById(userId)
+      .populate("language")
+      .session(session);
+
     if (!user) {
-      const response = {
+      await session.abortTransaction();
+      return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
+      });
     }
-    let where = {};
-    if (user.language) where._id = user.language;
 
-    let updatedLanguage = await Languages.findOneAndUpdate(
-      where,
-      { $set: { language: languageToSave } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-    if (!user.language) {
+    let updatedLanguage;
+
+    // If user already has languages
+    if (user.language) {
+      // Delete existing language document
+      await Languages.findByIdAndDelete(user.language._id).session(session);
+      
+      // Create new language document
+      updatedLanguage = new Languages({
+        language: languageToSave
+      });
+      await updatedLanguage.save({ session });
+      
+      // Update user's language reference
       user.language = updatedLanguage._id;
-      await user.save();
+      await user.save({ session });
+    } else {
+      // First time user - create new language document
+      updatedLanguage = new Languages({
+        language: languageToSave
+      });
+      await updatedLanguage.save({ session });
+
+      // Link new language to user
+      user.language = updatedLanguage._id;
+      await user.save({ session });
     }
 
-    return createResponse.success(updatedLanguage);
+    // Populate and return complete data
+    const populatedLanguage = await Languages.findById(updatedLanguage._id)
+      .populate('language', 'name')
+      .session(session);
+
+    await session.commitTransaction();
+    return createResponse.success(populatedLanguage);
+
   } catch (error) {
-    const response = {
+    await session.abortTransaction();
+    console.error("Error in createOrUpdateUserLanguage:", error);
+    return createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
-    };
-    return createResponse.error(response);
+    });
+  } finally {
+    session.endSession();
   }
 };
 
