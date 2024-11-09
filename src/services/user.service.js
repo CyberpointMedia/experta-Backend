@@ -145,43 +145,72 @@ module.exports.createBasicInfo = async function (userId, basicInfoToSave) {
   }
 };
 
-module.exports.createOrUpdateExpertise = async function (
-  userId,
-  expertiseToSave
-) {
+module.exports.createOrUpdateExpertise = async function (userId, expertiseToSave) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    let user = await User.findById(userId).populate("expertise");
+    // Find user and populate expertise
+    let user = await User.findById(userId)
+      .populate("expertise")
+      .session(session);
+
+      console.log("user--> ",user);
 
     if (!user) {
-      const response = {
+      await session.abortTransaction();
+      return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
+      });
     }
 
-    let where = {};
-    if (user.expertise) where._id = user.expertise;
+    let updatedExpertise;
 
-    let updatedExpertise = await Expertise.findOneAndUpdate(
-      where,
-      { $set: { expertise: expertiseToSave } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-
-    if (!user.expertise) {
+    // If user already has expertise
+    if (user.expertise) {
+      // Delete existing expertise document
+      console.log("user.expertise._id--> ",user.expertise._id);
+      await Expertise.findByIdAndDelete(user.expertise._id).session(session);
+      
+      // Create new expertise document
+      updatedExpertise = new Expertise({
+        expertise: expertiseToSave
+      });
+      await updatedExpertise.save({ session });
+      
+      // Update user's expertise reference
       user.expertise = updatedExpertise._id;
-      await user.save();
+      await user.save({ session });
+    } else {
+      // First time user - create new expertise
+      updatedExpertise = new Expertise({
+        expertise: expertiseToSave
+      });
+      await updatedExpertise.save({ session });
+
+      // Link the new expertise to the user
+      user.expertise = updatedExpertise._id;
+      await user.save({ session });
     }
 
-    return createResponse.success(updatedExpertise);
+    // Populate expertise data
+    const populatedExpertise = await Expertise.findById(updatedExpertise._id)
+      .populate('expertise', 'name')
+      .session(session);
+
+    await session.commitTransaction();
+    return createResponse.success(populatedExpertise);
+
   } catch (error) {
-    console.error("Error:", error);
-    const response = {
+    await session.abortTransaction();
+    console.error("Error in createOrUpdateExpertise:", error);
+    return createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
-    };
-    return createResponse.error(response);
+    });
+  } finally {
+    session.endSession();
   }
 };
 
