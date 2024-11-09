@@ -9,6 +9,11 @@ const ticketSchema = new Schema(
       ref: "User",
       required: true,
     },
+    assignId:{
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
     subject: {
       type: String,
       required: true,
@@ -24,6 +29,11 @@ const ticketSchema = new Schema(
       type: String,
       enum: ["open", "in-progress", "closed"],
       default: "open",
+    },
+    priority:{
+      type: String,
+      enum: ["high", "low", "medium"],
+      default: "high",
     },
   },
   {
