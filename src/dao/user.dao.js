@@ -908,6 +908,38 @@ module.exports.getUserBySearch = function (query) {
         },
       },
       {
+        $lookup: {
+          from: "languages",
+          localField: "language",
+          foreignField: "_id",
+          as: "language",
+        },
+      },
+      {
+        $lookup: {
+          from: "languageitems",
+          localField: "language.language",
+          foreignField: "_id",
+          as: "languageItems",
+        },
+      },
+      {
+        $lookup: {
+          from: "expertise",
+          localField: "expertise",
+          foreignField: "_id",
+          as: "expertise",
+        },
+      },
+      {
+        $lookup: {
+          from: "expertiseitems",
+          localField: "expertise.expertise",
+          foreignField: "_id",
+          as: "expertiseItems",
+        },
+      },
+      {
         $match: query
           ? {
               $or: [
@@ -918,9 +950,11 @@ module.exports.getUserBySearch = function (query) {
                 { "occupation.name": { $regex: query, $options: "i" } },
                 { email: { $regex: query, $options: "i" } },
                 { "interestItems.name": { $regex: query, $options: "i" } },
+                { "languageItems.name": { $regex: query, $options: "i" } },
+                { "expertiseItems.name": { $regex: query, $options: "i" } },
               ],
             }
-          : {}, // If query is empty, match all documents,
+          : {},
       },
       {
         $addFields: {
@@ -960,11 +994,27 @@ module.exports.getUserBySearch = function (query) {
           occupation: {
             $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
           },
+          languages: {
+            $ifNull: [{
+              $map: {
+                input: "$languageItems",
+                as: "lang",
+                in: "$$lang.name"
+              }
+            }, []]
+          },
+          expertises: {
+            $ifNull: [{
+              $map: {
+                input: "$expertiseItems",
+                as: "exp",
+                in: "$$exp.name"
+              }
+            }, []]
+          },
         },
       },
     ];
-
-    // todo:add random
     await User.aggregate(aggregationPipeline)
       .then((data) => {
         resolve(data);
