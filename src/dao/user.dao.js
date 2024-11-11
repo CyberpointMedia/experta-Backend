@@ -940,6 +940,14 @@ module.exports.getUserBySearch = function (query) {
         },
       },
       {
+        $lookup: {
+          from: "pricings",
+          localField: "pricing",
+          foreignField: "_id",
+          as: "pricing",
+        },
+      },
+      {
         $match: query
           ? {
               $or: [
@@ -994,27 +1002,24 @@ module.exports.getUserBySearch = function (query) {
           occupation: {
             $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
           },
-          languages: {
-            $ifNull: [{
-              $map: {
-                input: "$languageItems",
-                as: "lang",
-                in: "$$lang.name"
-              }
-            }, []]
-          },
-          expertises: {
-            $ifNull: [{
-              $map: {
-                input: "$expertiseItems",
-                as: "exp",
-                in: "$$exp.name"
-              }
-            }, []]
+          language: { $ifNull: ["$languageItems", []] },
+          expertise: { $ifNull: ["$expertiseItems", []] },
+          pricing: {
+            $ifNull: [
+              { $arrayElemAt: ["$pricing", 0] },
+              {
+                _id: "",
+                _v: 0,
+                audioCallPrice: 0,
+                messagePrice: 0,
+                videoCallPrice: 0,
+              },
+            ],
           },
         },
       },
     ];
+
     await User.aggregate(aggregationPipeline)
       .then((data) => {
         resolve(data);
