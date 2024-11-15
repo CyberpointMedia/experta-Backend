@@ -31,7 +31,7 @@ require("./routes/ticket.route")(app);
 require("./routes/booking.routes")(app);
 require("./routes/kyc.routes")(app);
 require("./routes/notification.route")(app);
-
+require("./routes/rating.route")(app);
 const port = process.env.PORT || 5000;
 
 // Error middlewares
