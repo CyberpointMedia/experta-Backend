@@ -23,18 +23,9 @@ exports.getBasicInfo = async (req, res) => {
   }
   userDao
     .getBasicInfo(userId)
-    .then(async (data) => {
+    .then((data) => {
       if (null != data && data.basicInfo) {
-        const accountInfo = await UserAccount.findOne({ user: userId })
-          .select('username dateOfBirth gender');
-        const combinedInfo = {
-          ...data.basicInfo.toObject(),
-          username: accountInfo?.username || null,
-          dateOfBirth: accountInfo?.dateOfBirth || null,
-          gender: accountInfo?.gender || null
-        };
-
-        res.json(createResponse.success(combinedInfo));
+        res.json(createResponse.success(data.basicInfo));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
@@ -52,6 +43,7 @@ exports.getBasicInfo = async (req, res) => {
       res.json(createResponse.error(response));
     });
 };
+
 exports.createBasicInfo = async (req, res) => {
   const userId = req.body.user._id;
   if (!userId) {
