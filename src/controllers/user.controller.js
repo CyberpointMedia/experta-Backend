@@ -175,8 +175,8 @@ exports.getIndustryOccupation = async (req, res) => {
   userDao
     .getIndustryOccupation(userId)
     .then((data) => {
-      if (null != data && data.industryOccupation) {
-        res.json(createResponse.success(data.industryOccupation));
+      if (null != data && data) {
+        res.json(createResponse.success(data));
       } else {
         response = {
           errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
