@@ -65,16 +65,15 @@ exports.createBasicInfo = async (req, res) => {
       type: req.file.mimetype,
     };
   }
-  // if (!req.body.name) {
-  //   res.send(createResponse.invalid("Name cannot be empty"));
-  //   return;
-  // }
 
   try {
     let basicInfoToSave = {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       displayName: req.body.displayName,
+      username: req.body.username,
+      dateOfBirth: req.body.dateOfBirth,
+      gender: req.body.gender,
       bio: req.body.bio,
       facebook: req.body.facebook,
       linkedin: req.body.linkedin,
@@ -83,6 +82,21 @@ exports.createBasicInfo = async (req, res) => {
       about: req.body.about,
       profilePic: data?.url,
     };
+
+    // Validate date of birth if provided
+    if (req.body.dateOfBirth) {
+      const dob = new Date(req.body.dateOfBirth);
+      if (isNaN(dob.getTime())) {
+        return res.json(createResponse.invalid("Invalid date of birth format"));
+      }
+      basicInfoToSave.dateOfBirth = dob;
+    }
+
+    // Validate gender if provided
+    if (req.body.gender && !['male', 'female', 'other'].includes(req.body.gender)) {
+      return res.json(createResponse.invalid("Invalid gender value. Must be 'male', 'female', or 'other'"));
+    }
+
     const savedBasicInfo = await userService.createBasicInfo(
       userId,
       basicInfoToSave
