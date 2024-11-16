@@ -92,6 +92,34 @@ module.exports.getIndustryOccupation = function (userId) {
   });
 };
 
+
+module.exports.getIndustryOccupation = function (userId) {
+  return new Promise((resolve, reject) => {
+    User.findOne({ _id: userId })
+      .populate({
+        path: "industryOccupation",
+        populate: { path: "industry occupation" },
+      })
+      .populate("education")
+      .populate("workExperience")
+      .then((data) => {
+        const flatData = {
+          industry: data.industryOccupation?.industry?.name || null,
+          occupation: data.industryOccupation?.occupation?.name || null,
+          registrationNumber: data.industryOccupation?.registrationNumber || null,
+          certificate: data.industryOccupation?.certificate || null,
+          achievements: data.industryOccupation?.achievements || [],
+          education: data.education || [],
+          workExperience: data.workExperience || [],
+        };
+        resolve(flatData);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
 module.exports.createBasicInfo = function (basicInfoToSave) {
   return new Promise((resolve, reject) => {
     const newBasicInfo = new BasicInfo(basicInfoToSave);
