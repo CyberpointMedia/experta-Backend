@@ -33,6 +33,10 @@ require("./routes/kyc.routes")(app);
 require("./routes/notification.route")(app);
 require("./routes/rating.route")(app);
 require("./routes/role.route")(app);
+require("./routes/allUser.routes")(app);
+require("./routes/userDetails.routes")(app);
+require("./routes/page.routes")(app);
+require("./routes/dashboardHome.routes")(app);
 const port = process.env.PORT || 5000;
 
 // Error middlewares
