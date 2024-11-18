@@ -90,3 +90,33 @@ module.exports.getKycStatus = async function (userId) {
     throw error;
   }
 };
+
+
+module.exports.updateUpiDetails = async function (userId, upiId) {
+  try {
+    return await KYC.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          "upiDetails.upiId": upiId,
+          "upiDetails.updatedAt": new Date(),
+        },
+      },
+      { new: true, upsert: true }
+    );
+  } catch (error) {
+    throw error;
+  }
+};
+
+module.exports.getBankingDetails = async function (userId) {
+  try {
+    const kyc = await KYC.findOne({ userId }).select('bankVerification upiDetails');
+    return {
+      bankDetails: kyc?.bankVerification || null,
+      upiDetails: kyc?.upiDetails || null
+    };
+  } catch (error) {
+    throw error;
+  }
+};

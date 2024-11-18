@@ -170,3 +170,29 @@ module.exports.updateFaceLivenessClient = async function (userId, data) {
     throw error;
   }
 };
+
+
+exports.saveUpiId = async function (userId, upiId) {
+  try {
+    await kycDao.updateUpiDetails(userId, upiId);
+    return createResponse.success({
+      message: "UPI ID saved successfully",
+      upiId
+    });
+  } catch (error) {
+    console.error("Error saving UPI ID:", error);
+    throw error;
+  }
+};
+
+exports.getBankingDetails = async function (userId) {
+  try {
+    const details = await kycDao.getBankingDetails(userId);
+    return createResponse.success(details);
+  } catch (error) {
+    console.error("Error fetching banking details:", error);
+    throw error;
+  }
+};
+
+
