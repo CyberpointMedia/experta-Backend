@@ -195,4 +195,14 @@ exports.getBankingDetails = async function (userId) {
   }
 };
 
+exports.checkPaymentMethodsStatus = async function (userId) {
+  try {
+    const status = await kycDao.checkPaymentMethodsStatus(userId);
+    return createResponse.success(status);
+  } catch (error) {
+    console.error("Error checking payment methods status:", error);
+    throw error;
+  }
+};
+
 

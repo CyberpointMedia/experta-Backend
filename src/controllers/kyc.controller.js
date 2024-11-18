@@ -195,3 +195,23 @@ exports.getBankingDetails = async (req, res) => {
 };
 
 
+exports.checkPaymentMethodsStatus = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.json(createResponse.invalid("User ID is required"));
+    return;
+  }
+  try {
+    const result = await kycService.checkPaymentMethodsStatus(userId);
+    res.json(result);
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
