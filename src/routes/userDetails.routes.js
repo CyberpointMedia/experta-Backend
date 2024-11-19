@@ -13,17 +13,18 @@ const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBo
     getAllUsers
 } = require('../controllers/userDetails.controller');
 const { authMiddleware } = require("../middlewares/auth.middleware");
-const {hasRole}=require("../middlewares/role.middleware")
+const {hasRole}=require("../middlewares/role.middleware");
+const { paginate } = require("../middlewares/pagination.middleware"); 
 const routes = require("../constants/route.url");
 
 // Route to get all all-basic-info
 Router.get('/all-basic-info',authMiddleware, hasRole('admin'), getAllBasicInfo);
 //New Users routes
-Router.get('/get-all-users',authMiddleware, hasRole('admin'), getAllUsers);
+Router.get('/get-all-users',authMiddleware, hasRole('admin'),paginate('User'), getAllUsers);
 
 //Booking history routes
 // Route to get all bookings
-Router.get('/all-bookings',authMiddleware, hasRole('admin'), getAllBookings);  // Add the bookings route
+Router.get('/all-bookings',authMiddleware, hasRole('admin'), paginate('Booking'), getAllBookings);  // Add the bookings route
 // Get all bookings
 Router.get('/bookings',authMiddleware, hasRole('admin'), authMiddleware, getAllBookings);
 // Get a booking by ID
@@ -37,7 +38,7 @@ Router.delete('/bookings/:id',authMiddleware, hasRole('admin'), deleteBooking);
 
 //Transaction history routes
 // Get all transactions
-Router.get('/transactions', authMiddleware, hasRole('admin'), getAllTransactions);
+Router.get('/transactions', authMiddleware, hasRole('admin'),paginate('PaymentTransaction'), getAllTransactions);
 // Get a transaction by ID
 Router.get('/transactions/:id', authMiddleware, hasRole('admin'), getTransactionById);
 // Create a new transaction
@@ -49,7 +50,7 @@ Router.delete('/transactions/:id', authMiddleware, hasRole('admin'), deleteTrans
 
 //review history routes
 // Get all reviews
-Router.get('/reviews', authMiddleware, hasRole('admin'), getAllReviews);
+Router.get('/reviews', authMiddleware, hasRole('admin'), paginate('Review'), getAllReviews);
 // Get a review by ID
 Router.get('/reviews/:id', authMiddleware, hasRole('admin'), getReviewById);
 // Create a new review
@@ -63,7 +64,7 @@ Router.delete('/reviews/:id', authMiddleware, hasRole('admin'), deleteReview);
 // Create a new ticket
 Router.post('/ticket', authMiddleware, hasRole('admin'), createTicket);
 // Get all tickets (Admin can access all, User can access only their tickets)
-Router.get('/get-all-tickets',authMiddleware, hasRole('admin'), getAllTickets);
+Router.get('/get-all-tickets',authMiddleware, hasRole('admin'), paginate(Ticket) , getAllTickets);
 // Get a specific ticket by ID
 Router.get('/get-ticket/:ticketId', authMiddleware, hasRole('admin'), getTicketById);
 // Update a ticket (status, priority, description)
@@ -80,7 +81,7 @@ Router.post('/createTicketChat', authMiddleware, hasRole('admin'), createMessage
 Router.get('/ticket/:ticketId', authMiddleware, hasRole('admin'), getMessagesByTicketId);
 // Optional route to get all messages between two users (senderId and receiverId)
 Router.get('/between/:senderId/:receiverId', authMiddleware, hasRole('admin'), getMessagesBetweenUsers);
- 
+
 // Export the routes as middleware to be used in app.js
 module.exports = (app) => {
     app.use(routes.API, Router);  // Prefix your routes with `/api`

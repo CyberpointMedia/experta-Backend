@@ -1,6 +1,6 @@
 const BasicInfo = require('../models/basicInfo.model');
-const Booking = require('../models/booking.model'); 
-const {PaymentTransaction} = require("../models/transaction.model");
+const Booking = require('../models/booking.model');
+const { PaymentTransaction } = require("../models/transaction.model");
 const Review = require("../models/review.model");
 const User = require("../models/user.model");
 const Ticket = require('../models/ticket.model');
@@ -12,6 +12,7 @@ const errorMessageConstants = require('../constants/error.messages');
 exports.getAllUsers = async (req, res) => {
   try {
 
+    const { page, limit, skip } = req.pagination;
     // Fetch users and populate the `basicInfo` field
     const users = await User.find()
       .populate('basicInfo') // Populate the basicInfo field
@@ -22,14 +23,28 @@ exports.getAllUsers = async (req, res) => {
       // .populate('intereset') // Populate the intereset field
       // .populate('availability') // Populate the availability field (this is an array)
       // .populate('notifications') // Populate the notifications field (this is an array)
-      .exec(); 
+      .skip(skip)
+      .limit(limit)
+      .exec();
+
+    const totalUsers = await User.countDocuments();
+    const totalPages = Math.ceil(totalUsers / limit);
+
     // Check if users exist
     if (!users || users.length === 0) {
       return res.json(createResponse.success([], "No users found"));
     }
 
     // Return populated user data
-      res.json(createResponse.success(users));
+    res.json(createResponse.success({
+      users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalUsers,
+        limit
+      }
+    }));
   } catch (error) {
     console.error(error);  // Log error details for debugging
 
@@ -62,11 +77,35 @@ exports.getAllBasicInfo = async (req, res) => {
 // Get all bookings
 exports.getAllBookings = async (req, res) => {
   try {
+
+    const { page, limit, skip } = req.pagination;
+
     const bookings = await Booking.find()
       .populate('expert client')  // Populate expert and client references
-      .select('-__v');  // Exclude the __v field from the response
+      .skip(skip)                 // Skip based on pagination (page)
+      .limit(limit)               // Limit results based on pagination (limit)
+      .select('-__v')             // Exclude the __v field from the response
+      .exec();
 
-    res.json(createResponse.success(bookings));
+    const totalBookings = await Booking.countDocuments();
+
+    // Calculate the total number of pages
+    const totalPages = Math.ceil(totalBookings / limit);
+
+    // Check if bookings exist
+    if (!bookings || bookings.length === 0) {
+      return res.json(createResponse.success([], "No bookings found"));
+    }
+
+    res.json(createResponse.success({
+      bookings,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalBookings,
+        limit
+      }
+    }));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
@@ -183,12 +222,37 @@ exports.deleteBooking = async (req, res) => {
 // Get all transactions
 exports.getAllTransactions = async (req, res) => {
   try {
+    const { page, limit, skip } = req.pagination;
+
     const transactions = await PaymentTransaction.find()
       .populate('user') // Populating user details
-      .select('-__v'); // Optionally exclude the __v field
+      .skip(skip)        // Skip based on pagination (page)
+      .limit(limit)      // Limit results based on pagination (limit)
+      .select('-__v')     // Exclude the __v field from the response
+      .exec();
 
-    res.json(createResponse.success(transactions));
-  } catch (error) {
+      // Get the total number of transactions to calculate the total pages
+    const totalTransactions = await PaymentTransaction.countDocuments();
+
+    // Calculate the total number of pages
+    const totalPages = Math.ceil(totalTransactions / limit);
+
+    // Check if transactions exist
+    if (!transactions || transactions.length === 0) {
+      return res.json(createResponse.success([], "No transactions found"));
+    }
+
+ // Return the transactions with pagination info
+    res.json(createResponse.success({
+      transactions,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalTransactions,
+        limit
+      }
+    }));
+    } catch (error) {
     console.error(error);
     res.json(createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
@@ -306,16 +370,43 @@ exports.deleteTransaction = async (req, res) => {
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
   try {
-    const reviews = await Review.find()
-      .populate("reviewBy", "firstName lastName") // Populating the reviewer's info
-      .select("-__v"); // Optionally exclude __v field
+    // Extract pagination info from the request object (set by the pagination middleware)
+    const { page, limit, skip } = req.pagination;
 
-    res.json(createResponse.success(reviews));
+    // Fetch reviews with pagination and populate the reviewer's details
+    const reviews = await Review.find()
+      .populate("reviewBy", "firstName lastName")  // Populate reviewer's info (firstName, lastName)
+      .skip(skip)  // Skip the appropriate number of reviews based on pagination
+      .limit(limit)  // Limit the number of reviews returned
+      .select("-__v")  // Optionally exclude the __v field
+      .exec();
+
+    // Get the total number of reviews to calculate total pages
+    const totalReviews = await Review.countDocuments();
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalReviews / limit);
+
+    // If no reviews found
+    if (!reviews || reviews.length === 0) {
+      return res.json(createResponse.success([], "No reviews found"));
+    }
+
+    // Return reviews with pagination info
+    res.json(createResponse.success({
+      reviews,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalReviews,
+        limit
+      }
+    }));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
+      errorMessage: error.message || 'An error occurred while fetching reviews',
     }));
   }
 };
@@ -340,7 +431,7 @@ exports.getReviewById = async (req, res) => {
       errorMessage: error.message,
     }));
   }
-}; 
+};
 
 // Create a new review
 exports.createReview = async (req, res) => {
@@ -449,15 +540,34 @@ exports.createTicket = async (req, res) => {
 // Get all tickets (Admin or User can access their own tickets)
 exports.getAllTickets = async (req, res) => {
   const userId = req.body.user._id;  // The logged-in user ID
-
+  const { page, limit, skip } = req.pagination; 
   try {
     // Admin can see all tickets; Users only their own
     const tickets = await Ticket.find({
       $or: [{ userId }, { assignId: userId }]  // Either user-created or assigned to the user
-    }).populate('userId assignId');
+    }).populate('userId assignId')
+    .skip(skip)  // Skip the appropriate number of tickets for pagination
+    .limit(limit)  // Limit the number of tickets per page
+    .exec();
 
-    res.json(createResponse.success('Tickets fetched successfully', tickets));
-  } catch (error) {
+    // Get the total number of tickets for pagination
+    const totalTickets = await Ticket.countDocuments({
+      $or: [{ userId }, { assignId: userId }]
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalTickets / limit);
+
+    res.json(createResponse.success({
+      tickets,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalTickets,
+        limit
+      }
+    }));
+    } catch (error) {
     console.error(error);
     res.json(createResponse.error({
       errorCode: 500,
