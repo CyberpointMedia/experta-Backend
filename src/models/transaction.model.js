@@ -60,8 +60,15 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["razorpay"],
+      enum: ["razorpay", "upi"],
       required: true,
+    },
+    paymentDetails: {
+      accountNumber: String,
+      ifsc: String,
+      accountName: String,
+      vpa: String,
+      utrNumber: String,
     },
     razorpayDetails: {
       orderId: String,
