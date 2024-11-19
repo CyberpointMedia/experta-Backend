@@ -183,7 +183,7 @@ exports.initiateWithdrawal = async (req, res) => {
       return res.json(createResponse.invalid("Amount and bank account details are required"));
     }
 
-    const result = await bookingService.initiateWithdrawal(userId, amount, bankAccount);
+    const result = await bookingDao.initiateWithdrawal(userId, amount, bankAccount);
     res.json(result);
   } catch (error) {
     console.error(error);

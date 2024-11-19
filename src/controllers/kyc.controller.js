@@ -213,3 +213,26 @@ exports.checkPaymentMethodsStatus = async (req, res) => {
     );
   }
 };
+
+exports.saveGstNumber = async (req, res) => {
+  const userId = req.body.user._id;
+  const { gstNumber } = req.body;
+
+  if (!userId || !gstNumber) {
+    res.json(createResponse.invalid("User ID and GST number are required"));
+    return;
+  }
+
+  try {
+    const result = await kycService.saveGstNumber(userId, gstNumber);
+    res.json(result);
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};

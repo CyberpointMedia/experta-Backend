@@ -206,4 +206,20 @@ exports.checkPaymentMethodsStatus = async function (userId) {
 };
 
 
+exports.saveGstNumber = async function (userId, gstNumber) {
+  try {
+    const gstFormat = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstFormat.test(gstNumber)) {
+      throw new Error("Invalid GST number format");
+    }
 
+    await kycDao.updateGstDetails(userId, gstNumber);
+    return createResponse.success({
+      message: "GST number saved successfully",
+      gstNumber
+    });
+  } catch (error) {
+    console.error("Error saving GST number:", error);
+    throw error;
+  }
+};
