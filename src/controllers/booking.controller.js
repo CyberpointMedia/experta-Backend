@@ -245,13 +245,13 @@ exports.getTransactionHistory = async (req, res) => {
 exports.initiateWithdrawal = async (req, res) => {
   try {
     const userId = req.body.user._id;
-    const { amount, bankAccount } = req.body;
+    const { amount, paymentDetails } = req.body;
 
-    if (!amount || !bankAccount) {
+    if (!amount || !paymentDetails) {
       return res.json(createResponse.invalid("Amount and bank account details are required"));
     }
 
-    const result = await bookingService.initiateWithdrawal(userId, amount, bankAccount);
+    const result = await bookingService.initiateWithdrawal(userId, amount, paymentDetails);
     res.json(result);
   } catch (error) {
     console.error(error);

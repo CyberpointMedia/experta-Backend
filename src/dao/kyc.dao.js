@@ -126,12 +126,14 @@ module.exports.getBankingDetails = async function (userId) {
 module.exports.checkPaymentMethodsStatus = async function (userId) {
   try {
     const kyc = await KYC.findOne({ userId }).select('bankVerification upiDetails');
+    console.log("kyc--> ",kyc?.bankVerification);
     return {
       bank: {
         isAdded: !!kyc?.bankVerification?.accountNumber,
         isVerified: !!kyc?.bankVerification?.verificationStatus,
         details: kyc?.bankVerification?.accountNumber 
           ? {
+              accountHolderName:kyc?.bankVerification?.bankDetails?.full_name,
               accountNumber: kyc.bankVerification.accountNumber,
               ifsc: kyc.bankVerification.ifsc
             } 
@@ -188,6 +190,7 @@ exports.checkPaymentMethodsStatus = async function (userId) {
         isVerified: !!kyc?.bankVerification?.verificationStatus,
         details: kyc?.bankVerification?.accountNumber 
           ? {
+              accountHolderName:kyc?.bankVerification?.bankDetails?.full_name,
               accountNumber: kyc.bankVerification.accountNumber,
               ifsc: kyc.bankVerification.ifsc
             } 
