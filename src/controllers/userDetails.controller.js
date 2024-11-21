@@ -13,7 +13,7 @@ exports.getAllUsers = async (req, res) => {
   try {
 
     // Fetch users and populate the `basicInfo` field
-    const users = await User.find()
+    const users = await User.find({ isDeleted: false })
       .populate('basicInfo') // Populate the basicInfo field
       // .populate('pricing')   // Populate the pricing field
       // .populate('education') // Populate the education field (this is an array)
@@ -62,7 +62,10 @@ exports.getAllBasicInfo = async (req, res) => {
 // Get all bookings
 exports.getAllBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find()
+    const { page, limit, skip } = req.pagination;
+
+    const bookings = await Booking.find({ isDeleted: false })
+    
       .populate('expert client')  // Populate expert and client references
       .select('-__v');  // Exclude the __v field from the response
 
@@ -80,7 +83,7 @@ exports.getAllBookings = async (req, res) => {
 exports.getBookingById = async (req, res) => {
   const { id } = req.params;
   try {
-    const booking = await Booking.findById(id)
+    const booking = await Booking.findOne({ _id: id, isDeleted: false })
       .populate('expert client')
       .select('-__v');
 
@@ -136,7 +139,7 @@ exports.updateBooking = async (req, res) => {
   const { status, startTime, endTime, price } = req.body;
 
   try {
-    const booking = await Booking.findById(id);
+    const booking = await Booking.findOne({ _id: id, isDeleted: false });
     if (!booking) {
       return res.json(createResponse.invalid("Booking not found"));
     }
@@ -161,13 +164,14 @@ exports.deleteBooking = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const booking = await Booking.findById(id);
-
+    const booking = await Booking.findOne({ _id: id, isDeleted: false });
     if (!booking) {
       return res.json(createResponse.invalid("Booking not found"));
     }
 
-    await booking.remove();
+    booking.isDeleted = true;
+
+    await booking.save();
 
     res.json(createResponse.success("Booking deleted successfully"));
   } catch (error) {
@@ -183,7 +187,10 @@ exports.deleteBooking = async (req, res) => {
 // Get all transactions
 exports.getAllTransactions = async (req, res) => {
   try {
-    const transactions = await PaymentTransaction.find()
+    const { page, limit, skip } = req.pagination;
+
+    const transactions = await PaymentTransaction.find({isDeleted: false})
+
       .populate('user') // Populating user details
       .select('-__v'); // Optionally exclude the __v field
 
@@ -201,7 +208,7 @@ exports.getAllTransactions = async (req, res) => {
 exports.getTransactionById = async (req, res) => {
   const { id } = req.params;
   try {
-    const transaction = await PaymentTransaction.findById(id)
+    const transaction = await PaymentTransaction.findOne({ _id: id, isDeleted: false })
       .populate('user')  // Populating the user associated with the transaction
       .select('-__v');
 
@@ -255,7 +262,7 @@ exports.updateTransaction = async (req, res) => {
   const { status, amount, paymentMethod, relatedBooking } = req.body;
 
   try {
-    const transaction = await PaymentTransaction.findById(id);
+    const transaction = await PaymentTransaction.findOne({ _id: id, isDeleted: false });
 
     if (!transaction) {
       return res.json(createResponse.invalid("Transaction not found"));
@@ -284,13 +291,13 @@ exports.deleteTransaction = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const transaction = await PaymentTransaction.findById(id);
+    const transaction = await PaymentTransaction.findOne({ _id: id, isDeleted: false });
 
     if (!transaction) {
       return res.json(createResponse.invalid("Transaction not found"));
     }
-
-    await transaction.remove();
+    transaction.isDeleted = true;
+    await transaction.save();
 
     res.json(createResponse.success("Transaction deleted successfully"));
   } catch (error) {
@@ -306,6 +313,28 @@ exports.deleteTransaction = async (req, res) => {
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
   try {
+    console.log("Inside getAllReviews controller");
+    // Extract pagination info from the request object (set by the pagination middleware)
+    const { page, limit, skip } = req.pagination;
+
+    // Fetch reviews with pagination and populate the reviewer's details
+    const reviews = await Review.find({isDeleted: false})
+      .populate("reviewBy", "firstName lastName")  // Populate reviewer's info (firstName, lastName)
+      .skip(skip)  // Skip the appropriate number of reviews based on pagination
+      .limit(limit)  // Limit the number of reviews returned
+      .select("-__v")  // Optionally exclude the __v field
+      .exec();
+    
+    // Get the total number of reviews to calculate total pages
+    const totalReviews = await Review.countDocuments();
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalReviews / limit);
+
+    // If no reviews found
+    if (!reviews || reviews.length === 0) {
+      return res.json(createResponse.success([], "No reviews found"));
+    }
     const reviews = await Review.find()
       .populate("reviewBy", "firstName lastName") // Populating the reviewer's info
       .select("-__v"); // Optionally exclude __v field
@@ -324,7 +353,7 @@ exports.getAllReviews = async (req, res) => {
 exports.getReviewById = async (req, res) => {
   const { id } = req.params;
   try {
-    const review = await Review.findById(id)
+    const review = await Review.findOne({ _id: id, isDeleted: false })
       .populate("reviewBy", "firstName lastName") // Populate the reviewer's info
       .select("-__v");
 
@@ -375,7 +404,7 @@ exports.updateReview = async (req, res) => {
   const { rating, review } = req.body;
 
   try {
-    const reviewToUpdate = await Review.findById(id);
+    const reviewToUpdate = await Review.findOne({ _id: id, isDeleted: false });
 
     if (!reviewToUpdate) {
       return res.json(createResponse.invalid("Review not found"));
@@ -402,13 +431,13 @@ exports.deleteReview = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const review = await Review.findById(id);
+    const review = await Review.findOne({ _id: id, isDeleted: false });
 
     if (!review) {
       return res.json(createResponse.invalid("Review not found"));
     }
-
-    await review.remove();
+    review.isDeleted = true;
+    await review.save();
 
     res.json(createResponse.success("Review deleted successfully"));
   } catch (error) {
@@ -453,6 +482,7 @@ exports.getAllTickets = async (req, res) => {
   try {
     // Admin can see all tickets; Users only their own
     const tickets = await Ticket.find({
+      isDeleted: false,
       $or: [{ userId }, { assignId: userId }]  // Either user-created or assigned to the user
     }).populate('userId assignId');
 
@@ -470,9 +500,9 @@ exports.getAllTickets = async (req, res) => {
 exports.getTicketById = async (req, res) => {
   const { ticketId } = req.params;
   const userId = req.body.user._id;  // Assuming user info is in `req.body.user` from authMiddleware
-
   try {
-    const ticket = await Ticket.findById(ticketId).populate('userId assignId');
+    const ticket = await Ticket.findOne({ _id: ticketId, isDeleted: false })
+    .populate('userId assignId');
     if (!ticket) {
       return res.json(createResponse.invalid('Ticket not found'));
     }
@@ -502,7 +532,7 @@ exports.updateTicket = async (req, res) => {
   const userId = req.body.user._id;  // Assuming user info is in `req.body.user` from authMiddleware
 
   try {
-    const ticket = await Ticket.findById(ticketId);
+    const ticket = await Ticket.findOne({ _id: ticketId, isDeleted: false });
     if (!ticket) {
       return res.json(createResponse.invalid('Ticket not found'));
     }
@@ -538,7 +568,7 @@ exports.assignTicket = async (req, res) => {
   const userId = req.body.user._id;  // Assuming user info is in `req.body.user` from authMiddleware
 
   try {
-    const ticket = await Ticket.findById(ticketId);
+    const ticket = await Ticket.findOne({ _id: ticketId, isDeleted: false });
     if (!ticket) {
       return res.json(createResponse.invalid('Ticket not found'));
     }
@@ -556,7 +586,7 @@ exports.assignTicket = async (req, res) => {
       }));
     }
 
-    ticket.assignId = assignId;
+    ticket.assignId =  assignedUser._id;
     await ticket.save();
     res.json(createResponse.success('Ticket assigned successfully', ticket));
   } catch (error) {
@@ -574,7 +604,7 @@ exports.closeTicket = async (req, res) => {
   const userId = req.body.user._id;  // Assuming user info is in `req.body.user` from authMiddleware
 
   try {
-    const ticket = await Ticket.findById(ticketId);
+    const ticket = await Ticket.findOne({ _id: ticketId, isDeleted: false });
     if (!ticket) {
       return res.json(createResponse.invalid('Ticket not found'));
     }
@@ -588,6 +618,7 @@ exports.closeTicket = async (req, res) => {
     }
 
     ticket.status = 'closed';
+    ticket.isDeleted = true;
     await ticket.save();
     res.json(createResponse.success('Ticket closed successfully', ticket));
   } catch (error) {
@@ -606,29 +637,47 @@ exports.createMessage = async (req, res) => {
   const senderId = req.body.user._id;  // Assuming user info is in `req.body.user` from authMiddleware
 
   try {
-    // Ensure the ticket exists
-    const ticket = await Ticket.findById(ticketId);
-    if (!ticket) {
-      return res.json(createResponse.invalid('Ticket not found'));
-    }
-
     // Ensure the receiver exists
-    const receiver = await User.findById(receiverId);
+    const receiver = await User.findOne({ _id: receiverId , isDeleted: false});
     if (!receiver) {
       return res.json(createResponse.invalid('Receiver not found'));
     }
 
-    // Create the message
-    const newMessage = new Message({
-      ticketId,
-      senderId,
-      receiverId,
-      message,
-      attachments,
-    });
+    // Check if the ticket with the given ticketId exists
+    const existingTicket = await Ticket.findOne({ _id: ticketId, isDeleted: false });
+    
+    if (existingTicket) {
+      // If ticket exists, create and append the message to this ticket's communication
+      const newMessage = new Message({
+        ticketId,
+        senderId,
+        receiverId,
+        message,
+        attachments,
+      });
 
-    const savedMessage = await newMessage.save();
-    res.json(createResponse.success('Message created successfully', savedMessage));
+      await newMessage.save();
+
+      return res.json(createResponse.success('Message appended to existing ticket', newMessage));
+    } else {
+      // If ticket does not exist, create a new ticket
+      const newTicket = new Ticket({
+        userId: senderId,  // User who is creating the ticket (assumed to be sender)
+        subject: `Message for ticket ${ticketId}`,
+        description: message,
+        fileUrl: attachments || [],
+        priority: 'low',  // Default priority, modify as necessary
+        messages: [{
+          senderId,
+          receiverId,
+          message,
+          attachments,
+        }],
+      });
+
+      const savedTicket = await newTicket.save();
+      return res.json(createResponse.success('New ticket created with message', savedTicket));
+    }
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({

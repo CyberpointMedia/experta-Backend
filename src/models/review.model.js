@@ -21,6 +21,10 @@ const reviewSchema = new mongoose.Schema(
     profilePic: {
       type: String,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

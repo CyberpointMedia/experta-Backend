@@ -35,6 +35,10 @@ const ticketSchema = new Schema(
       enum: ["high", "low", "medium"],
       default: "high",
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

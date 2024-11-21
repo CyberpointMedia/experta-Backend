@@ -26,13 +26,17 @@ const messageSchema = new Schema(
     },
     attachments: [
       {
-        type: String,  // URL to attachment
+        type: String,
       },
     ],
     timestamp: {
       type: Date,
       default: Date.now,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,  // You can use this flag for soft deletion
+    }
   },
   {
     timestamps: true,  // Automatically manage createdAt and updatedAt

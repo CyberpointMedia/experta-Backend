@@ -1,4 +1,4 @@
-// basicINfo.routes.js
+// userDetails.routes.js
 const express = require('express');
 const Router = express.Router();
 const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBooking, deleteBooking, getAllTransactions, getTransactionById, createTransaction, updateTransaction, deleteTransaction, getAllReviews, getReviewById, createReview, updateReview, deleteReview, createTicket,
@@ -63,7 +63,7 @@ Router.delete('/reviews/:id', authMiddleware, hasRole('admin'), deleteReview);
 // Create a new ticket
 Router.post('/ticket', authMiddleware, hasRole('admin'), createTicket);
 // Get all tickets (Admin can access all, User can access only their tickets)
-Router.get('/get-all-tickets',authMiddleware, hasRole('admin'), getAllTickets);
+Router.get('/get-all-tickets',authMiddleware, hasRole('admin'), paginate('Ticket') , getAllTickets);
 // Get a specific ticket by ID
 Router.get('/get-ticket/:ticketId', authMiddleware, hasRole('admin'), getTicketById);
 // Update a ticket (status, priority, description)
@@ -80,8 +80,7 @@ Router.post('/createTicketChat', authMiddleware, hasRole('admin'), createMessage
 Router.get('/ticket/:ticketId', authMiddleware, hasRole('admin'), getMessagesByTicketId);
 // Optional route to get all messages between two users (senderId and receiverId)
 Router.get('/between/:senderId/:receiverId', authMiddleware, hasRole('admin'), getMessagesBetweenUsers);
- 
-// Export the routes as middleware to be used in app.js
+
 module.exports = (app) => {
-    app.use(routes.API, Router);  // Prefix your routes with `/api`
+    app.use(routes.API, Router); 
 };
