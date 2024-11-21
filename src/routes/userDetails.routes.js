@@ -13,18 +13,17 @@ const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBo
     getAllUsers
 } = require('../controllers/userDetails.controller');
 const { authMiddleware } = require("../middlewares/auth.middleware");
-const {hasRole}=require("../middlewares/role.middleware");
-const { paginate } = require("../middlewares/pagination.middleware"); 
+const {hasRole}=require("../middlewares/role.middleware")
 const routes = require("../constants/route.url");
 
 // Route to get all all-basic-info
 Router.get('/all-basic-info',authMiddleware, hasRole('admin'), getAllBasicInfo);
 //New Users routes
-Router.get('/get-all-users',authMiddleware, hasRole('admin'),paginate('User'), getAllUsers);
+Router.get('/get-all-users',authMiddleware, hasRole('admin'), getAllUsers);
 
 //Booking history routes
 // Route to get all bookings
-Router.get('/all-bookings',authMiddleware, hasRole('admin'), paginate('Booking'), getAllBookings);  // Add the bookings route
+Router.get('/all-bookings',authMiddleware, hasRole('admin'), getAllBookings);  // Add the bookings route
 // Get all bookings
 Router.get('/bookings',authMiddleware, hasRole('admin'), authMiddleware, getAllBookings);
 // Get a booking by ID
@@ -38,7 +37,7 @@ Router.delete('/bookings/:id',authMiddleware, hasRole('admin'), deleteBooking);
 
 //Transaction history routes
 // Get all transactions
-Router.get('/transactions', authMiddleware, hasRole('admin'),paginate('PaymentTransaction'), getAllTransactions);
+Router.get('/transactions', authMiddleware, hasRole('admin'), getAllTransactions);
 // Get a transaction by ID
 Router.get('/transactions/:id', authMiddleware, hasRole('admin'), getTransactionById);
 // Create a new transaction
@@ -50,7 +49,7 @@ Router.delete('/transactions/:id', authMiddleware, hasRole('admin'), deleteTrans
 
 //review history routes
 // Get all reviews
-Router.get('/reviews', authMiddleware, hasRole('admin'), paginate('Review'), getAllReviews);
+Router.get('/reviews', authMiddleware, hasRole('admin'), getAllReviews);
 // Get a review by ID
 Router.get('/reviews/:id', authMiddleware, hasRole('admin'), getReviewById);
 // Create a new review

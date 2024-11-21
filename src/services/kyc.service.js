@@ -170,3 +170,56 @@ module.exports.updateFaceLivenessClient = async function (userId, data) {
     throw error;
   }
 };
+
+
+exports.saveUpiId = async function (userId, upiId) {
+  try {
+    await kycDao.updateUpiDetails(userId, upiId);
+    return createResponse.success({
+      message: "UPI ID saved successfully",
+      upiId
+    });
+  } catch (error) {
+    console.error("Error saving UPI ID:", error);
+    throw error;
+  }
+};
+
+exports.getBankingDetails = async function (userId) {
+  try {
+    const details = await kycDao.getBankingDetails(userId);
+    return createResponse.success(details);
+  } catch (error) {
+    console.error("Error fetching banking details:", error);
+    throw error;
+  }
+};
+
+exports.checkPaymentMethodsStatus = async function (userId) {
+  try {
+    const status = await kycDao.checkPaymentMethodsStatus(userId);
+    return createResponse.success(status);
+  } catch (error) {
+    console.error("Error checking payment methods status:", error);
+    throw error;
+  }
+};
+
+
+exports.saveGstNumber = async function (userId, gstNumber) {
+  try {
+    const gstFormat = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstFormat.test(gstNumber)) {
+      throw new Error("Invalid GST number format");
+    }
+
+    await kycDao.updateGstDetails(userId, gstNumber);
+    return createResponse.success({
+      message: "GST number saved successfully",
+      gstNumber
+    });
+  } catch (error) {
+    console.error("Error saving GST number:", error);
+    throw error;
+  }
+};

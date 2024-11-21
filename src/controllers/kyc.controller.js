@@ -149,3 +149,90 @@ exports.updateFaceLivenessClient = async (req, res) => {
   }
 };
 
+exports.saveUpiId = async (req, res) => {
+  const userId = req.body.user._id;
+  const { upiId } = req.body;
+
+  if (!userId || !upiId) {
+    res.json(createResponse.invalid("User ID and UPI ID are required"));
+    return;
+  }
+
+  try {
+    const result = await kycService.saveUpiId(userId, upiId);
+    res.json(result);
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
+exports.getBankingDetails = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.json(createResponse.invalid("User ID is required"));
+    return;
+  }
+
+  try {
+    const result = await kycService.getBankingDetails(userId);
+    res.json(result);
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
+
+exports.checkPaymentMethodsStatus = async (req, res) => {
+  const userId = req.body.user._id;
+  if (!userId) {
+    res.json(createResponse.invalid("User ID is required"));
+    return;
+  }
+  try {
+    const result = await kycService.checkPaymentMethodsStatus(userId);
+    res.json(result);
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
+exports.saveGstNumber = async (req, res) => {
+  const userId = req.body.user._id;
+  const { gstNumber } = req.body;
+
+  if (!userId || !gstNumber) {
+    res.json(createResponse.invalid("User ID and GST number are required"));
+    return;
+  }
+
+  try {
+    const result = await kycService.saveGstNumber(userId, gstNumber);
+    res.json(result);
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};

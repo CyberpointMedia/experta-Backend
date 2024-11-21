@@ -85,6 +85,30 @@ const panVerificationSchema = new mongoose.Schema({
 });
 
 
+const upiDetailsSchema = new mongoose.Schema({
+  upiId: {
+    type: String,
+    default: null,
+  },
+  updatedAt: {
+    type: Date,
+    default: null,
+  }
+});
+
+const gstDetailsSchema = new mongoose.Schema({
+  gstNumber: {
+    type: String,
+    default: null,
+  },
+  updatedAt: {
+    type: Date,
+    default: null,
+  }
+});
+
+
+
 const kycSchema = new mongoose.Schema(
   {
     userId: {
@@ -109,6 +133,14 @@ const kycSchema = new mongoose.Schema(
       type: panVerificationSchema,
       default: () => ({}),
     },
+    upiDetails: {
+      type: upiDetailsSchema, 
+      default: () => ({}),
+    },
+    gstDetails: {
+      type: gstDetailsSchema,
+      default: () => ({}),
+    },
   },
   {
     timestamps: true,
@@ -122,6 +154,8 @@ kycSchema.virtual("kycStatus").get(function () {
   const livenessVerified = this.faceLiveness?.status || false;
   const faceMatchVerified = this.faceMatch?.status || false;
   const panVerified = this.panVerification?.verificationStatus || false;
+  const upiVerified = this.upiDetails?.upiId ? true : false;  // Consider UPI verified if UPI ID exists
+  const hasGst = this.gstDetails?.gstNumber ? true : false;
 
   return {
     isComplete: bankVerified && livenessVerified && faceMatchVerified && panVerified,
@@ -130,8 +164,15 @@ kycSchema.virtual("kycStatus").get(function () {
       faceLiveness: livenessVerified,
       faceMatch: faceMatchVerified,
       panVerification: panVerified,
+      upiVerification: upiVerified,
+      gstAdded: hasGst
     },
+    paymentMethods: {
+      bank: bankVerified,
+      upi: upiVerified
+    }
   };
 });
 
 module.exports = mongoose.model("KYC", kycSchema);
+

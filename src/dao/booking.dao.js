@@ -257,3 +257,119 @@ exports.getBookingById = function (bookingId) {
       });
   });
 };
+
+/// 
+exports.getWithdrawalTransactionById = async function (withdrawalId, session) {
+  return await PaymentTransaction.findById(withdrawalId).session(session);
+};
+
+exports.createWithdrawalTransaction = async function (transactionData, session) {
+  const transaction = new PaymentTransaction(transactionData);
+  return await transaction.save({ session });
+};
+
+exports.updateWithdrawalTransaction = async function (transactionId, updateData, session) {
+  return await PaymentTransaction.findByIdAndUpdate(
+    transactionId,
+    updateData,
+    { new: true, session }
+  );
+};
+
+exports.getUserWithdrawalTransaction = async function (userId, withdrawalId) {
+  return await PaymentTransaction.findOne({
+    _id: withdrawalId,
+    user: userId,
+    type: "withdrawal"
+  });
+};
+
+exports.getPendingWithdrawals = async function (userId) {
+  return await PaymentTransaction.find({
+    user: userId,
+    type: "withdrawal",
+    status: "pending"
+  }).sort({ createdAt: -1 });
+};
+
+exports.getUserWithBalance = async function (userId, session) {
+  return await User.findById(userId)
+    .select('wallet')
+    .session(session);
+};
+
+exports.updateUserWalletForWithdrawal = async function (userId, amount, session) {
+  return await User.findByIdAndUpdate(
+    userId,
+    { $inc: { "wallet.balance": -amount } },
+    { new: true, session }
+  );
+};
+
+exports.refundFailedWithdrawal = async function (userId, amount, session) {
+  return await User.findByIdAndUpdate(
+    userId,
+    { $inc: { "wallet.balance": amount } },
+    { new: true, session }
+  );
+};
+
+// Add this to track withdrawal limits
+exports.getWithdrawalsSummary = async function (userId, startDate, endDate) {
+  const pipeline = [
+    {
+      $match: {
+        user: new mongoose.Types.ObjectId(userId),
+        type: "withdrawal",
+        status: { $in: ["completed", "pending"] },
+        createdAt: {
+          $gte: startDate,
+          $lte: endDate
+        }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalAmount: { $sum: "$amount" },
+        count: { $sum: 1 }
+      }
+    }
+  ];
+
+  const results = await PaymentTransaction.aggregate(pipeline);
+  return results[0] || { totalAmount: 0, count: 0 };
+};
+
+exports.createUPITransaction = async function(transactionData, session) {
+  const transaction = new PaymentTransaction({
+    ...transactionData,
+    paymentMethod: 'upi'
+  });
+  return await transaction.save({ session });
+};
+
+exports.updateUPITransaction = async function(transactionId, upiDetails, session) {
+  return await PaymentTransaction.findByIdAndUpdate(
+    transactionId,
+    { $set: { upiDetails, status: 'completed' } },
+    { new: true, session }
+  );
+};
+
+exports.createPayoutTransaction = async function (transactionData, session) {
+  const transaction = new PaymentTransaction(transactionData);
+  return await transaction.save({ session });
+};
+
+exports.updateTransactionStatus = async function (
+  transactionId,
+  updateData,
+  session
+) {
+  return await PaymentTransaction.findByIdAndUpdate(
+    transactionId,
+    { $set: updateData },
+    { new: true, session }
+  );
+};

@@ -23,5 +23,11 @@ module.exports = (app) => {
     authMiddleware,
     kycController.updateFaceLivenessClient
   );
+
+  router.post("/save-upi", authMiddleware, kycController.saveUpiId);
+  router.get("/banking-details", authMiddleware, kycController.getBankingDetails);
+  router.get("/payment-methods-status", authMiddleware, kycController.checkPaymentMethodsStatus);
+  router.post("/save-gst", authMiddleware, kycController.saveGstNumber);
+
   app.use("/api/kyc", router);
 };
