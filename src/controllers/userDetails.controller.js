@@ -1,6 +1,6 @@
 const BasicInfo = require('../models/basicInfo.model');
-const Booking = require('../models/booking.model'); 
-const {PaymentTransaction} = require("../models/transaction.model");
+const Booking = require('../models/booking.model');
+const { PaymentTransaction } = require("../models/transaction.model");
 const Review = require("../models/review.model");
 const User = require("../models/user.model");
 const Ticket = require('../models/ticket.model');
@@ -11,25 +11,35 @@ const errorMessageConstants = require('../constants/error.messages');
 // Get all users
 exports.getAllUsers = async (req, res) => {
   try {
-
-    // Fetch users and populate the `basicInfo` field
+    const { page, limit, skip } = req.pagination;
     const users = await User.find({ isDeleted: false })
+      .skip(skip)
+      .limit(limit)
       .populate('basicInfo') // Populate the basicInfo field
-      // .populate('pricing')   // Populate the pricing field
-      // .populate('education') // Populate the education field (this is an array)
-      // .populate('workExperience') // Populate the workExperience field (this is an array)
-      // .populate('language') // Populate the language field
-      // .populate('intereset') // Populate the intereset field
-      // .populate('availability') // Populate the availability field (this is an array)
-      // .populate('notifications') // Populate the notifications field (this is an array)
-      .exec(); 
-    // Check if users exist
+      // .populate('pricing') 
+      // .populate('education') 
+      // .populate('workExperience')
+      // .populate('language') 
+      // .populate('intereset')
+      // .populate('availability')
+      // .populate('notifications') 
+      .exec();
+    const totalUsers = await User.countDocuments({ isDeleted: false });
+    const totalPages = Math.ceil(totalUsers / limit);
+
     if (!users || users.length === 0) {
       return res.json(createResponse.success([], "No users found"));
     }
 
     // Return populated user data
-      res.json(createResponse.success(users));
+    res.json(createResponse.success({
+      users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalUsers
+      }
+    }));
   } catch (error) {
     console.error(error);  // Log error details for debugging
 
@@ -44,7 +54,7 @@ exports.getAllUsers = async (req, res) => {
 // Controller to get all BasicInfo
 exports.getAllBasicInfo = async (req, res) => {
   try {
-    const basicInfo = await BasicInfo.find()
+    const basicInfo = await BasicInfo.find({ isDeleted: false })
       .populate('followers following posts reviews')  // Populating related fields
       .select('-__v');  // Excluding __v field from the response
 
@@ -65,11 +75,25 @@ exports.getAllBookings = async (req, res) => {
     const { page, limit, skip } = req.pagination;
 
     const bookings = await Booking.find({ isDeleted: false })
-    
-      .populate('expert client')  // Populate expert and client references
-      .select('-__v');  // Exclude the __v field from the response
+      .skip(skip)
+      .limit(limit)
+      .populate('expert client')
+      .select('-__v')
+      .exec();
 
-    res.json(createResponse.success(bookings));
+    const totalBookings = await Booking.countDocuments({ isDeleted: false });
+    const totalPages = Math.ceil(totalBookings / limit);
+    if (!bookings || bookings.length === 0) {
+      return res.json(createResponse.success([], "No bookings found"));
+    }
+    res.json(createResponse.success({
+      bookings,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalBookings
+      }
+    }));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
@@ -83,7 +107,7 @@ exports.getAllBookings = async (req, res) => {
 exports.getBookingById = async (req, res) => {
   const { id } = req.params;
   try {
-    const booking = await Booking.findOne({ _id: id, isDeleted: false })
+    const booking = await Booking.findOne({_id:id, isDeleted: false})
       .populate('expert client')
       .select('-__v');
 
@@ -189,12 +213,24 @@ exports.getAllTransactions = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
 
-    const transactions = await PaymentTransaction.find({isDeleted: false})
+    const transactions = await PaymentTransaction.find({ isDeleted: false })
+      .skip(skip) 
+      .limit(limit) 
+      .populate('user')
+      .select('-__v')
+      .exec();
 
-      .populate('user') // Populating user details
-      .select('-__v'); // Optionally exclude the __v field
+    const totalTransactions = await PaymentTransaction.countDocuments({ isDeleted: false });
+    const totalPages = Math.ceil(totalTransactions / limit);
 
-    res.json(createResponse.success(transactions));
+    res.json(createResponse.success({
+      transactions,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalTransactions
+      }
+    }));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
@@ -318,15 +354,15 @@ exports.getAllReviews = async (req, res) => {
     const { page, limit, skip } = req.pagination;
 
     // Fetch reviews with pagination and populate the reviewer's details
-    const reviews = await Review.find({isDeleted: false})
+    const reviews = await Review.find({ isDeleted: false })
       .populate("reviewBy", "firstName lastName")  // Populate reviewer's info (firstName, lastName)
       .skip(skip)  // Skip the appropriate number of reviews based on pagination
       .limit(limit)  // Limit the number of reviews returned
       .select("-__v")  // Optionally exclude the __v field
       .exec();
-    
+
     // Get the total number of reviews to calculate total pages
-    const totalReviews = await Review.countDocuments();
+    const totalReviews = await Review.countDocuments({ isDeleted: false });
 
     // Calculate total pages
     const totalPages = Math.ceil(totalReviews / limit);
@@ -335,11 +371,15 @@ exports.getAllReviews = async (req, res) => {
     if (!reviews || reviews.length === 0) {
       return res.json(createResponse.success([], "No reviews found"));
     }
-    const reviews = await Review.find()
-      .populate("reviewBy", "firstName lastName") // Populating the reviewer's info
-      .select("-__v"); // Optionally exclude __v field
 
-    res.json(createResponse.success(reviews));
+    res.json(createResponse.success({
+      reviews,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalReviews
+      }
+    }));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
@@ -369,7 +409,7 @@ exports.getReviewById = async (req, res) => {
       errorMessage: error.message,
     }));
   }
-}; 
+};
 
 // Create a new review
 exports.createReview = async (req, res) => {
@@ -477,16 +517,35 @@ exports.createTicket = async (req, res) => {
 
 // Get all tickets (Admin or User can access their own tickets)
 exports.getAllTickets = async (req, res) => {
-  const userId = req.body.user._id;  // The logged-in user ID
+  const { page, limit, skip } = req.pagination;
+  const userId = req.body.user._id; 
 
   try {
-    // Admin can see all tickets; Users only their own
     const tickets = await Ticket.find({
       isDeleted: false,
-      $or: [{ userId }, { assignId: userId }]  // Either user-created or assigned to the user
-    }).populate('userId assignId');
+      $or: [{ userId }, { assignId: userId }]  
+    })
+    .skip(skip)
+    .limit(limit)
+    .populate('userId assignId')
+    .exec();
 
-    res.json(createResponse.success('Tickets fetched successfully', tickets));
+    const totalTickets = await Ticket.countDocuments({
+      isDeleted: false,
+      $or: [{ userId }, { assignId: userId }]
+    });
+    const totalPages = Math.ceil(totalTickets / limit);
+    if (!tickets || tickets.length === 0) {
+      return res.json(createResponse.success([], "No tickets found"));
+    }
+    res.json(createResponse.success({
+      tickets,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalTickets
+      }
+    }));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
@@ -502,7 +561,7 @@ exports.getTicketById = async (req, res) => {
   const userId = req.body.user._id;  // Assuming user info is in `req.body.user` from authMiddleware
   try {
     const ticket = await Ticket.findOne({ _id: ticketId, isDeleted: false })
-    .populate('userId assignId');
+      .populate('userId assignId');
     if (!ticket) {
       return res.json(createResponse.invalid('Ticket not found'));
     }
@@ -573,7 +632,7 @@ exports.assignTicket = async (req, res) => {
       return res.json(createResponse.invalid('Ticket not found'));
     }
 
-    const assignedUser = await User.findById(assignId);
+    const assignedUser = await User.findOne({ _id: assignId, isDeleted: false });
     if (!assignedUser) {
       return res.json(createResponse.invalid('User to assign not found'));
     }
@@ -586,7 +645,7 @@ exports.assignTicket = async (req, res) => {
       }));
     }
 
-    ticket.assignId =  assignedUser._id;
+    ticket.assignId = assignedUser._id;
     await ticket.save();
     res.json(createResponse.success('Ticket assigned successfully', ticket));
   } catch (error) {
@@ -637,17 +696,14 @@ exports.createMessage = async (req, res) => {
   const senderId = req.body.user._id;  // Assuming user info is in `req.body.user` from authMiddleware
 
   try {
-    // Ensure the receiver exists
-    const receiver = await User.findOne({ _id: receiverId , isDeleted: false});
+    const receiver = await User.findOne({ _id: receiverId, isDeleted: false });
     if (!receiver) {
       return res.json(createResponse.invalid('Receiver not found'));
     }
 
-    // Check if the ticket with the given ticketId exists
     const existingTicket = await Ticket.findOne({ _id: ticketId, isDeleted: false });
-    
+
     if (existingTicket) {
-      // If ticket exists, create and append the message to this ticket's communication
       const newMessage = new Message({
         ticketId,
         senderId,
@@ -660,13 +716,12 @@ exports.createMessage = async (req, res) => {
 
       return res.json(createResponse.success('Message appended to existing ticket', newMessage));
     } else {
-      // If ticket does not exist, create a new ticket
       const newTicket = new Ticket({
-        userId: senderId,  // User who is creating the ticket (assumed to be sender)
+        userId: senderId,
         subject: `Message for ticket ${ticketId}`,
         description: message,
         fileUrl: attachments || [],
-        priority: 'low',  // Default priority, modify as necessary
+        priority: 'low',
         messages: [{
           senderId,
           receiverId,
@@ -692,10 +747,9 @@ exports.getMessagesByTicketId = async (req, res) => {
   const { ticketId } = req.params;
 
   try {
-    // Find all messages related to the given ticket
-    const messages = await Message.find({ ticketId })
-      .populate('senderId receiverId')  // Populating sender and receiver details
-      .sort({ timestamp: 1 });  // Sorting by timestamp (oldest first)
+    const messages = await Message.findone({ _id : ticketId , isDeleted: false })
+      .populate('senderId receiverId')
+      .sort({ timestamp: 1 });
 
     if (messages.length === 0) {
       return res.json(createResponse.invalid('No messages found for this ticket'));
@@ -717,6 +771,7 @@ exports.getMessagesBetweenUsers = async (req, res) => {
 
   try {
     const messages = await Message.find({
+      isDeleted: false,
       $or: [
         { senderId, receiverId },
         { senderId: receiverId, receiverId: senderId }

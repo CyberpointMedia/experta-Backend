@@ -12,6 +12,8 @@ const pageSchema = new mongoose.Schema(
     metaRobots: { type: String },
     breadcrumbs: { type: String },
     canonicalURL: { type: String },
+    isDeleted: { type: Boolean, default
+    : false },
   },
   {
     timestamps: true,

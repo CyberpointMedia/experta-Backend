@@ -62,6 +62,10 @@ const basicInfoSchema = new mongoose.Schema(
     qrCode: {
       type: String,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
