@@ -31,6 +31,10 @@ const reportSchema = new mongoose.Schema(
       enum: ["pending", "resolved", "dismissed"],
       default: "pending",
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

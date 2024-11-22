@@ -21,6 +21,10 @@ const bankVerificationSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const faceLivenessSchema = new mongoose.Schema({
@@ -39,6 +43,10 @@ const faceLivenessSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: null,
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -63,6 +71,10 @@ const faceMatchSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const panVerificationSchema = new mongoose.Schema({
@@ -82,6 +94,10 @@ const panVerificationSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 
@@ -93,7 +109,11 @@ const upiDetailsSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: null,
-  }
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const gstDetailsSchema = new mongoose.Schema({
@@ -104,7 +124,11 @@ const gstDetailsSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: null,
-  }
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 
@@ -140,6 +164,10 @@ const kycSchema = new mongoose.Schema(
     gstDetails: {
       type: gstDetailsSchema,
       default: () => ({}),
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {

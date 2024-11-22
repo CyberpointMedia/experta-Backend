@@ -29,7 +29,7 @@ const OccupationModel = require("../models/occupation.model");
 module.exports.getUserDetailsById = function (id) {
   return new Promise((resolve, reject) => {
     user
-      .findOne({ where: { id: id } })
+      .findOne({ where: { id: id , isDeleted: false } })
       .then(async (data) => {
         if (null != data) {
           data.dataValues["roles"] = await this.getUserRolesById(data.id);
@@ -63,7 +63,7 @@ module.exports.getUserById = async function (id) {
 
 module.exports.getBasicInfo = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate("basicInfo")
       .then((data) => {
         resolve(data);
@@ -77,7 +77,7 @@ module.exports.getBasicInfo = function (userId) {
 
 module.exports.getIndustryOccupation = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate({
         path: "industryOccupation",
         populate: { path: "industry occupation" },
@@ -95,7 +95,7 @@ module.exports.getIndustryOccupation = function (userId) {
 
 module.exports.getIndustryOccupation = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate({
         path: "industryOccupation",
         populate: { path: "industry occupation" },
@@ -182,7 +182,7 @@ module.exports.createExpertiseItem = function (name) {
 
 module.exports.getExpertiseItem = function () {
   return new Promise((resolve, reject) => {
-    ExpertiseItemModel.find({})
+    ExpertiseItemModel.find({isDeleted:false})
       .then((data) => {
         resolve(data);
       })
@@ -195,7 +195,7 @@ module.exports.getExpertiseItem = function () {
 
 module.exports.getEducation = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate("education")
       .then((data) => {
         resolve(data);
@@ -209,7 +209,7 @@ module.exports.getEducation = function (userId) {
 
 module.exports.getEducationById = function (id) {
   return new Promise((resolve, reject) => {
-    Education.findOne({ _id: id })
+    Education.findOne({ _id: id , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -222,7 +222,7 @@ module.exports.getEducationById = function (id) {
 
 module.exports.deleteEducationById = function (id) {
   return new Promise((resolve, reject) => {
-    Education.findByIdAndDelete(id)
+    Education.findOneAndDelete({_id:id , isDeleted: false})
       .then((data) => {
         resolve(data);
       })
@@ -235,7 +235,7 @@ module.exports.deleteEducationById = function (id) {
 
 module.exports.deleteAvailabilityById = function (id) {
   return new Promise((resolve, reject) => {
-    Availability.findByIdAndDelete(id)
+    Availability.findOneAndDelete({_id:id , isDeleted: false})
       .then((data) => {
         resolve(data);
       })
@@ -248,7 +248,7 @@ module.exports.deleteAvailabilityById = function (id) {
 
 module.exports.getWorkExperience = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate("workExperience")
       .then((data) => {
         resolve(data);
@@ -262,7 +262,7 @@ module.exports.getWorkExperience = function (userId) {
 
 module.exports.getWorkExperienceById = function (id) {
   return new Promise((resolve, reject) => {
-    WorkExperience.findOne({ _id: id })
+    WorkExperience.findOne({ _id: id , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -275,7 +275,7 @@ module.exports.getWorkExperienceById = function (id) {
 
 module.exports.deleteWorkExperienceById = function (id) {
   return new Promise((resolve, reject) => {
-    WorkExperience.findByIdAndDelete(id)
+    WorkExperience.findOneAndDelete({_id:id , isDeleted: false})
       .then((data) => {
         resolve(data);
       })
@@ -288,7 +288,7 @@ module.exports.deleteWorkExperienceById = function (id) {
 
 module.exports.getUserAbout = function (userId) {
   return new Promise((resolve, reject) => {
-    About.findOne({ user: userId })
+    About.findOne({ user: userId , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -301,7 +301,7 @@ module.exports.getUserAbout = function (userId) {
 
 module.exports.getUserInterest = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate({
         path: "intereset",
         populate: { path: "intereset" },
@@ -318,7 +318,7 @@ module.exports.getUserInterest = function (userId) {
 
 module.exports.getUserInterestItems = function () {
   return new Promise((resolve, reject) => {
-    InterestItemsModel.find({})
+    InterestItemsModel.find({isDeleted:false})
       .then((data) => {
         resolve(data);
       })
@@ -348,7 +348,7 @@ module.exports.createInterestItem = function (name) {
 
 module.exports.getAllLanguages = function () {
   return new Promise((resolve, reject) => {
-    LanguageItemsModel.find({})
+    LanguageItemsModel.find({isDeleted:false})
       .then((data) => {
         resolve(data);
       })
@@ -376,7 +376,7 @@ module.exports.addLanguages = function (name) {
 
 module.exports.getUserLanguages = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate({
         path: "language",
         populate: { path: "language" },
@@ -393,7 +393,7 @@ module.exports.getUserLanguages = function (userId) {
 
 module.exports.getUserPricing = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate("pricing")
       .then((data) => {
         resolve(data);
@@ -407,7 +407,7 @@ module.exports.getUserPricing = function (userId) {
 
 module.exports.getUserAvailability = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate("availability")
       .then((data) => {
         resolve(data);
@@ -421,7 +421,7 @@ module.exports.getUserAvailability = function (userId) {
 
 module.exports.getUserAvailabilityId = function (id) {
   return new Promise((resolve, reject) => {
-    Availability.findOne({ _id: id })
+    Availability.findOne({ _id: id , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -434,7 +434,7 @@ module.exports.getUserAvailabilityId = function (id) {
 
 module.exports.getAccountSetting = function (userId) {
   return new Promise((resolve, reject) => {
-    UserAccount.findOne({ user: userId })
+    UserAccount.findOne({ user: userId , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -630,7 +630,7 @@ module.exports.getAccountSetting = function (userId) {
 
 module.exports.followersandfollowing = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate({
         path: "basicInfo",
         select: "following followers",
@@ -712,7 +712,7 @@ module.exports.followersandfollowing = function (userId) {
 
 module.exports.getPosts = function (userId) {
   return new Promise((resolve, reject) => {
-    Post.find({ user: userId })
+    Post.find({ user: userId , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -725,7 +725,7 @@ module.exports.getPosts = function (userId) {
 
 module.exports.getFeeds = function (userId) {
   return new Promise((resolve, reject) => {
-    Feed.find({ user: userId })
+    Feed.find({ user: userId , isDeleted: false })
       .populate("likes")
       .then((data) => {
         resolve(data);
@@ -739,7 +739,7 @@ module.exports.getFeeds = function (userId) {
 
 module.exports.getPolicy = function (userId) {
   return new Promise((resolve, reject) => {
-    Policy.findOne({ user: userId })
+    Policy.findOne({ user: userId , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -767,7 +767,7 @@ module.exports.createPolicy = function (policyToSave) {
 
 module.exports.getUserData = function (userId, ownUserId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate("education")
       .populate({
         path: "industryOccupation",
@@ -809,7 +809,7 @@ module.exports.getUserData = function (userId, ownUserId) {
           // Add isFollowing field to the data object
           const result = data.toObject(); // Convert to a plain JavaScript object
           result.isFollowing = isFollowing;
-          const ownUser = await User.findById(ownUserId);
+          const ownUser = await User.findOne({ _id: ownUserId, isDeleted: false });
           result.isBlocked = ownUser.blockedUsers.includes(userId);
           resolve(result);
         }
@@ -823,7 +823,7 @@ module.exports.getUserData = function (userId, ownUserId) {
 
 module.exports.getTrending = function () {
   return new Promise((resolve, reject) => {
-    User.find({})
+    User.find({isDeleted:false})
       .select(
         "_id online rating profilePic displayName industryOccupation pricing language expertise"
       )
@@ -1061,7 +1061,7 @@ module.exports.getUserBySearch = function (query) {
 
 module.exports.getCategories = function (userId) {
   return new Promise((resolve, reject) => {
-    Category.find({})
+    Category.find({isDeleted:false})
       .then((data) => {
         resolve(data);
       })
@@ -1074,7 +1074,7 @@ module.exports.getCategories = function (userId) {
 
 module.exports.getIndustry = function () {
   return new Promise((resolve, reject) => {
-    IndustryModel.find({})
+    IndustryModel.find({isDeleted:false})
       .then((data) => {
         resolve(data);
       })
@@ -1087,7 +1087,7 @@ module.exports.getIndustry = function () {
 
 module.exports.getOccupation = function (industryId) {
   return new Promise((resolve, reject) => {
-    OccupationModel.find({ industry: industryId })
+    OccupationModel.find({ industry: industryId , isDeleted: false })
       .then((data) => {
         resolve(data);
       })
@@ -1102,9 +1102,10 @@ module.exports.getUserByIndustry = function (industryId) {
   return new Promise(async (resolve, reject) => {
     const industryOccupations = await IndustryOccupation.find({
       industry: industryId,
+      isDeleted: false,
     }).select("_id");
     const industryOccupationIds = industryOccupations.map((io) => io._id);
-    User.find({ industryOccupation: { $in: industryOccupationIds } })
+    User.find({ isDeleted:false , industryOccupation: { $in: industryOccupationIds } })
       .select(
         "_id online rating profilePic displayName industryOccupation pricing"
       )
@@ -1160,7 +1161,7 @@ module.exports.getUserByIndustry = function (industryId) {
 // block
 module.exports.getAllBlockedUsers = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findById(userId)
+    User.findOne({_id:userId , isDeleted: false})
       .populate({
         path: "blockedUsers",
         populate: [
@@ -1211,7 +1212,7 @@ module.exports.getAllBlockedUsers = function (userId) {
 
 module.exports.getProfileCompletion = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findById(userId)
+    User.findOne({_id:userId , isDeleted: false})
       .populate("basicInfo")
       .populate("education")
       .populate("industryOccupation")

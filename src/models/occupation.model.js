@@ -12,6 +12,10 @@ const occupationSchema = new mongoose.Schema({
     ref: 'Industry',
     required: true,
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

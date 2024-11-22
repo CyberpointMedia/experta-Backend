@@ -31,6 +31,10 @@ const transactionSchema = new mongoose.Schema(
       ref: "Booking",
     },
     description: String,
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
