@@ -10,7 +10,6 @@ const User=require("../models/user.model");
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
-  razory_current: process.env.RAZORPAY_PAYOUT_ACCOUNT
 });
 
 exports.getWalletBalance = async function (userId) {
@@ -495,75 +494,157 @@ exports.initiateWithdrawal = async function (userId, amount, paymentDetails) {
   session.startTransaction();
 
   try {
-    // Step 1: Validate wallet balance
-    const walletBalance = await transactionDao.getUserWalletBalance(userId);
-    if (walletBalance < amount) {
-      throw new Error("Insufficient wallet balance for withdrawal");
+    // Validate user and check wallet balance
+    const user = await bookingDao.getUserWithBalance(userId, session);
+    if (!user) {
+      throw new Error("User not found.");
     }
 
-    // Step 2: Create withdrawal transaction in `pending` state
+    if (!user.wallet || user.wallet.balance < amount) {
+      throw new Error("Insufficient wallet balance.");
+    }
+
+    // Validate payment details
+    if (!paymentDetails || (!paymentDetails.vpa && !paymentDetails.accountNumber)) {
+      throw new Error("Invalid payment details.");
+    }
+
+    // Check withdrawal limits
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const withdrawalSummary = await bookingDao.getWithdrawalsSummary(
+      userId,
+      startOfDay,
+      endOfDay
+    );
+
+    const DAILY_WITHDRAWAL_LIMIT = 50000;
+    const DAILY_WITHDRAWAL_COUNT = 3;
+
+    if (withdrawalSummary.totalAmount + amount > DAILY_WITHDRAWAL_LIMIT) {
+      throw new Error("Daily withdrawal limit exceeded.");
+    }
+
+    if (withdrawalSummary.count >= DAILY_WITHDRAWAL_COUNT) {
+      throw new Error("Maximum daily withdrawal count reached.");
+    }
+
+    // Create a withdrawal transaction
     const transactionData = {
       user: userId,
       amount,
       type: "withdrawal",
       status: "pending",
-      paymentMethod: paymentDetails.vpa ? "UPI" : "Bank Transfer",
+      paymentMethod: paymentDetails.vpa ? "upi" : "bank",
       paymentDetails,
     };
-    const withdrawalTransaction = await transactionDao.createWithdrawalTransaction(
-      transactionData,
-      session
-    );
 
-    // Step 3: Deduct balance from the wallet
-    await transactionDao.updateUserWalletBalance(userId, -amount, session);
+    const transaction = await bookingDao.createPayoutTransaction(transactionData, session);
 
-    // Step 4: Razorpay payout API request
-    const payoutRequest = {
-      account_number: razory_current, // Razorpay’s account number
-      fund_account: paymentDetails.vpa
-        ? {
-            account_type: "vpa",
-            vpa: { address: paymentDetails.vpa },
-          }
+    // Create a fund account for the user
+    const fundAccountData = {
+      account_type: paymentDetails.vpa ? "vpa" : "bank_account",
+      ...(paymentDetails.vpa
+        ? { vpa: { address: paymentDetails.vpa } }
         : {
-            account_type: "bank_account",
             bank_account: {
               name: paymentDetails.accountName,
               ifsc: paymentDetails.ifsc,
               account_number: paymentDetails.accountNumber,
             },
-          },
-      amount: amount * 100, // Convert to paise
-      currency: "INR",
-      mode: paymentDetails.vpa ? "UPI" : "NEFT",
-      purpose: "withdrawal",
-      queue_if_low_balance: true,
-      reference_id: withdrawalTransaction._id.toString(),
-      narration: `Withdrawal for user ${userId}`,
+          }),
+      contact: {
+        name: user.basicInfo?.firstName || "User",
+        email: user.email,
+        contact: user.phoneNo,
+        type: "self",
+      },
     };
 
-    const payoutResponse = await razorpay.payouts.create(payoutRequest);
+    const fundAccount = await razorpay.fundAccount.create(fundAccountData);
 
-    // Step 5: Update withdrawal transaction with Razorpay payout details
-    await transactionDao.updateWithdrawalTransaction(
-      withdrawalTransaction._id,
-      {
-        razorpayDetails: {
-          payoutId: payoutResponse.id,
-          status: payoutResponse.status,
-        },
-      },
+    // Create a payout using the fund account
+    const payoutData = {
+      account_number: "Your_Razorpay_Account_Number", // Razorpay's virtual account number
+      fund_account_id: fundAccount.id,
+      amount: amount * 100, // Razorpay expects amounts in paise
+      currency: "INR",
+      mode: paymentDetails.vpa ? "UPI" : "IMPS",
+      purpose: "withdrawal",
+      queue_if_low_balance: true,
+      reference_id: transaction._id.toString(),
+      narration: "Withdrawal Payout",
+    };
+
+    const payout = await razorpay.payouts.create(payoutData);
+
+    // Update the transaction with Razorpay payout ID
+    await bookingDao.updateTransactionStatus(
+      transaction._id,
+      { "razorpayDetails.payoutId": payout.id, status: "in_progress" },
       session
     );
 
+    // Deduct the amount from the user's wallet
+    await bookingDao.updateUserWalletForWithdrawal(userId, amount, session);
+
     await session.commitTransaction();
-    return { success: true, message: "Withdrawal initiated successfully" };
+
+    return createResponse.success({
+      message: "Withdrawal initiated successfully.",
+      transaction,
+      payout,
+    });
   } catch (error) {
     await session.abortTransaction();
-    throw new Error(error.message || "Failed to initiate withdrawal");
+    console.error("Error initiating withdrawal:", error);
+    return createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    });
   } finally {
     session.endSession();
+  }
+};
+
+exports.getWithdrawalStatus = async function (userId, withdrawalId) {
+  try {
+    const transaction = await bookingDao.getUserWithdrawalTransaction(userId, withdrawalId);
+
+    if (!transaction) {
+      throw new Error("Withdrawal transaction not found.");
+    }
+
+    if (transaction.razorpayDetails?.payoutId) {
+      const payout = await razorpay.payouts.fetch(transaction.razorpayDetails.payoutId);
+
+      if (payout.status !== transaction.razorpayDetails.status) {
+        const updateData = {
+          "razorpayDetails.status": payout.status,
+        };
+
+        if (payout.status === "processed") {
+          updateData.status = "completed";
+        } else if (payout.status === "failed") {
+          updateData.status = "failed";
+
+          // Refund the amount to the user's wallet
+          await bookingDao.refundFailedWithdrawal(userId, transaction.amount);
+        }
+
+        await bookingDao.updateTransactionStatus(transaction._id, updateData);
+      }
+    }
+
+    return createResponse.success(transaction);
+  } catch (error) {
+    console.error("Error checking withdrawal status:", error);
+    return createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    });
   }
 };
 
