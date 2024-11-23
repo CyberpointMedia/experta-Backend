@@ -277,7 +277,7 @@ exports.getPendingWithdrawals = async function (userId) {
 
 exports.getUserWithBalance = async function (userId, session) {
   return await User.findById(userId)
-    .select('wallet')
+    .select('wallet basicInfo').populate('basicInfo')
     .session(session);
 };
 
