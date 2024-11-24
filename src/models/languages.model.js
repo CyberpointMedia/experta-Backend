@@ -6,6 +6,10 @@ const languagesSchema = new mongoose.Schema({
     ref: 'LanguageItem',
     required: true,
   }],
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

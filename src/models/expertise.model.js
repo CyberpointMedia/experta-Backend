@@ -8,7 +8,12 @@ const expertiseSchema = new mongoose.Schema(
         ref: "ExpertiseItem",
         required: true,
       },
+      
     ],
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

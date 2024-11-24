@@ -8,14 +8,15 @@ const {
   deletePage
 } = require('../controllers/page.controller');
 const { authMiddleware } = require('../middlewares/auth.middleware');  // Optional, for admin routes
-const { hasRole } = require('../middlewares/role.middleware');  // Optional, for admin routes
+const { hasRole } = require('../middlewares/role.middleware');
+const { paginate } = require('../middlewares/paginate.middleware');
 const routes = require('../constants/route.url');
 
 // Route to create a new page
 pageRouter.post('/create-page',authMiddleware, hasRole('admin'), createPage);
 
 // Route to get all pages (admin or general users)
-pageRouter.get('/pages', authMiddleware, hasRole('admin'), getAllPages);
+pageRouter.get('/pages', authMiddleware, hasRole('admin'),paginate('Page'), getAllPages);
 
 // Route to get a page by its slug
 pageRouter.get('/page/:slug',authMiddleware, hasRole('admin'), getPageBySlug);

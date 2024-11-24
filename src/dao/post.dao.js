@@ -6,7 +6,7 @@ const ReportReason = require("../models/reportReason.model");
 
 module.exports.getPostDetails = function (postId) {
   return new Promise((resolve, reject) => {
-    Post.findOne({ _id: postId })
+    Post.findOne({ _id: postId , isDeleted:false})
       .populate({
         path: "postedBy",
         populate: [
@@ -102,7 +102,12 @@ module.exports.createPost = function (postToSave, basicInfoId) {
       .save()
       .then(async (data) => {
         if (data) {
-          const basicInfo = await BasicInfo.findById(basicInfoId);
+          const basicInfo = await BasicInfo.findOne(
+            {
+              _id: basicInfoId,
+              isDeleted: false,
+            }
+          );
           basicInfo.posts.push(data._id);
           await basicInfo.save();
           resolve(data);
@@ -117,7 +122,7 @@ module.exports.createPost = function (postToSave, basicInfoId) {
 
 module.exports.getAllPost = function (type, userId) {
   return new Promise((resolve, reject) => {
-    Post.find({ type: type, postedBy: userId })
+    Post.find({ type: type, postedBy: userId , isDeleted:false })
       .populate({
         path: "postedBy",
         populate: [
@@ -206,7 +211,7 @@ module.exports.getAllPost = function (type, userId) {
 
 module.exports.getAllRandomPost = function (type) {
   return new Promise((resolve, reject) => {
-    Post.find({ type: type })
+    Post.find({ type: type , isDeleted:false})
       .populate({
         path: "postedBy",
         populate: [
@@ -309,7 +314,10 @@ module.exports.createReview = function (reviewToSave, basicInfoId) {
       .save()
       .then(async (data) => {
         if (data) {
-          const basicInfo = await BasicInfo.findById(basicInfoId);
+          const basicInfo = await BasicInfo.findOne({
+            _id: basicInfoId,
+            isDeleted: false,
+          });
           basicInfo.reviews.push(data._id);
           await basicInfo.save();
           resolve(data);
@@ -324,7 +332,7 @@ module.exports.createReview = function (reviewToSave, basicInfoId) {
 
 module.exports.getAllReview = function (userId) {
   return new Promise((resolve, reject) => {
-    Review.find({ reviewBy: userId })
+    Review.find({ reviewBy: userId , isDeleted:false })
       .then((data) => {
         resolve(data);
       })
@@ -337,7 +345,7 @@ module.exports.getAllReview = function (userId) {
 
 module.exports.getAllReviewByUser = function (userId) {
   return new Promise((resolve, reject) => {
-    Review.find({ reviewBy: userId })
+    Review.find({ reviewBy: userId , isDeleted:false })
       .then((data) => {
         resolve(data);
       })
@@ -350,7 +358,10 @@ module.exports.getAllReviewByUser = function (userId) {
 
 module.exports.deleteReviewById = function (id) {
   return new Promise((resolve, reject) => {
-    Review.findByIdAndDelete(id)
+    Review.findOneAndDelete({
+      _id:id,
+      isDeleted:false
+    })
       .then((data) => {
         resolve(data);
       })
@@ -364,7 +375,7 @@ module.exports.deleteReviewById = function (id) {
 
 module.exports.getReportReasons = function () {
   return new Promise((resolve, reject) => {
-    ReportReason.find({})
+    ReportReason.find({isDeleted:false})
       .then((data) => {
         resolve(data);
       })
@@ -377,7 +388,10 @@ module.exports.getReportReasons = function () {
 
 module.exports.getReportById = function (id) {
   return new Promise((resolve, reject) => {
-    Report.findById(id)
+    Report.findOne({
+      _id:id,
+      isDeleted:false
+    })
       .populate("reportedBy")
       .populate("reason")
       .then((data) => {
@@ -393,7 +407,10 @@ module.exports.getReportById = function (id) {
 
 module.exports.deleteReportById = function (id) {
   return new Promise((resolve, reject) => {
-    Report.findByIdAndDelete(id)
+    Report.findOneAndDelete({
+      _id:id,
+      isDeleted:false
+    })
       .then((data) => {
         resolve(data);
       })
@@ -407,7 +424,10 @@ module.exports.deleteReportById = function (id) {
 
 module.exports.deleteReportReasonById = function (id) {
   return new Promise((resolve, reject) => {
-    ReportReason.findByIdAndDelete(id)
+    ReportReason.findOneAndDelete({
+      _id:id,
+      isDeleted:false
+    })
       .then((data) => {
         resolve(data);
       })

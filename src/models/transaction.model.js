@@ -85,6 +85,10 @@ const paymentTransactionSchema = new mongoose.Schema(
       accountName: String
     },
     description: String,
+    isDeleted: {
+      type: Boolean,
+      default: false,  
+    }
   },
   {
     timestamps: true,

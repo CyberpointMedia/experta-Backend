@@ -18,6 +18,10 @@ const userAccountSchema = new Schema({
     type: String,
     enum: ['male', 'female', 'other'],
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const UserAccount = mongoose.model('UserAccount', userAccountSchema);

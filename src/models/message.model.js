@@ -25,6 +25,10 @@ const messageSchema = new Schema(
         ref: "User",
       },
     ],
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

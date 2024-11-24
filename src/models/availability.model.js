@@ -10,6 +10,7 @@ const AvailabilitySchema = new Schema({
     type: [String],
     enum: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
   },
+  isDeleted: { type: Boolean, default: false },
 });
 
 const Availability = mongoose.model("Availability", AvailabilitySchema);

@@ -9,6 +9,10 @@ const categorySchema = new mongoose.Schema({
   icon: {
     type: String,
   },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("Category", categorySchema);

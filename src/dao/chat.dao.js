@@ -7,8 +7,8 @@ module.exports.addNotification = async (notificationId, userId) => {
     if (!notificationId || !userId) {
       throw new Error("Invalid params for adding notification");
     }
-    userData = await UserModel.findByIdAndUpdate(
-      userId,
+    userData = await UserModel.findOneAndUpdate(
+      {_id: userId, isDeleted: false},
       { $push: { notifications: notificationId } },
       { new: true }
     )
@@ -50,8 +50,8 @@ module.exports.deleteNotifOnMsgDelete = async (notificationId, userId) => {
     if (!notificationId || !userId) {
       throw new Error("Invalid params for deleting notification");
     }
-    const userData = await UserModel.findByIdAndUpdate(
-      userId,
+    const userData = await UserModel.findOneAndUpdate(
+      { _id: userId, isDeleted: false },
       { $pull: { notifications: notificationId } },
       { new: true }
     );
