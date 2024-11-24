@@ -199,5 +199,11 @@ module.exports = (app) => {
     userController.getProfileCompletion
   );
   router.post("/share-profile", authMiddleware, userController.shareProfile);
+  router.post(
+    "/bio-suggestions",
+    authMiddleware,
+    userController.getBioSuggestions
+  );
+  
   app.use(routes.API, router);
 };

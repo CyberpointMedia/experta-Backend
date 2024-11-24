@@ -1714,3 +1714,23 @@ exports.shareProfile = async (req, res) => {
     );
   }
 };
+
+
+exports.getBioSuggestions = async (req, res) => {
+  try {
+    const { userInput } = req.body;
+    if (!userInput) {
+      return res.json(createResponse.invalid("User input is required"));
+    }
+    const suggestions =  userDao.generateBioSuggestions(userInput);
+    return res.json(createResponse.success(suggestions));
+  } catch (error) {
+    console.error("Error in getBioSuggestions:", error);
+    return res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};

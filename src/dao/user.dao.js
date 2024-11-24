@@ -1995,3 +1995,33 @@ async function  performBasicSearch (query) {
       });
   });
 };
+
+
+
+exports.generateBioSuggestions = async (userInput)=> {
+  try {
+    const prompt = `Based on this description: "${userInput}", generate 4 unique, professional, and engaging bio suggestions. Each bio should be 2-3 sentences long and expand upon the given input while maintaining professionalism and personality. Format as JSON array of strings. Don't include quotation marks or numbers in the bios themselves.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional bio writer who creates engaging and professional bios that capture the essence of a person's professional identity.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    const response = JSON.parse(completion.data.choices[0].message.content);
+    return response;
+  } catch (error) {
+    console.error("Error generating bio suggestions:", error);
+    throw error;
+  }
+}
