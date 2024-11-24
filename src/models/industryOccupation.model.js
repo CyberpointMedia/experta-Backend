@@ -21,7 +21,11 @@ const industryOccupationSchema = new mongoose.Schema({
   },
   achievements: [{
     type: String,
-  }]
+  }],
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

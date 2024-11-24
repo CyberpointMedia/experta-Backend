@@ -9,7 +9,11 @@ const industrySchema = new mongoose.Schema({
   },
   icon:{
     type:String,
-  }
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

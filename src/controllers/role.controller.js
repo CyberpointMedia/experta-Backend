@@ -7,7 +7,7 @@ exports.createRole = async (req, res) => {
   try {
     const { name, permissions, description } = req.body;
     
-    const existingRole = await Role.findOne({ name });
+    const existingRole = await Role.findOne({ name , isDeleted:false });
     if (existingRole) {
       return res.status(409).json(createResponse.error({
         errorCode: errorMessageConstants.CONFLICTS,
@@ -36,7 +36,7 @@ exports.assignRole = async (req, res) => {
   try {
     const { userId, roleId } = req.body;
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({_id:userId, isDeleted:false});
     if (!user) {
       return res.status(404).json(createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -44,7 +44,7 @@ exports.assignRole = async (req, res) => {
       }));
     }
 
-    const role = await Role.findById(roleId);
+    const role = await Role.findOne({_id:roleId, isDeleted:false});
     if (!role) {
       return res.status(404).json(createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -69,7 +69,7 @@ exports.assignRole = async (req, res) => {
 
 exports.getRoles = async (req, res) => {
   try {
-    const roles = await Role.find({});
+    const roles = await Role.find({isDeleted:false});
     res.json(createResponse.success(roles));
   } catch (error) {
     console.error("Error getting roles:", error);

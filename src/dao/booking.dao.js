@@ -7,7 +7,8 @@ const mongoose = require("mongoose");
 
 exports.getUserById = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findById(userId).populate('pricing')
+    User.findOne({ _id: userId, isDeleted: false })
+    .populate('pricing')
       .then((data) => {
         resolve(data);
       })
@@ -61,8 +62,8 @@ exports.createPaymentTransaction = async function (transactionData, session) {
 };
 
 exports.updateUserWallet = async function (userId, amount, session) {
-  return await User.findByIdAndUpdate(
-    userId,
+  return await User.findOneAndUpdate(
+    { _id: userId, isDeleted: false },
     { $inc: { "wallet.balance": amount } },
     { new: true, session }
   );
@@ -70,7 +71,7 @@ exports.updateUserWallet = async function (userId, amount, session) {
 
 exports.getBookingsAsClient = function (userId, filters = {}) {
   return new Promise((resolve, reject) => {
-    const query = { client: userId };
+    const query = { client: userId , isDeleted:false};
     
     if (filters.startDate || filters.endDate) {
       query.startTime = {};
@@ -111,7 +112,7 @@ exports.getBookingsAsClient = function (userId, filters = {}) {
 
 exports.getBookingsAsExpert = function (userId, filters = {}) {
   return new Promise((resolve, reject) => {
-    const query = { expert: userId };
+    const query = { expert: userId , isDeleted:false};
     
     if (filters.startDate || filters.endDate) {
       query.startTime = {};
@@ -145,7 +146,7 @@ exports.getBookingsAsExpert = function (userId, filters = {}) {
 
 exports.getFilteredTransactions = async function (userId, filters = {}) {
   try {
-    const query = {};
+    const query = {isDeleted: false};
     
     // Add date filters if provided
     if (filters.startDate || filters.endDate) {
@@ -201,8 +202,8 @@ exports.getFilteredTransactions = async function (userId, filters = {}) {
 };
 
 exports.updateBookingStatus = async function (bookingId, status, session) {
-  return await Booking.findByIdAndUpdate(
-    bookingId,
+  return await Booking.findOneAndUpdate(
+    { _id:bookingId, isDeleted:false },
     { status },
     { new: true, session }
   );
@@ -210,7 +211,10 @@ exports.updateBookingStatus = async function (bookingId, status, session) {
 
 exports.getTransactionById = function (transactionId) {
   return new Promise((resolve, reject) => {
-    PaymentTransaction.findById(transactionId)
+    PaymentTransaction.findOne({
+      _id: transactionId,
+      isDeleted: false
+    })
       .then((data) => {
         resolve(data);
       })
@@ -223,7 +227,10 @@ exports.getTransactionById = function (transactionId) {
 
 exports.getBookingById = function (bookingId) {
   return new Promise((resolve, reject) => {
-    Booking.findById(bookingId)
+    Booking.findOne({
+      _id: bookingId,
+      isDeleted: false
+    })
       .populate({
         path: "expert",
         select: "_id online isVerified pricing",
@@ -259,9 +266,31 @@ exports.getBookingById = function (bookingId) {
   });
 };
 
+/// 
+exports.getWithdrawalTransactionById = async function (withdrawalId) {
+  return await PaymentTransaction.findOne({
+    _id: withdrawalId,
+    isDeleted: false,
+  })
+};
+
+exports.createWithdrawalTransaction = async function (transactionData, session) {
+  const transaction = new PaymentTransaction(transactionData);
+  return await transaction.save({ session });
+};
+
+exports.updateWithdrawalTransaction = async function (transactionId, updateData, session) {
+  return await PaymentTransaction.findOneAndUpdate(
+    { _id: transactionId, isDeleted: false },
+    updateData,
+    { new: true, session }
+  );
+};
+
 exports.getUserWithdrawalTransaction = async function (userId, withdrawalId) {
   return await PaymentTransaction.findOne({
     _id: withdrawalId,
+    isDeleted: false,
     user: userId,
     type: "withdrawal"
   });
@@ -270,28 +299,32 @@ exports.getUserWithdrawalTransaction = async function (userId, withdrawalId) {
 exports.getPendingWithdrawals = async function (userId) {
   return await PaymentTransaction.find({
     user: userId,
+    isDeleted: false,
     type: "withdrawal",
     status: "pending"
   }).sort({ createdAt: -1 });
 };
 
 exports.getUserWithBalance = async function (userId, session) {
-  return await User.findById(userId)
-    .select('wallet basicInfo').populate('basicInfo')
-    .session(session);
+  return await User.findOne({
+    _id: userId,
+    isDeleted: false
+  })
+  .select('wallet basicInfo').populate('basicInfo')
+  .session(session);
 };
 
 exports.updateUserWalletForWithdrawal = async function (userId, amount, session) {
-  return await User.findByIdAndUpdate(
-    userId,
+  return await User.findOneAndUpdate(
+    { _id: userId, isDeleted: false },
     { $inc: { "wallet.balance": -amount } },
     { new: true, session }
   );
 };
 
 exports.refundFailedWithdrawal = async function (userId, amount, session) {
-  return await User.findByIdAndUpdate(
-    userId,
+  return await User.findOneAndUpdate(
+    { _id: userId, isDeleted: false },
     { $inc: { "wallet.balance": amount } },
     { new: true, session }
   );
@@ -333,8 +366,8 @@ exports.createUPITransaction = async function(transactionData, session) {
 };
 
 exports.updateUPITransaction = async function(transactionId, upiDetails, session) {
-  return await PaymentTransaction.findByIdAndUpdate(
-    transactionId,
+  return await PaymentTransaction.findOneAndUpdate(
+    { _id: transactionId, isDeleted: false },
     { $set: { upiDetails, status: 'completed' } },
     { new: true, session }
   );
@@ -350,8 +383,8 @@ exports.updateTransactionStatus = async function (
   updateData,
   session
 ) {
-  return await PaymentTransaction.findByIdAndUpdate(
-    transactionId,
+  return await PaymentTransaction.findOneAndUpdate(
+    { _id: transactionId, isDeleted: false },
     { $set: updateData },
     { new: true, session }
   );
@@ -379,14 +412,6 @@ exports.updateUserWalletBalance = async function (userId, amount, session) {
   );
 };
 
-exports.getWithdrawalTransactionById = async function (withdrawalId) {
-  return await PaymentTransaction.findById(withdrawalId);
-};
 
-exports.updateWithdrawalTransaction = async function (transactionId, updateData, session) {
-  return await PaymentTransaction.findByIdAndUpdate(
-    transactionId,
-    updateData,
-    { new: true, session }
-  );
-};
+
+

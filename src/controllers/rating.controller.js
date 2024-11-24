@@ -24,7 +24,8 @@ exports.submitRating = async (req, res) => {
 
     const booking = await Booking.findOne({
       _id: bookingId,
-      client: userId
+      client: userId,
+      isDeleted: false
     }).populate('expert');
 
     if (!booking) {
@@ -47,7 +48,8 @@ exports.submitRating = async (req, res) => {
 
     const existingRating = await VideoRating.findOne({
       booking: bookingId,
-      user: userId
+      user: userId,
+      isDeleted: false
     });
 
     if (existingRating) {
@@ -71,21 +73,22 @@ exports.submitRating = async (req, res) => {
 
     // Update expert's average rating
     const allRatings = await VideoRating.find({ 
-      expert: booking.expert._id 
+      expert: booking.expert._id,
+      isDeleted: false 
     });
 
     const totalRating = allRatings.reduce((sum, rating) => sum + rating.rating, 0);
     const averageRating = Number((totalRating / allRatings.length).toFixed(1));
 
     await BasicInfo.findOneAndUpdate(
-      { user: booking.expert._id },
+      { user: booking.expert._id , isDeleted: false },
       { $set: { rating: averageRating } },
       { session }
     );
 
     await session.commitTransaction();
 
-    const populatedRating = await VideoRating.findById(videoRating._id)
+    const populatedRating = await VideoRating.findOne({ _id: videoRating._id, isDeleted: false })
       .populate({
         path: "user",
         select: "basicInfo",
@@ -119,7 +122,7 @@ exports.getExpertRatings = async (req, res) => {
       return res.json(createResponse.invalid("Valid expert ID is required"));
     }
 
-    const expert = await User.findById(expertId);
+    const expert = await User.findOne({_id:expertId,isDeleted:false});
     if (!expert) {
       return res.json(
         createResponse.error({
@@ -129,7 +132,7 @@ exports.getExpertRatings = async (req, res) => {
       );
     }
 
-    const ratings = await VideoRating.find({ expert: expertId })
+    const ratings = await VideoRating.find({ expert: expertId , isDeleted: false })
       .populate({
         path: "user",
         select: "basicInfo",

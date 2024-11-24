@@ -5,9 +5,10 @@ const { getAllUsers, getUserById, updateUser, deleteUser } = require('../control
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const {hasRole}=require("../middlewares/role.middleware")
 const routes = require("../constants/route.url");
+const { paginate } = require('../middlewares/paginate.middleware');
 
 // Route to get all users
-allUsersRouters.get('/all-users',authMiddleware, hasRole('admin'),  getAllUsers);
+allUsersRouters.get('/all-users',authMiddleware, hasRole('admin'), paginate('User') , getAllUsers);
 
 // Route to get a user by ID
 allUsersRouters.get('/user/:id',authMiddleware ,hasRole('admin'), getUserById);

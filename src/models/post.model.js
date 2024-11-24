@@ -8,6 +8,10 @@ const commentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
     createdAt: { type: Date, default: Date.now },
   },
   { _id: false }
@@ -46,6 +50,10 @@ const postSchema = new mongoose.Schema(
       type: String,
       enum: ["feed", "post"],
       default: "post",
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

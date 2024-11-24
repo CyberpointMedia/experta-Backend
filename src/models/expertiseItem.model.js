@@ -6,6 +6,10 @@ const expertiseItemSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    isDeleted: {
+        type: Boolean,
+        default: false,
+      },
 }, {
     timestamps: true,
 });

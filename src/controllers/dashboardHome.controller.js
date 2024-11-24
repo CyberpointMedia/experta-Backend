@@ -1,11 +1,11 @@
 // controllers/dashboard.controller.js
 const User = require('../models/user.model'); // Adjust the path as needed
-const errorMessageConstants = require('../constants/error.messages'); // Your error messages constants
+const errorMessageConstants = require('../constants/error.messages'); 
 
 // Controller method to get the total number of users
 exports.getTotalUsers = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments(); // Count all users in the database
+    const totalUsers = await User.countDocuments({isDeleted:false});
     res.status(200).json({
       status: 'success',
       message: 'Total number of users fetched successfully',
@@ -23,7 +23,7 @@ exports.getTotalUsers = async (req, res) => {
 // Controller method to get the total number of verified users
 exports.getVerifiedUsers = async (req, res) => {
     try {
-      const verifiedUsers = await User.countDocuments({ isVerified: true }); // Count users where isVerified is true
+      const verifiedUsers = await User.countDocuments({ isVerified: true , isDeleted:false });
       res.status(200).json({
         status: 'success',
         message: 'Total number of verified users fetched successfully',
@@ -41,7 +41,7 @@ exports.getVerifiedUsers = async (req, res) => {
 // Controller method to get the total number of non-verified users
 exports.getNonVerifiedUsers = async (req, res) => {
     try {
-      const nonVerifiedUsers = await User.countDocuments({ isVerified: false }); // Count users where isVerified is false
+      const nonVerifiedUsers = await User.countDocuments({ isVerified: false , isDeleted:false }); // Count users where isVerified is false
       res.status(200).json({
         status: 'success',
         message: 'Total number of non-verified users fetched successfully',
