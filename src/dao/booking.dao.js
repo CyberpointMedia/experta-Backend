@@ -4,6 +4,7 @@ const Booking = require("../models/booking.model");
 const { CoinTransaction, PaymentTransaction } = require("../models/transaction.model");
 const mongoose = require("mongoose");
 
+
 exports.getUserById = function (userId) {
   return new Promise((resolve, reject) => {
     User.findById(userId).populate('pricing')
@@ -258,24 +259,6 @@ exports.getBookingById = function (bookingId) {
   });
 };
 
-/// 
-exports.getWithdrawalTransactionById = async function (withdrawalId, session) {
-  return await PaymentTransaction.findById(withdrawalId).session(session);
-};
-
-exports.createWithdrawalTransaction = async function (transactionData, session) {
-  const transaction = new PaymentTransaction(transactionData);
-  return await transaction.save({ session });
-};
-
-exports.updateWithdrawalTransaction = async function (transactionId, updateData, session) {
-  return await PaymentTransaction.findByIdAndUpdate(
-    transactionId,
-    updateData,
-    { new: true, session }
-  );
-};
-
 exports.getUserWithdrawalTransaction = async function (userId, withdrawalId) {
   return await PaymentTransaction.findOne({
     _id: withdrawalId,
@@ -294,7 +277,7 @@ exports.getPendingWithdrawals = async function (userId) {
 
 exports.getUserWithBalance = async function (userId, session) {
   return await User.findById(userId)
-    .select('wallet')
+    .select('wallet basicInfo').populate('basicInfo')
     .session(session);
 };
 
@@ -370,6 +353,40 @@ exports.updateTransactionStatus = async function (
   return await PaymentTransaction.findByIdAndUpdate(
     transactionId,
     { $set: updateData },
+    { new: true, session }
+  );
+};
+
+// new
+
+
+exports.createWithdrawalTransaction = async function (transactionData, session) {
+  const transaction = new PaymentTransaction(transactionData);
+  return await transaction.save({ session });
+};
+
+exports.getUserWalletBalance = async function (userId) {
+  const user = await User.findById(userId).select("wallet.balance");
+  if (!user) throw new Error("User not found");
+  return user.wallet.balance;
+};
+
+exports.updateUserWalletBalance = async function (userId, amount, session) {
+  return await User.findByIdAndUpdate(
+    userId,
+    { $inc: { "wallet.balance": amount } },
+    { new: true, session }
+  );
+};
+
+exports.getWithdrawalTransactionById = async function (withdrawalId) {
+  return await PaymentTransaction.findById(withdrawalId);
+};
+
+exports.updateWithdrawalTransaction = async function (transactionId, updateData, session) {
+  return await PaymentTransaction.findByIdAndUpdate(
+    transactionId,
+    updateData,
     { new: true, session }
   );
 };

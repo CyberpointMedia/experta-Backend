@@ -1218,32 +1218,34 @@ exports.getPolicy = async (req, res) => {
     });
 };
 
-exports.getUserBySearch = async (req, res) => {
-  const { search } = req.params;
-  const searchTerm = search && search !== ":search" ? search : null;
-  userDao
-    .getUserBySearch(searchTerm)
-    .then((data) => {
-      if (null != data) {
-        console.log;
-        res.json(createResponse.success(data));
-      } else {
-        response = {
-          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
-          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
-        };
-        return res.json(createResponse.error(response));
+exports.getUserBySearch=async (req, res)=> {
+
+  console.log("query",req.params);
+  try {
+    const { search } = req.params;
+
+    const results = await userDao.getUserBySearch(search);
+    
+    res.json(createResponse.success({
+      results,
+      metadata: {
+        count: results.length,
+        originalQuery: search,
+        extractedTerms: results[0]?.searchMetadata?.extractedTerms,
+        matchedTerms: results[0]?.searchMetadata?.matchedTerms
       }
-    })
-    .catch((err) => {
-      console.log(err.message);
-      response = {
-        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-        errorMessage: err.message,
-      };
-      return res.json(createResponse.error(response));
-    });
-};
+    }));
+  } catch (error) {
+    console.error("Search error:", error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: "Search failed"
+    }));
+  }
+}
+
+
+
 
 exports.getTrending = async (req, res) => {
   userDao
@@ -1705,6 +1707,26 @@ exports.shareProfile = async (req, res) => {
   } catch (error) {
     console.error("Error in shareProfile controller:", error);
     res.status(500).json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
+
+exports.getBioSuggestions = async (req, res) => {
+  try {
+    const { userInput } = req.body;
+    if (!userInput) {
+      return res.json(createResponse.invalid("User input is required"));
+    }
+    const suggestions =  userDao.generateBioSuggestions(userInput);
+    return res.json(createResponse.success(suggestions));
+  } catch (error) {
+    console.error("Error in getBioSuggestions:", error);
+    return res.json(
       createResponse.error({
         errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
         errorMessage: error.message,
