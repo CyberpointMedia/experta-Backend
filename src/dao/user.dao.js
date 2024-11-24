@@ -25,6 +25,8 @@ const Category = require("../models/category.model");
 const Education = require("../models/education.model");
 const IndustryModel = require("../models/industry.model");
 const OccupationModel = require("../models/occupation.model");
+const OpenAI = require('openai');
+
 
 module.exports.getUserDetailsById = function (id) {
   return new Promise((resolve, reject) => {
@@ -884,180 +886,180 @@ module.exports.getTrending = function () {
   });
 };
 
-module.exports.getUserBySearch = function (query) {
-  return new Promise(async (resolve, reject) => {
-    const aggregationPipeline = [
-      {
-        $lookup: {
-          from: "basicinfos",
-          localField: "basicInfo",
-          foreignField: "_id",
-          as: "basicInfo",
-        },
-      },
-      {
-        $lookup: {
-          from: "industryoccupations",
-          localField: "industryOccupation",
-          foreignField: "_id",
-          as: "industryOccupation",
-        },
-      },
-      {
-        $lookup: {
-          from: "industries",
-          localField: "industryOccupation.industry",
-          foreignField: "_id",
-          as: "industry",
-        },
-      },
-      {
-        $lookup: {
-          from: "occupations",
-          localField: "industryOccupation.occupation",
-          foreignField: "_id",
-          as: "occupation",
-        },
-      },
-      {
-        $lookup: {
-          from: "interests",
-          localField: "intereset",
-          foreignField: "_id",
-          as: "interest",
-        },
-      },
-      {
-        $lookup: {
-          from: "interestitems",
-          localField: "interest.intereset",
-          foreignField: "_id",
-          as: "interestItems",
-        },
-      },
-      {
-        $lookup: {
-          from: "languages",
-          localField: "language",
-          foreignField: "_id",
-          as: "language",
-        },
-      },
-      {
-        $lookup: {
-          from: "languageitems",
-          localField: "language.language",
-          foreignField: "_id",
-          as: "languageItems",
-        },
-      },
-      {
-        $lookup: {
-          from: "expertise",
-          localField: "expertise",
-          foreignField: "_id",
-          as: "expertise",
-        },
-      },
-      {
-        $lookup: {
-          from: "expertiseitems",
-          localField: "expertise.expertise",
-          foreignField: "_id",
-          as: "expertiseItems",
-        },
-      },
-      {
-        $lookup: {
-          from: "pricings",
-          localField: "pricing",
-          foreignField: "_id",
-          as: "pricing",
-        },
-      },
-      {
-        $match: query
-          ? {
-              $or: [
-                { "basicInfo.firstName": { $regex: query, $options: "i" } },
-                { "basicInfo.lastName": { $regex: query, $options: "i" } },
-                { "basicInfo.displayName": { $regex: query, $options: "i" } },
-                { "industry.name": { $regex: query, $options: "i" } },
-                { "occupation.name": { $regex: query, $options: "i" } },
-                { email: { $regex: query, $options: "i" } },
-                { "interestItems.name": { $regex: query, $options: "i" } },
-                { "languageItems.name": { $regex: query, $options: "i" } },
-                { "expertiseItems.name": { $regex: query, $options: "i" } },
-              ],
-            }
-          : {},
-      },
-      {
-        $addFields: {
-          sortOrder: {
-            $cond: [{ $eq: ["$isVerified", true] }, 0, 1],
-          },
-          randomValue: { $rand: {} },
-        },
-      },
-      {
-        $sort: {
-          sortOrder: 1,
-          noOfBooking: -1,
-          randomValue: 1,
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          online: { $ifNull: ["$online", false] },
-          isVerified: { $ifNull: ["$isVerified", false] },
-          noOfBooking: { $ifNull: ["$noOfBooking", 0] },
-          rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
-          profilePic: {
-            $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
-          },
-          displayName: {
-            $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
-          },
-          lastName: {
-            $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
-          },
-          firstName: {
-            $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
-          },
-          industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
-          occupation: {
-            $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
-          },
-          language: { $ifNull: ["$languageItems", []] },
-          expertise: { $ifNull: ["$expertiseItems", []] },
-          pricing: {
-            $ifNull: [
-              { $arrayElemAt: ["$pricing", 0] },
-              {
-                _id: "",
-                _v: 0,
-                audioCallPrice: 0,
-                messagePrice: 0,
-                videoCallPrice: 0,
-              },
-            ],
-          },
-        },
-      },
-    ];
+// module.exports.getUserBySearch = function (query) {
+//   return new Promise(async (resolve, reject) => {
+//     const aggregationPipeline = [
+//       {
+//         $lookup: {
+//           from: "basicinfos",
+//           localField: "basicInfo",
+//           foreignField: "_id",
+//           as: "basicInfo",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "industryoccupations",
+//           localField: "industryOccupation",
+//           foreignField: "_id",
+//           as: "industryOccupation",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "industries",
+//           localField: "industryOccupation.industry",
+//           foreignField: "_id",
+//           as: "industry",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "occupations",
+//           localField: "industryOccupation.occupation",
+//           foreignField: "_id",
+//           as: "occupation",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "interests",
+//           localField: "intereset",
+//           foreignField: "_id",
+//           as: "interest",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "interestitems",
+//           localField: "interest.intereset",
+//           foreignField: "_id",
+//           as: "interestItems",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "languages",
+//           localField: "language",
+//           foreignField: "_id",
+//           as: "language",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "languageitems",
+//           localField: "language.language",
+//           foreignField: "_id",
+//           as: "languageItems",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "expertise",
+//           localField: "expertise",
+//           foreignField: "_id",
+//           as: "expertise",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "expertiseitems",
+//           localField: "expertise.expertise",
+//           foreignField: "_id",
+//           as: "expertiseItems",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "pricings",
+//           localField: "pricing",
+//           foreignField: "_id",
+//           as: "pricing",
+//         },
+//       },
+//       {
+//         $match: query
+//           ? {
+//               $or: [
+//                 { "basicInfo.firstName": { $regex: query, $options: "i" } },
+//                 { "basicInfo.lastName": { $regex: query, $options: "i" } },
+//                 { "basicInfo.displayName": { $regex: query, $options: "i" } },
+//                 { "industry.name": { $regex: query, $options: "i" } },
+//                 { "occupation.name": { $regex: query, $options: "i" } },
+//                 { email: { $regex: query, $options: "i" } },
+//                 { "interestItems.name": { $regex: query, $options: "i" } },
+//                 { "languageItems.name": { $regex: query, $options: "i" } },
+//                 { "expertiseItems.name": { $regex: query, $options: "i" } },
+//               ],
+//             }
+//           : {},
+//       },
+//       {
+//         $addFields: {
+//           sortOrder: {
+//             $cond: [{ $eq: ["$isVerified", true] }, 0, 1],
+//           },
+//           randomValue: { $rand: {} },
+//         },
+//       },
+//       {
+//         $sort: {
+//           sortOrder: 1,
+//           noOfBooking: -1,
+//           randomValue: 1,
+//         },
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           online: { $ifNull: ["$online", false] },
+//           isVerified: { $ifNull: ["$isVerified", false] },
+//           noOfBooking: { $ifNull: ["$noOfBooking", 0] },
+//           rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
+//           profilePic: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
+//           },
+//           displayName: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
+//           },
+//           lastName: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
+//           },
+//           firstName: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
+//           },
+//           industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
+//           occupation: {
+//             $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
+//           },
+//           language: { $ifNull: ["$languageItems", []] },
+//           expertise: { $ifNull: ["$expertiseItems", []] },
+//           pricing: {
+//             $ifNull: [
+//               { $arrayElemAt: ["$pricing", 0] },
+//               {
+//                 _id: "",
+//                 _v: 0,
+//                 audioCallPrice: 0,
+//                 messagePrice: 0,
+//                 videoCallPrice: 0,
+//               },
+//             ],
+//           },
+//         },
+//       },
+//     ];
 
-    await User.aggregate(aggregationPipeline)
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
+//     await User.aggregate(aggregationPipeline)
+//       .then((data) => {
+//         resolve(data);
+//       })
+//       .catch((err) => {
+//         console.log(err);
+//         reject(err);
+//       });
+//   });
+// };
 
 module.exports.getCategories = function (userId) {
   return new Promise((resolve, reject) => {
@@ -1233,6 +1235,763 @@ module.exports.getProfileCompletion = function (userId) {
       .catch((error) => {
         console.error(error);
         reject(error);
+      });
+  });
+};
+
+
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// exports.getUserBySearch = async function (query) {
+//   try {
+//     if (!query || typeof query !== 'string') {
+//       return new Promise((resolve) => resolve([]));
+//     }
+
+//     // 1. Clean and normalize the query
+//     const cleanedQuery = query.trim().toLowerCase();
+    
+//     // 2. Handle empty queries
+//     if (cleanedQuery.length < 2) {
+//       return new Promise((resolve) => resolve([]));
+//     }
+
+//     // 3. Use OpenAI to understand intent and extract relevant terms
+//     const completion = await openai.chat.completions.create({
+//       messages: [
+//         {
+//           role: "system",
+//           content: `You are a professional search assistant. Your task is to:
+//           1. Understand the user's intent, even with typos or misspellings
+//           2. Extract the most relevant professional term(s). Can be single or multiple words if needed.
+//           3. Return "none" if the query is completely irrelevant to professional skills
+          
+//           Return format: Return most relevant professional term(s) in lowercase
+          
+//           Examples:
+//           "I need a docter for my hart" -> "heart specialist"
+//           "looking for good develper" -> "developer"
+//           "need physcian" -> "physician"
+//           "wat is the time now" -> "none"
+//           "asdfgh" -> "none"
+//           "need someone who can teech math" -> "math teacher"
+//           "marketing expert for my business" -> "digital marketing"
+//           "someone to fix my carr" -> "car mechanic"
+//           "i want pizza" -> "none"
+//           "property lawyer" -> "real estate lawyer"
+//           "website creation" -> "web developer"
+//           "fix my computer" -> "computer technician"
+//           "mobile app creation" -> "mobile app developer"
+//           "home renovation" -> "interior designer"
+//           "financial advice" -> "financial advisor"
+//           "logo design needed" -> "graphic designer"
+//           "need help with taxes" -> "tax consultant"
+//           "photgrapher for event" -> "event photographer"
+//           "social meda marketing" -> "social media manager"
+//           "UI UX for my app" -> "ui ux designer"
+//           "artificial intelligence expert" -> "ai specialist"
+//           "data science project" -> "data scientist"
+//           "full stack develoment" -> "full stack developer"
+//           "cloud computing expert" -> "cloud architect"`
+//         },
+//         {
+//           role: "user",
+//           content: cleanedQuery
+//         }
+//       ],
+//       model: "gpt-3.5-turbo",
+//       max_tokens: 20,
+//       temperature: 0.3,
+//     });
+
+//     let keyword = completion.choices[0].message.content.trim().toLowerCase();
+    
+//     // 4. Handle invalid or irrelevant responses
+//     if (keyword === 'none' || keyword.length < 2) {
+//       return [];
+//     }
+
+//     // 5. Split keyword into terms for more flexible matching
+//     const searchTerms = keyword.split(' ').filter(term => term.length > 2);
+
+//     // 6. Build search aggregation pipeline
+//     const aggregationPipeline = [
+//       {
+//         $lookup: {
+//           from: "basicinfos",
+//           localField: "basicInfo",
+//           foreignField: "_id",
+//           as: "basicInfo",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "industryoccupations",
+//           localField: "industryOccupation",
+//           foreignField: "_id",
+//           as: "industryOccupation",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "industries",
+//           localField: "industryOccupation.industry",
+//           foreignField: "_id",
+//           as: "industry",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "occupations",
+//           localField: "industryOccupation.occupation",
+//           foreignField: "_id",
+//           as: "occupation",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "expertise",
+//           localField: "expertise",
+//           foreignField: "_id",
+//           as: "expertiseList",
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "expertiseitems",
+//           localField: "expertiseList.expertise",
+//           foreignField: "_id",
+//           as: "expertiseItems",
+//         },
+//       },
+//       {
+//         $match: {
+//           $or: [
+//             // Match all terms in various fields
+//             ...searchTerms.map(term => ({
+//               $or: [
+//                 { "industry.name": { $regex: term, $options: "i" } },
+//                 { "occupation.name": { $regex: term, $options: "i" } },
+//                 { "expertiseItems.name": { $regex: term, $options: "i" } },
+//                 { "basicInfo.bio": { $regex: term, $options: "i" } },
+//               ]
+//             })),
+//             // Also try to match the complete phrase
+//             { "industry.name": { $regex: keyword, $options: "i" } },
+//             { "occupation.name": { $regex: keyword, $options: "i" } },
+//             { "expertiseItems.name": { $regex: keyword, $options: "i" } },
+//             { "basicInfo.bio": { $regex: keyword, $options: "i" } },
+//           ],
+//         },
+//       },
+//       {
+//         $addFields: {
+//           matchScore: {
+//             $add: [
+//               // Full phrase match bonus
+//               {
+//                 $cond: [
+//                   { 
+//                     $or: [
+//                       { $regexMatch: { input: { $toLower: "$occupation.name" }, regex: keyword, options: "i" } },
+//                       { $regexMatch: { input: { $toLower: "$industry.name" }, regex: keyword, options: "i" } }
+//                     ]
+//                   },
+//                   10,
+//                   0
+//                 ]
+//               },
+//               // Term match bonuses
+//               {
+//                 $sum: searchTerms.map(term => ({
+//                   $cond: [
+//                     {
+//                       $or: [
+//                         { $regexMatch: { input: { $toLower: "$occupation.name" }, regex: term, options: "i" } },
+//                         { $regexMatch: { input: { $toLower: "$industry.name" }, regex: term, options: "i" } }
+//                       ]
+//                     },
+//                     3,
+//                     0
+//                   ]
+//                 }))
+//               },
+//               // Verification bonus
+//               { $cond: [{ $eq: ["$isVerified", true] }, 3, 0] },
+//               // Booking history bonus
+//               { $cond: [{ $gt: ["$noOfBooking", 0] }, 2, 0] },
+//               // Rating bonus
+//               { $cond: [{ $gt: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, 4] }, 2, 0] },
+//               { $cond: [{ $gt: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, 3] }, 1, 0] }
+//             ]
+//           },
+//           randomScore: { $rand: {} }
+//         }
+//       },
+//       {
+//         $sort: {
+//           matchScore: -1,
+//           randomScore: 1
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           online: { $ifNull: ["$online", false] },
+//           isVerified: { $ifNull: ["$isVerified", false] },
+//           noOfBooking: { $ifNull: ["$noOfBooking", 0] },
+//           rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
+//           profilePic: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
+//           },
+//           displayName: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
+//           },
+//           firstName: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
+//           },
+//           lastName: {
+//             $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
+//           },
+//           industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
+//           occupation: {
+//             $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
+//           },
+//           expertise: "$expertiseItems.name",
+//           matchScore: 1,
+//           searchMetadata: {
+//             originalQuery: query,
+//             extractedTerms: keyword,
+//             matchedTerms: searchTerms
+//           }
+//         },
+//       },
+//       {
+//         $limit: 20
+//       }
+//     ];
+
+//     const User = mongoose.model('User');
+//     const results = await User.aggregate(aggregationPipeline);
+
+//     if (process.env.NODE_ENV === 'development') {
+//       console.log({
+//         originalQuery: query,
+//         extractedTerms: keyword,
+//         matchedTerms: searchTerms,
+//         resultsFound: results.length,
+//       });
+//     }
+
+//     return results;
+
+//   } catch (error) {
+//     console.error("Error in getUserBySearch:", error);
+//     return [];
+//   }
+// };
+
+
+
+
+exports.getUserBySearch = async function (query) {
+  try {
+    console.log("search--> ",query);
+    if (!query || typeof query !== 'string') {
+      return new Promise((resolve) => resolve([]));
+    }
+
+    const cleanedQuery = query.trim();
+    
+    if (cleanedQuery.length < 2) {
+      return [];
+    }
+
+    // Get search context from OpenAI
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are a search assistant for a professional networking platform. Analyze the query and:
+          1. If it's a name search, return "name: {query}"
+          2. If it's a language search, return "language: {language}"
+          3. For professional searches:
+             - Understand the core profession/skill being sought
+             - Handle any variation in how it's described
+             - Return standardized professional term(s)
+          
+          Examples:
+          // Names
+          "John Smith" -> "name: John Smith"
+          "Dr. Williams" -> "name: Williams"
+          
+          // Healthcare
+          "heart doctor" -> "cardiologist"
+          "doctor for kids" -> "pediatrician"
+          "skin doctor" -> "dermatologist"
+          
+          // Technology
+          "can make websites" -> "web developer"
+          "phone app creator" -> "mobile app developer"
+          "AI person" -> "ai engineer"
+          "computer fixer" -> "computer technician"
+          
+          // Creative
+          "logo making" -> "graphic designer"
+          "photo taking" -> "photographer"
+          "video editing" -> "video editor"
+          
+          // Finance/Business
+          "money advisor" -> "financial advisor"
+          "tax help" -> "tax consultant"
+          "business help" -> "business consultant"
+          
+          // Education
+          "math teaching" -> "math teacher"
+          "english lessons" -> "english tutor"
+          
+          // Trades
+          "house fixing" -> "handyman"
+          "car repair" -> "mechanic"
+          "electricity work" -> "electrician"
+          
+          // Languages
+          "spanish speaking" -> "language: spanish"
+          "french teacher" -> "french instructor"
+          
+          // General Patterns
+          "need someone for {X}" -> "{relevant profession}"
+          "looking for {X}" -> "{relevant profession}"
+          "want help with {X}" -> "{relevant profession}"
+          "specialist of {X}" -> "{relevant profession}"
+          "expert in {X}" -> "{relevant profession}"`
+        },
+        {
+          role: "user",
+          content: cleanedQuery
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      max_tokens: 30,
+      temperature: 0.3,
+    });
+
+    let searchQuery = completion.choices[0].message.content.trim().toLowerCase();
+    let isNameSearch = searchQuery.startsWith("name:");
+    let isLanguageSearch = searchQuery.startsWith("language:");
+
+    // Extract actual search terms
+    if (isNameSearch) {
+      searchQuery = searchQuery.substring(5).trim();
+    } else if (isLanguageSearch) {
+      searchQuery = searchQuery.substring(9).trim();
+    }
+
+    // Split search terms for better matching
+    const searchTerms = searchQuery.split(' ').filter(term => term.length > 2);
+
+    const aggregationPipeline = [
+      {
+        $lookup: {
+          from: "basicinfos",
+          localField: "basicInfo",
+          foreignField: "_id",
+          as: "basicInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "industryoccupations",
+          localField: "industryOccupation",
+          foreignField: "_id",
+          as: "industryOccupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "industries",
+          localField: "industryOccupation.industry",
+          foreignField: "_id",
+          as: "industry",
+        },
+      },
+      {
+        $lookup: {
+          from: "occupations",
+          localField: "industryOccupation.occupation",
+          foreignField: "_id",
+          as: "occupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "interests",
+          localField: "intereset",
+          foreignField: "_id",
+          as: "interest",
+        },
+      },
+      {
+        $lookup: {
+          from: "interestitems",
+          localField: "interest.intereset",
+          foreignField: "_id",
+          as: "interestItems",
+        },
+      },
+      {
+        $lookup: {
+          from: "languages",
+          localField: "language",
+          foreignField: "_id",
+          as: "language",
+        },
+      },
+      {
+        $lookup: {
+          from: "languageitems",
+          localField: "language.language",
+          foreignField: "_id",
+          as: "languageItems",
+        },
+      },
+      {
+        $lookup: {
+          from: "expertise",
+          localField: "expertise",
+          foreignField: "_id",
+          as: "expertise",
+        },
+      },
+      {
+        $lookup: {
+          from: "expertiseitems",
+          localField: "expertise.expertise",
+          foreignField: "_id",
+          as: "expertiseItems",
+        },
+      },
+      {
+        $lookup: {
+          from: "pricings",
+          localField: "pricing",
+          foreignField: "_id",
+          as: "pricing",
+        },
+      },
+      {
+        $match: {
+          $or: isNameSearch ? 
+          [
+            { "basicInfo.firstName": { $regex: searchQuery, $options: "i" } },
+            { "basicInfo.lastName": { $regex: searchQuery, $options: "i" } },
+            { "basicInfo.displayName": { $regex: searchQuery, $options: "i" } },
+            { email: { $regex: searchQuery, $options: "i" } },
+          ] : 
+          isLanguageSearch ?
+          [
+            { "languageItems.name": { $regex: searchQuery, $options: "i" } },
+          ] :
+          [
+            // Full phrase matching
+            { "industry.name": { $regex: searchQuery, $options: "i" } },
+            { "occupation.name": { $regex: searchQuery, $options: "i" } },
+            { "expertiseItems.name": { $regex: searchQuery, $options: "i" } },
+            { "interestItems.name": { $regex: searchQuery, $options: "i" } },
+            // Individual terms matching for each field
+            ...searchTerms.flatMap(term => [
+              { "industry.name": { $regex: term, $options: "i" } },
+              { "occupation.name": { $regex: term, $options: "i" } },
+              { "expertiseItems.name": { $regex: term, $options: "i" } },
+              { "interestItems.name": { $regex: term, $options: "i" } },
+              { "basicInfo.bio": { $regex: term, $options: "i" } },
+            ]),
+          ],
+        },
+      },
+      {
+        $addFields: {
+          matchScore: {
+            $add: [
+              // Exact match bonus
+              {
+                $cond: [
+                  { 
+                    $or: [
+                      { $regexMatch: { input: { $toLower: "$occupation.name" }, regex: searchQuery, options: "i" } },
+                      { $regexMatch: { input: { $toLower: "$expertiseItems.name" }, regex: searchQuery, options: "i" } },
+                      { $regexMatch: { input: { $toLower: "$industry.name" }, regex: searchQuery, options: "i" } }
+                    ]
+                  },
+                  5,
+                  0
+                ]
+              },
+              // Verification bonus
+              { $cond: [{ $eq: ["$isVerified", true] }, 3, 0] },
+              // Booking history bonus
+              { $cond: [{ $gt: ["$noOfBooking", 0] }, 2, 0] },
+              // Rating bonus
+              { $cond: [{ $gt: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, 4] }, 2, 0] },
+              { $cond: [{ $gt: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, 3] }, 1, 0] }
+            ]
+          },
+          randomScore: { $rand: {} }
+        }
+      },
+      {
+        $sort: {
+          matchScore: -1,
+          noOfBooking: -1,
+          randomScore: 1
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          online: { $ifNull: ["$online", false] },
+          isVerified: { $ifNull: ["$isVerified", false] },
+          noOfBooking: { $ifNull: ["$noOfBooking", 0] },
+          rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
+          profilePic: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
+          },
+          displayName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
+          },
+          lastName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
+          },
+          firstName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
+          },
+          industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
+          occupation: {
+            $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
+          },
+          language: { $ifNull: ["$languageItems", []] },
+          expertise: { $ifNull: ["$expertiseItems", []] },
+          pricing: {
+            $ifNull: [
+              { $arrayElemAt: ["$pricing", 0] },
+              {
+                _id: "",
+                _v: 0,
+                audioCallPrice: 0,
+                messagePrice: 0,
+                videoCallPrice: 0,
+              },
+            ],
+          },
+          searchMetadata: {
+            originalQuery: query,
+            processedQuery: searchQuery,
+            searchTerms,
+            searchType: isNameSearch ? "name" : isLanguageSearch ? "language" : "professional"
+          }
+        },
+      },
+    ];
+
+    const results = await User.aggregate(aggregationPipeline);
+
+    // Log search analytics in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log({
+        originalQuery: query,
+        processedQuery: searchQuery,
+        searchTerms,
+        searchType: isNameSearch ? "name" : isLanguageSearch ? "language" : "professional",
+        resultsFound: results.length,
+      });
+    }
+
+     console.log("results--> ",results);
+    return results;
+
+  } catch (error) {
+    console.error("Error in getUserBySearch:", error);
+    return performBasicSearch(query);
+  }
+};
+
+
+async function  performBasicSearch (query) {
+  return new Promise(async (resolve, reject) => {
+    const aggregationPipeline = [
+      {
+        $lookup: {
+          from: "basicinfos",
+          localField: "basicInfo",
+          foreignField: "_id",
+          as: "basicInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "industryoccupations",
+          localField: "industryOccupation",
+          foreignField: "_id",
+          as: "industryOccupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "industries",
+          localField: "industryOccupation.industry",
+          foreignField: "_id",
+          as: "industry",
+        },
+      },
+      {
+        $lookup: {
+          from: "occupations",
+          localField: "industryOccupation.occupation",
+          foreignField: "_id",
+          as: "occupation",
+        },
+      },
+      {
+        $lookup: {
+          from: "interests",
+          localField: "intereset",
+          foreignField: "_id",
+          as: "interest",
+        },
+      },
+      {
+        $lookup: {
+          from: "interestitems",
+          localField: "interest.intereset",
+          foreignField: "_id",
+          as: "interestItems",
+        },
+      },
+      {
+        $lookup: {
+          from: "languages",
+          localField: "language",
+          foreignField: "_id",
+          as: "language",
+        },
+      },
+      {
+        $lookup: {
+          from: "languageitems",
+          localField: "language.language",
+          foreignField: "_id",
+          as: "languageItems",
+        },
+      },
+      {
+        $lookup: {
+          from: "expertise",
+          localField: "expertise",
+          foreignField: "_id",
+          as: "expertise",
+        },
+      },
+      {
+        $lookup: {
+          from: "expertiseitems",
+          localField: "expertise.expertise",
+          foreignField: "_id",
+          as: "expertiseItems",
+        },
+      },
+      {
+        $lookup: {
+          from: "pricings",
+          localField: "pricing",
+          foreignField: "_id",
+          as: "pricing",
+        },
+      },
+      {
+        $match: query
+          ? {
+              $or: [
+                { "basicInfo.firstName": { $regex: query, $options: "i" } },
+                { "basicInfo.lastName": { $regex: query, $options: "i" } },
+                { "basicInfo.displayName": { $regex: query, $options: "i" } },
+                { "industry.name": { $regex: query, $options: "i" } },
+                { "occupation.name": { $regex: query, $options: "i" } },
+                { email: { $regex: query, $options: "i" } },
+                { "interestItems.name": { $regex: query, $options: "i" } },
+                { "languageItems.name": { $regex: query, $options: "i" } },
+                { "expertiseItems.name": { $regex: query, $options: "i" } },
+              ],
+            }
+          : {},
+      },
+      {
+        $addFields: {
+          sortOrder: {
+            $cond: [{ $eq: ["$isVerified", true] }, 0, 1],
+          },
+          randomValue: { $rand: {} },
+        },
+      },
+      {
+        $sort: {
+          sortOrder: 1,
+          noOfBooking: -1,
+          randomValue: 1,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          online: { $ifNull: ["$online", false] },
+          isVerified: { $ifNull: ["$isVerified", false] },
+          noOfBooking: { $ifNull: ["$noOfBooking", 0] },
+          rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
+          profilePic: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
+          },
+          displayName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
+          },
+          lastName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
+          },
+          firstName: {
+            $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
+          },
+          industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
+          occupation: {
+            $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
+          },
+          language: { $ifNull: ["$languageItems", []] },
+          expertise: { $ifNull: ["$expertiseItems", []] },
+          pricing: {
+            $ifNull: [
+              { $arrayElemAt: ["$pricing", 0] },
+              {
+                _id: "",
+                _v: 0,
+                audioCallPrice: 0,
+                messagePrice: 0,
+                videoCallPrice: 0,
+              },
+            ],
+          },
+        },
+      },
+    ];
+
+    await User.aggregate(aggregationPipeline)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+        console.error("Error in fallback search:", error);
+         return [];
       });
   });
 };
