@@ -81,16 +81,13 @@ module.exports.verifyOtp = async function (userData) {
 
     if (user.block) {
       if (user.blockExpiry > Date.now()) {
-        const remainingTime = Math.ceil(
-          (user.blockExpiry - Date.now()) / 1000 / 60
-        );
-        const response = {
+        const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
+        return createResponse.error({
           errorCode: 429,
           errorMessage: `Account blocked for ${remainingTime} minutes`,
-        };
-        return createResponse.error(response);
+        });
       } else {
-        user.block = false; // Unblock after expiry
+        user.block = false;
         user.blockExpiry = null;
         user.resendCount = 0;
         await user.save();
@@ -98,29 +95,27 @@ module.exports.verifyOtp = async function (userData) {
     }
 
     const now = Date.now();
-
-    if (
-      user.otp !== otp ||
-      (user.otpExpiry && now > user.otpExpiry.getTime())
-    ) {
+    if (user.otp !== otp || (user.otpExpiry && now > user.otpExpiry.getTime())) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
         "Invalid OTP or expired."
       );
     }
+
     user.otp = null;
     user.otpExpiry = null;
     user.isVerified = true;
     user.resendCount = 0;
     const data = await user.save();
+
     const finalData = {
       _id: data?.id,
-      email: data?.email,
       phoneNo: data?.phoneNo,
+      email: data?.email || null,
     };
+
     const token = await jwtUtil.generateToken(finalData);
-    const responseData = createResponse.success(data, token);
-    return responseData;
+    return createResponse.success(data, token);
   } catch (e) {
     console.log("error", e);
     if (e instanceof AuthenticationError) {
@@ -140,45 +135,60 @@ module.exports.decodeToken = function (token) {
 
 module.exports.login = async function (phoneNo) {
   try {
-    let user;
-    user = await User.findOne({ phoneNo });
-    if (!user) {
-      throw new customError.AuthenticationError(
-        globalConstants.INVALID_USER_CODE,
-        "Invalid phone number."
-      );
-    }
-    if (!user.isVerified) {
-      throw new customError.AuthenticationError(
-        globalConstants.INVALID_USER_CODE,
-        "User not verified"
-      );
-    }
-    if (user.block) {
-      if (user.blockExpiry > Date.now()) {
-        const remainingTime = Math.ceil(
-          (user.blockExpiry - Date.now()) / 1000 / 60
-        );
-        const response = {
-          errorCode: 429,
-          errorMessage: `Account blocked for ${remainingTime} minutes`,
-        };
-        return createResponse.error(response);
-      } else {
-        user.block = false; // Unblock after expiry
-        user.blockExpiry = null;
-        // const resendCount = user.resendCount + 1;
-        user.resendCount = 1;
-        await user.save();
-      }
-    }
+    // First check if user exists
+    let user = await User.findOne({ phoneNo });
     const otp = authUtil.generateOTP();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-    user.otp = otp;
-    user.otpExpiry = otpExpiry;
-    user = await user.save();
-    await this.sendOTP(user?.phoneNo, otp);
-    return createResponse.success(user);
+
+    if (!user) {
+      // If user doesn't exist, create new user with minimal info
+      let basicInfo = new BasicInfo({});
+      const basicInfoDetails = await basicInfo.save();
+      
+      user = new User({
+        phoneNo,
+        otp,
+        otpExpiry,
+        basicInfo: basicInfoDetails._id,
+      });
+      user = await user.save();
+    } else {
+      // Existing user - handle block status
+      if (user.block) {
+        if (user.blockExpiry > Date.now()) {
+          const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
+          return createResponse.error({
+            errorCode: 429,
+            errorMessage: `Account blocked for ${remainingTime} minutes`,
+          });
+        } else {
+          user.block = false;
+          user.blockExpiry = null;
+          user.resendCount = 1;
+          await user.save();
+        }
+      }
+
+      // Update OTP for existing user
+      user.otp = otp;
+      user.otpExpiry = otpExpiry;
+      user = await user.save();
+    }
+
+    // Send OTP
+    await this.sendOTP(phoneNo, otp);
+
+    // Return user info without sensitive data
+    const userResponse = {
+      phoneNo: user.phoneNo,
+      resendCount: user.resendCount,
+      isVerified: user.isVerified,
+      id: user.id,
+      otp:user?.otp,
+    };
+
+    return createResponse.success(userResponse);
+
   } catch (e) {
     console.log("error", e);
     if (e instanceof AuthenticationError) {
