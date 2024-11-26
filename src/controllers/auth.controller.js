@@ -266,8 +266,8 @@ exports.checkTokenValidity = (req, res) => {
         );
         return;
       }
-      let user = await User.findById(decoded._id);
-      if (
+      let user = await User.findOne({ _id: decoded._id, isDeleted: false });
+            if (
         !user ||
         (decoded.phoneNo && user.phoneNo != decoded.phoneNo) ||
         (decoded.id && user.id != decoded.id)

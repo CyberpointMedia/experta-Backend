@@ -6,7 +6,7 @@ exports.hasRole = (...roles) => {
   return async (req, res, next) => {
     try {
       const userId = req.body.user._id;
-      const user = await User.findById(userId).populate('roles');
+      const user = await User.findOne({_id:userId,isDeleted:false}).populate('roles');
       
       if (!user) {
         return res.status(401).json(createResponse.unauthorized(

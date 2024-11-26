@@ -399,14 +399,14 @@ exports.createWithdrawalTransaction = async function (transactionData, session) 
 };
 
 exports.getUserWalletBalance = async function (userId) {
-  const user = await User.findById(userId).select("wallet.balance");
+  const user = await User.findOne({_id:userId,isDeleted:false}).select("wallet.balance");
   if (!user) throw new Error("User not found");
   return user.wallet.balance;
 };
 
 exports.updateUserWalletBalance = async function (userId, amount, session) {
-  return await User.findByIdAndUpdate(
-    userId,
+  return await User.findOneAndUpdate(
+    {_id:userId,isDeleted:false},
     { $inc: { "wallet.balance": amount } },
     { new: true, session }
   );

@@ -24,8 +24,8 @@ exports.configureSocketEvents = (server) => {
       socket.userId = userId;
       socket.join(userId);
       onlineUsers.add(userId);
-      await UserModel.findByIdAndUpdate(
-        userId,
+      await UserModel.findOneAndUpdate(
+        {_id:userId,isDeleted:false},
         { online: true },
         { new: true }
       );
@@ -47,6 +47,7 @@ exports.configureSocketEvents = (server) => {
       try {
         const chats = await ChatModel.find({
           users: { $elemMatch: { $eq: userId } },
+          isDeleted: false
         })
           .populate({
             path: "users",
@@ -210,7 +211,7 @@ exports.configureSocketEvents = (server) => {
       return;
     }
 
-    const chatUser = await ChatModel.findById(chat);
+    const chatUser = await ChatModel.findOne({ _id: chat, isDeleted: false });
     if (!chatUser) return;
 
     // Iterate through chat users and process individually
@@ -225,15 +226,15 @@ exports.configureSocketEvents = (server) => {
         try {
           // Update unread count
           let updatedChat = await ChatModel.findOneAndUpdate(
-            { _id: chat, "unreadCounts.user": userId },
+            { _id: chat, "unreadCounts.user": userId , isDeleted: false },
             { $inc: { "unreadCounts.$.count": 1 } },
             { new: true, upsert: true }
           );
           console.log("updatedChat22211--> ", updatedChat);
 
           if (!updatedChat) {
-            updatedChat = await ChatModel.findByIdAndUpdate(
-              chat,
+            updatedChat = await ChatModel.findOneAndUpdate(
+              { _id: chat, isDeleted: false},
               { $push: { unreadCounts: { user: userId, count: 1 } } },
               { new: true }
             );
@@ -263,19 +264,19 @@ exports.configureSocketEvents = (server) => {
     socket.on("mark_messages_read", async ({ chatId, userId }) => {
       try {
         await MessageModel.updateMany(
-          { chat: chatId, readBy: { $ne: userId } },
+          { chat: chatId, readBy: { $ne: userId , isDeleted: false } },
           { $addToSet: { readBy: userId } }
         );
 
         let updatedChat = await ChatModel.findOneAndUpdate(
-          { _id: chatId, "unreadCounts.user": userId },
+          { _id: chatId, "unreadCounts.user": userId , isDeleted: false },
           { $set: { "unreadCounts.$.count": 0 } },
           { new: true }
         );
 
         if (!updatedChat) {
-          updatedChat = await ChatModel.findByIdAndUpdate(
-            chatId,
+          updatedChat = await ChatModel.findOneAndUpdate(
+            {_id:chatId, isDeleted: false},
             { $push: { unreadCounts: { user: userId, count: 0 } } },
             { new: true }
           );
@@ -297,7 +298,10 @@ exports.configureSocketEvents = (server) => {
     socket.on("disconnect", async () => {
       if (socket.userId) {
         onlineUsers.delete(socket.userId);
-        await UserModel.findByIdAndUpdate(socket.userId, { online: false });
+        await UserModel.findOneAndUpdate(
+          { _id: socket.userId, isDeleted: false },
+          { online: false }
+        );
         socket.broadcast.emit("getUserOffline", { userId: socket?.userId });
         io.emit("user_disconnected", socket.userId);
       }

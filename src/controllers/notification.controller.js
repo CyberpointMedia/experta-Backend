@@ -13,7 +13,7 @@ exports.registerDevice = async (req, res) => {
     }
 
     const device = await Device.findOneAndUpdate(
-      { user: userId, fcmToken },
+      { user: userId, fcmToken , isDeleted: false},
       { 
         user: userId,
         fcmToken,
@@ -62,7 +62,7 @@ exports.getNotifications = async (req, res) => {
     const userId = req.body.user._id;
     const { page = 1, limit = 20 } = req.query;
 
-    const notifications = await Notification.find({ recipient: userId })
+    const notifications = await Notification.find({ recipient: userId , isDeleted: false})
       .populate("sender", "basicInfo")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -97,7 +97,7 @@ exports.markNotificationRead = async (req, res) => {
     const userId = req.body.user._id;
 
     const notification = await Notification.findOneAndUpdate(
-      { _id: notificationId, recipient: userId },
+      { _id: notificationId, recipient: userId , isDeleted: false},
       { read: true },
       { new: true }
     );

@@ -600,7 +600,7 @@ exports.getAllActiveTickets = async (req, res) => {
 };
 
 // Get all closed tickets (Admin or User can access their own tickets)
-exports.getAllClosedUser = async (req, res) => {
+exports.getAllClosedTickets = async (req, res) => {
   const { page, limit, skip } = req.pagination;
   const userId = req.body.user._id; 
 

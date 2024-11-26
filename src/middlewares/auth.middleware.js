@@ -38,7 +38,7 @@ module.exports.authMiddleware = function (req, res, next) {
         );
         return;
       }
-      let user = await User.findById(decoded._id);
+      let user = await User.findOne({_id:decoded._id,isDeleted:false});
       if (
         !user ||
         (decoded.phoneNo && user.phoneNo != decoded.phoneNo) ||
@@ -113,7 +113,7 @@ module.exports.authMiddlewareFile = function (req, res, next) {
             );
             return;
           }
-          let user = await User.findById(decoded._id);
+          let user = await User.findOne({_id:decoded._id,isDeleted:false});
           if (
             !user ||
             (decoded.phoneNo && user.phoneNo != decoded.phoneNo) ||

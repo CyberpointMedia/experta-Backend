@@ -152,7 +152,7 @@ module.exports.createBasicInfo = function (basicInfoToSave) {
 
 module.exports.getExpertise = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId })
+    User.findOne({ _id: userId , isDeleted: false })
       .populate({
         path: "expertise",
         populate: { path: "expertise" },
