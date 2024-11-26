@@ -10,7 +10,11 @@ const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBo
     createMessage,  
     getMessagesByTicketId, 
     getMessagesBetweenUsers,
-    getAllUsers
+    getAllUsers,
+    getBlockedUserById,
+    getAllBlockedUsers,
+    editBlockedUser,
+    deleteBlockedUser
 } = require('../controllers/userDetails.controller');
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const {hasRole}=require("../middlewares/role.middleware");
@@ -59,6 +63,13 @@ Router.post('/reviews', authMiddleware, hasRole('admin'), createReview);
 Router.put('/reviews/:id', authMiddleware, hasRole('admin'), updateReview);
 // Delete a review
 Router.delete('/reviews/:id', authMiddleware, hasRole('admin'), deleteReview);
+
+
+//block user routes
+Router.get('/blocked-users/:id', authMiddleware, hasRole('admin'), getBlockedUserById);
+Router.get('/get-all-blocked-users', authMiddleware, hasRole('admin'), paginate('BlockedUser'), getAllBlockedUsers);
+Router.put('/edit-blocked-user/:id', authMiddleware, hasRole('admin'), editBlockedUser);
+Router.delete('/delete-blocked-user/:id', authMiddleware, hasRole('admin'), deleteBlockedUser);
 
 //ticket routes 
 // Create a new ticket

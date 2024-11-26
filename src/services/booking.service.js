@@ -321,6 +321,7 @@ exports.createBooking = async function (clientId, expertId, startTime, endTime, 
     const conflictingBooking = await Booking.findOne({
       expert: expertId,
       status: { $in: ['pending', 'confirmed'] },
+      isDeleted: false,
       $or: [
         {
           startTime: { $lt: bookingEnd },
@@ -363,7 +364,7 @@ exports.createBooking = async function (clientId, expertId, startTime, endTime, 
     ]);
 
     // 11. Update expert's booking count
-    await User.findByIdAndUpdate(expertId, { $inc: { noOfBooking: 1 } }, { session });
+    await User.findOneAndUpdate({ _id: expertId, isDeleted: false }, { $inc: { noOfBooking: 1 } }, { session });
 
     const bookingStartTime = new Date(startTime);
     const reminderTime = new Date(bookingStartTime.getTime() - 15 * 60000); // 15 minutes before

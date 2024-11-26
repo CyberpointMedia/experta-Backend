@@ -19,7 +19,7 @@ exports.createTicket = async (ticketData) => {
 
 exports.getTicketsByUserId = async (userId) => {
   try {
-    const tickets = await Ticket.find({ userId }).sort({ createdAt: -1 });
+    const tickets = await Ticket.find({ _id:userId,isDeleted:false }).sort({ createdAt: -1 });
     return createResponse.success(tickets);
   } catch (error) {
     console.error("Error getting tickets:", error);

@@ -5,6 +5,7 @@ const Review = require("../models/review.model");
 const User = require("../models/user.model");
 const Ticket = require('../models/ticket.model');
 const Message = require('../models/ticketchats.model');
+const BlockedUser = require('../models/blockUser.model');
 const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 
@@ -567,7 +568,7 @@ exports.getTicketById = async (req, res) => {
     }
 
     // Ensure the ticket belongs to the logged-in user (either created or assigned to them)
-    if (ticket.userId.toString() !== userId && ticket.assignId.toString() !== userId) {
+    if (ticket.userId._id.toString() !== userId && ticket.assignId._id.toString() !== userId) {
       return res.status(403).json(createResponse.error({
         errorCode: 403,
         errorMessage: 'You are not authorized to view this ticket',
@@ -747,7 +748,7 @@ exports.getMessagesByTicketId = async (req, res) => {
   const { ticketId } = req.params;
 
   try {
-    const messages = await Message.findone({ _id : ticketId , isDeleted: false })
+    const messages = await Message.find({ _id : ticketId , isDeleted: false })
       .populate('senderId receiverId')
       .sort({ timestamp: 1 });
 
@@ -793,4 +794,119 @@ exports.getMessagesBetweenUsers = async (req, res) => {
     }));
   }
 };
+
+//block user controller
+// Get BlockedUser by ID
+exports.getBlockedUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const blockedUser = await BlockedUser.findOne({_id:id,isDeleted:false}).populate('user');
+    if (!blockedUser) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.NOT_FOUND_CODE,
+        errorMessage: 'Blocked user not found',
+      }));
+    }
+    res.json(createResponse.success(blockedUser));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message || 'An error occurred while fetching the blocked user',
+    }));
+  }
+};
+
+// Get All BlockedUsers
+exports.getAllBlockedUsers = async (req, res) => {
+  try {
+    const { page, limit, skip } = req.pagination;
+    const blockedUsers = await BlockedUser.find({ isDeleted: false })
+      .skip(skip)
+      .limit(limit)
+      .populate('user')
+      .exec();
+
+    const totalBlockedUsers = await BlockedUser.countDocuments();
+    const totalPages = Math.ceil(totalBlockedUsers / limit);
+
+    if (!blockedUsers || blockedUsers.length === 0) {
+      return res.json(createResponse.success([], "No blocked users found"));
+    }
+
+    res.json(createResponse.success({
+      blockedUsers,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalBlockedUsers,
+      },
+    }));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message || 'An error occurred while fetching blocked users',
+    }));
+  }
+};
+
+// Edit BlockedUser
+exports.editBlockedUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { block } = req.body;
+
+    const blockedUser = await BlockedUser.findOneAndUpdate(
+      {_id:id,isDeleted:false},
+      { block },
+      { new: true }
+    );
+
+    if (!blockedUser) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.NOT_FOUND_CODE,
+        errorMessage: 'Blocked user not found',
+      }));
+    }
+
+    res.json(createResponse.success(blockedUser, 'Blocked user updated successfully'));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message || 'An error occurred while updating the blocked user',
+    }));
+  }
+};
+
+// Delete BlockedUser
+exports.deleteBlockedUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const blockedUser = await BlockedUser.findOne({_id:id,isDeleted:false});
+
+    blockedUser.isDeleted = true;
+    await blockedUser.save();
+
+    if (!blockedUser) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.NOT_FOUND_CODE,
+        errorMessage: 'Blocked user not found',
+      }));
+    }
+
+    res.json(createResponse.success(null, 'Blocked user deleted successfully'));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message || 'An error occurred while deleting the blocked user',
+    }));
+  }
+};
+
+
+
 
