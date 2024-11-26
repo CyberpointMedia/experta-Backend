@@ -21,34 +21,35 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       { isGroupChat: false },
       { users: { $elemMatch: { $eq: receiverUserId } } },
       { users: { $elemMatch: { $eq: loggedInUserId } } },
+      { isDeleted: false }
     ],
   })
     .populate({
-        path: "users",
-        select: "email phoneNo online basicInfo isVerified",
+      path: "users",
+      select: "email phoneNo online basicInfo isVerified",
+      populate: {
+        path: "basicInfo",
+        select: "firstName lastName displayName profilePic",
+      },
+    })
+    .populate({
+      path: "lastMessage",
+      select: "fileUrl file_id file_name content readBy createdAt updatedAt",
+      populate: {
+        path: "sender",
+        select: "email phoneNo online basicInfo",
         populate: {
           path: "basicInfo",
           select: "firstName lastName displayName profilePic",
         },
-      })
-      .populate({
-        path: "lastMessage",
-        select: "fileUrl file_id file_name content readBy createdAt updatedAt",
-        populate: {
-          path: "sender",
-          select: "email phoneNo online basicInfo",
-          populate: {
-            path: "basicInfo",
-            select: "firstName lastName displayName profilePic",
-          },
-        },
-      })
-      .select("-groupAdmins")
-      .lean()
-      .sort({ updatedAt: "desc" });
+      },
+    })
+    .select("-groupAdmins")
+    .lean()
+    .sort({ updatedAt: "desc" });
 
   if (existingChats.length > 0) {
-    const chats=existingChats[0];
+    const chats = existingChats[0];
     const formattedChats = {
       _id: chats._id,
       chatName: chats.chatName,
@@ -64,20 +65,20 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       __v: chats.__v,
       lastMessage: chats.lastMessage
         ? {
-            _id: chats.lastMessage._id,
-            fileUrl: chats.lastMessage.fileUrl,
-            file_id: chats.lastMessage.file_id,
-            file_name: chats.lastMessage.file_name,
-            content: chats.lastMessage.content,
-            readBy: chats.lastMessage.readBy,
-            time: new Date(chats.lastMessage.createdAt).toLocaleTimeString(
-              "en-US",
-              { hour: "2-digit", minute: "2-digit" }
-            ),
-            createdAt: chats.lastMessage.createdAt,
-            updatedAt: chats.lastMessage.updatedAt,
-            __v: chats.lastMessage.__v,
-          }
+          _id: chats.lastMessage._id,
+          fileUrl: chats.lastMessage.fileUrl,
+          file_id: chats.lastMessage.file_id,
+          file_name: chats.lastMessage.file_name,
+          content: chats.lastMessage.content,
+          readBy: chats.lastMessage.readBy,
+          time: new Date(chats.lastMessage.createdAt).toLocaleTimeString(
+            "en-US",
+            { hour: "2-digit", minute: "2-digit" }
+          ),
+          createdAt: chats.lastMessage.createdAt,
+          updatedAt: chats.lastMessage.updatedAt,
+          __v: chats.lastMessage.__v,
+        }
         : null,
       unreadCounts: chats.unreadCounts || [],
     };
@@ -90,7 +91,7 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       users: [receiverUserId, loggedInUserId],
     });
 
-    const chats = await ChatModel.findById(createdChat._id)
+    const chats = await ChatModel.findOne({ _id: createdChat._id, isDeleted: false })
       .populate({
         path: "users",
         select: "email phoneNo online basicInfo isVerified",
@@ -114,7 +115,7 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       .select("-groupAdmins")
       .lean()
       .sort({ updatedAt: "desc" });
-      console.log("populatedChat", chats);
+    console.log("populatedChat", chats);
     const formattedChats = {
       _id: chats._id,
       chatName: chats.chatName,
@@ -130,27 +131,27 @@ exports.createOrRetrieveChat = asyncHandler(async (req, res) => {
       __v: chats.__v,
       lastMessage: chats.lastMessage
         ? {
-            _id: chats.lastMessage._id,
-            fileUrl: chats.lastMessage.fileUrl,
-            file_id: chats.lastMessage.file_id,
-            file_name: chats.lastMessage.file_name,
-            content: chats.lastMessage.content,
-            readBy: chats.lastMessage.readBy,
-            time: new Date(chats.lastMessage.createdAt).toLocaleTimeString(
-              "en-US",
-              { hour: "2-digit", minute: "2-digit" }
-            ),
-            createdAt: chats.lastMessage.createdAt,
-            updatedAt: chats.lastMessage.updatedAt,
-            __v: chats.lastMessage.__v,
-          }
+          _id: chats.lastMessage._id,
+          fileUrl: chats.lastMessage.fileUrl,
+          file_id: chats.lastMessage.file_id,
+          file_name: chats.lastMessage.file_name,
+          content: chats.lastMessage.content,
+          readBy: chats.lastMessage.readBy,
+          time: new Date(chats.lastMessage.createdAt).toLocaleTimeString(
+            "en-US",
+            { hour: "2-digit", minute: "2-digit" }
+          ),
+          createdAt: chats.lastMessage.createdAt,
+          updatedAt: chats.lastMessage.updatedAt,
+          __v: chats.lastMessage.__v,
+        }
         : null,
       unreadCounts: chats.unreadCounts || [],
     };
     console.log("formattedChats", formattedChats);
     res.status(201).json(formattedChats);
     req.app.get("io").emit("new_chat_created", formattedChats);
-    return ;
+    return;
   }
 });
 
@@ -159,6 +160,7 @@ exports.fetchChats = asyncHandler(async (req, res) => {
 
   const chats = await ChatModel.find({
     users: { $elemMatch: { $eq: loggedInUserId } },
+    isDeleted: false
   })
     .populate({
       path: "users",
@@ -199,20 +201,20 @@ exports.fetchChats = asyncHandler(async (req, res) => {
     __v: chat.__v,
     lastMessage: chat.lastMessage
       ? {
-          _id: chat.lastMessage._id,
-          fileUrl: chat.lastMessage.fileUrl,
-          file_id: chat.lastMessage.file_id,
-          file_name: chat.lastMessage.file_name,
-          content: chat.lastMessage.content,
-          readBy: chat.lastMessage.readBy,
-          time: new Date(chat.lastMessage.createdAt).toLocaleTimeString(
-            "en-US",
-            { hour: "2-digit", minute: "2-digit" }
-          ),
-          createdAt: chat.lastMessage.createdAt,
-          updatedAt: chat.lastMessage.updatedAt,
-          __v: chat.lastMessage.__v,
-        }
+        _id: chat.lastMessage._id,
+        fileUrl: chat.lastMessage.fileUrl,
+        file_id: chat.lastMessage.file_id,
+        file_name: chat.lastMessage.file_name,
+        content: chat.lastMessage.content,
+        readBy: chat.lastMessage.readBy,
+        time: new Date(chat.lastMessage.createdAt).toLocaleTimeString(
+          "en-US",
+          { hour: "2-digit", minute: "2-digit" }
+        ),
+        createdAt: chat.lastMessage.createdAt,
+        updatedAt: chat.lastMessage.updatedAt,
+        __v: chat.lastMessage.__v,
+      }
       : null,
     unreadCounts: chat.unreadCounts || [],
   }));
@@ -227,7 +229,7 @@ exports.fetchMessages = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Invalid chatId for fetching messages");
   }
-  const messages = await MessageModel.find({ chat: chatId })
+  const messages = await MessageModel.find({ chat: chatId, isDeleted: false })
     .populate({
       path: "sender",
       model: "User",
@@ -296,7 +298,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Message not found");
   }
-  const chat = await ChatModel.findById(chatId);
+  const chat = await ChatModel.findOne({ _id: chatId, isDeleted: false });
 
   if (!chat) {
     res.status(404);
@@ -312,11 +314,13 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   await chat.save();
 
   // Update the lastMessage of current chat with newly created message
-  const updateChatPromise = ChatModel.findByIdAndUpdate(chatId, {
-    lastMessage: createdMessage._id,
-  });
+  const updateChatPromise = ChatModel.findOneAndUpdate(
+    { _id: chatId, isDeleted: false },
+    {
+      lastMessage: createdMessage._id,
+    });
 
-  const populatedMsgPromise = MessageModel.findById(createdMessage._id)
+  const populatedMsgPromise = MessageModel.findOne({ _id: createdMessage._id, isDeleted: false })
     .populate({
       path: "sender",
       model: "User",
@@ -351,7 +355,7 @@ const updateMessage = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Invalid Message Id");
   }
-  const existingMessage = await MessageModel.findById(messageId);
+  const existingMessage = await MessageModel.findOne({_id:messageId, isDeleted: false});
 
   if (!existingMessage) {
     res.status(404);
@@ -411,8 +415,8 @@ const updateMessage = asyncHandler(async (req, res) => {
     if (file_id) deleteExistingAttachment(fileUrl, file_id);
   }
 
-  const updatedMessage = await MessageModel.findByIdAndUpdate(
-    messageId,
+  const updatedMessage = await MessageModel.findOneAndUpdate(
+    {_id:messageId, isDeleted: false},
     { ...attachmentData, content: updatedContent || "" },
     { new: true }
   )
@@ -447,7 +451,7 @@ const deleteMessages = asyncHandler(async (req, res) => {
   // Deleting each message attachment, message in parallel
   await Promise.all(
     messageIds.map(async (msgId) => {
-      const existingMessage = await MessageModel.findById(msgId);
+      const existingMessage = await MessageModel.findOne({_id:msgId, isDeleted: false});
 
       if (!existingMessage) {
         res.status(404);
@@ -457,7 +461,7 @@ const deleteMessages = asyncHandler(async (req, res) => {
 
       if (file_id) deleteExistingAttachment(fileUrl, file_id);
 
-      const deletedMessage = await MessageModel.findByIdAndDelete(msgId)
+      const deletedMessage = await MessageModel.findOneAndDelete({_id:msgId, isDeleted: false})
         .populate({
           path: "sender",
           model: "User",
@@ -472,11 +476,12 @@ const deleteMessages = asyncHandler(async (req, res) => {
       if (
         !isDeleteGroupRequest &&
         JSON.stringify(msgId) ===
-          JSON.stringify(deletedMessage.chat.lastMessage)
+        JSON.stringify(deletedMessage.chat.lastMessage)
       ) {
         // Retrive the previous message
         const latestMessages = await MessageModel.find({
           chat: deletedMessage.chat._id,
+          isDeleted: false,
         }).sort({ createdAt: "desc" }); // (latest to oldest)
 
         // If there's no previous message, don't update lastMessage
@@ -486,8 +491,8 @@ const deleteMessages = asyncHandler(async (req, res) => {
         const previousMessage = latestMessages[0];
 
         // Update the lastMessage of current chat with previous message
-        const updatedChat = await ChatModel.findByIdAndUpdate(
-          deletedMessage.chat._id,
+        const updatedChat = await ChatModel.findOneAndUpdate(
+          { _id: deletedMessage.chat._id, isDeleted: false },
           { lastMessage: previousMessage._id },
           { new: true }
         );
@@ -521,8 +526,8 @@ exports.markMessagesAsRead = asyncHandler(async (req, res) => {
   );
 
   // Reset unread count for this user in this chat
-  await ChatModel.findByIdAndUpdate(
-    chatId,
+  await ChatModel.findOneAndUpdate(
+    {_id:chatId,isDeleted: false},
     {
       $set: {
         "unreadCounts.$[elem].count": 0,

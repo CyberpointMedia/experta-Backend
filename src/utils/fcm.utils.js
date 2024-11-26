@@ -45,7 +45,7 @@ class FCMService {
       await notification.save();
 
       // Get all user devices
-      const devices = await Device.find({ user: userId });
+      const devices = await Device.find({ user: userId , isDeleted: false});
       
       const sendPromises = devices.map((device) =>
         this.sendToDevice(device.fcmToken, {

@@ -121,7 +121,7 @@ module.exports.createBasicInfo = async function (userId, basicInfoToSave) {
       return createResponse.error(response);
     }
 
-    let where = {};
+    let where = {isDeleted: false};
     if (user.basicInfo) where._id = user.basicInfo;
     let updatedBasicInfo = await BasicInfo.findOneAndUpdate(
       where,

@@ -4,7 +4,7 @@ const User=require("../models/user.model");
 module.exports.updateBankVerification = async function (userId, data) {
   try {
     return await KYC.findOneAndUpdate(
-      { userId },
+      { _id:userId ,isDeleted:false },
       {
         $set: {
           "bankVerification.accountNumber": data.accountNumber,
@@ -24,7 +24,7 @@ module.exports.updateBankVerification = async function (userId, data) {
 module.exports.updateFaceLiveness = async function (userId, data) {
   try {
     return await KYC.findOneAndUpdate(
-      { userId },
+      {_id:userId,isDeleted:false},
       {
         $set: {
           "faceLiveness.status": data.livenessStatus,
@@ -43,7 +43,7 @@ module.exports.updateFaceLiveness = async function (userId, data) {
 module.exports.updateFaceMatch = async function (userId, data) {
   try {
     return await KYC.findOneAndUpdate(
-      { userId },
+      { _id:userId,isDeleted:false },
       {
         $set: {
           "faceMatch.status": data.matchStatus,
@@ -63,7 +63,7 @@ module.exports.updateFaceMatch = async function (userId, data) {
 module.exports.updatePanVerification = async function (userId, data) {
   try {
     return await KYC.findOneAndUpdate(
-      { userId },
+      { _id:userId,isDeleted:false },
       {
         $set: {
           "panVerification.panNumber": data.panNumber,
@@ -81,8 +81,8 @@ module.exports.updatePanVerification = async function (userId, data) {
 
 module.exports.getKycStatus = async function (userId) {
   try {
-    const data= await KYC.findOne({ userId }).lean();
-    const userData = await User.findById(userId).select('email phoneNo').lean();
+    const data= await KYC.findOne({ _id:userId,isDeleted:false }).lean();
+    const userData = await User.findOne({_id:userId,isDeleted:false}).select('email phoneNo').lean();
     console.log("data--> ",data);
     return {userData,...data}
   
@@ -97,7 +97,7 @@ module.exports.getKycStatus = async function (userId) {
 module.exports.updateUpiDetails = async function (userId, upiId) {
   try {
     return await KYC.findOneAndUpdate(
-      { userId },
+      { _id:userId,isDeleted:false },
       {
         $set: {
           "upiDetails.upiId": upiId,
@@ -113,7 +113,7 @@ module.exports.updateUpiDetails = async function (userId, upiId) {
 
 module.exports.getBankingDetails = async function (userId) {
   try {
-    const kyc = await KYC.findOne({ userId }).select('bankVerification upiDetails');
+    const kyc = await KYC.findOne({ _id:userId , isDeleted:false }).select('bankVerification upiDetails');
     return {
       bankDetails: kyc?.bankVerification || null,
       upiDetails: kyc?.upiDetails || null
@@ -125,7 +125,7 @@ module.exports.getBankingDetails = async function (userId) {
 
 module.exports.checkPaymentMethodsStatus = async function (userId) {
   try {
-    const kyc = await KYC.findOne({ userId }).select('bankVerification upiDetails');
+    const kyc = await KYC.findOne({ _id:userId, isDeleted:false }).select('bankVerification upiDetails');
     console.log("kyc--> ",kyc?.bankVerification);
     return {
       bank: {
@@ -153,7 +153,7 @@ module.exports.checkPaymentMethodsStatus = async function (userId) {
 exports.updateGstDetails = async function (userId, gstNumber) {
   try {
     return await KYC.findOneAndUpdate(
-      { userId },
+      {_id:userId,isDeleted:false },
       {
         $set: {
           "gstDetails.gstNumber": gstNumber,
@@ -170,7 +170,7 @@ exports.updateGstDetails = async function (userId, gstNumber) {
 // Update the existing getBankingDetails to include GST
 exports.getBankingDetails = async function (userId) {
   try {
-    const kyc = await KYC.findOne({ userId }).select('bankVerification upiDetails gstDetails');
+    const kyc = await KYC.findOne({ _id:userId , isDeleted:false }).select('bankVerification upiDetails gstDetails');
     return {
       bankDetails: kyc?.bankVerification || null,
       upiDetails: kyc?.upiDetails || null,
@@ -183,7 +183,7 @@ exports.getBankingDetails = async function (userId) {
 
 exports.checkPaymentMethodsStatus = async function (userId) {
   try {
-    const kyc = await KYC.findOne({ userId }).select('bankVerification upiDetails gstDetails');
+    const kyc = await KYC.findOne({ _id:userId,isDeleted:false }).select('bankVerification upiDetails gstDetails');
     return {
       bank: {
         isAdded: !!kyc?.bankVerification?.accountNumber,
