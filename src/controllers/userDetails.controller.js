@@ -556,6 +556,92 @@ exports.getAllTickets = async (req, res) => {
   }
 };
 
+// Get all active tickets (Admin or User can access their own tickets)
+exports.getAllActiveTickets = async (req, res) => {
+  const { page, limit, skip } = req.pagination;
+  const userId = req.body.user._id; 
+
+  try {
+    const tickets = await Ticket.find({
+      isDeleted: false,
+      status: "open",
+      $or: [{ userId }, { assignId: userId }]  
+    })
+    .skip(skip)
+    .limit(limit)
+    .populate('userId assignId')
+    .exec();
+
+    const totalTickets = await Ticket.countDocuments({
+      isDeleted: false,
+      status: "open",
+      $or: [{ userId }, { assignId: userId }]
+    });
+    console.log("totalTickets", totalTickets);
+    const totalPages = Math.ceil(totalTickets / limit);
+    if (!tickets || tickets.length === 0) {
+      return res.json(createResponse.success([], "No active tickets found"));
+    }
+    res.json(createResponse.success({
+      tickets,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalTickets
+      }
+    }));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: 500,
+      errorMessage: error.message,
+    }));
+  }
+};
+
+// Get all closed tickets (Admin or User can access their own tickets)
+exports.getAllClosedUser = async (req, res) => {
+  const { page, limit, skip } = req.pagination;
+  const userId = req.body.user._id; 
+
+  try {
+    const tickets = await Ticket.find({
+      isDeleted: false,
+      status: "closed",
+      $or: [{ userId }, { assignId: userId }]  
+    })
+    .skip(skip)
+    .limit(limit)
+    .populate('userId assignId')
+    .exec();
+
+    const totalTickets = await Ticket.countDocuments({
+      isDeleted: false,
+      status: "closed",
+      $or: [{ userId }, { assignId: userId }]
+    });
+    const totalPages = Math.ceil(totalTickets / limit);
+    if (!tickets || tickets.length === 0) {
+      return res.json(createResponse.success([], "No closed tickets found"));
+    }
+    res.json(createResponse.success({
+      tickets,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalTickets
+      }
+    }));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: 500,
+      errorMessage: error.message,
+    }));
+  }
+};
+
+
 // Get a specific ticket by ID
 exports.getTicketById = async (req, res) => {
   const { ticketId } = req.params;
@@ -585,6 +671,7 @@ exports.getTicketById = async (req, res) => {
   }
 };
 
+
 // Update a ticket (e.g., change status, priority)
 exports.updateTicket = async (req, res) => {
   const { ticketId } = req.params;
@@ -605,7 +692,7 @@ exports.updateTicket = async (req, res) => {
       }));
     }
 
-    // Update only provided fields
+  // Update only provided fields
     ticket.status = status || ticket.status;
     ticket.priority = priority || ticket.priority;
     ticket.description = description || ticket.description;

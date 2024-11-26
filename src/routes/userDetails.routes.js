@@ -3,6 +3,8 @@ const express = require('express');
 const Router = express.Router();
 const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBooking, deleteBooking, getAllTransactions, getTransactionById, createTransaction, updateTransaction, deleteTransaction, getAllReviews, getReviewById, createReview, updateReview, deleteReview, createTicket,
     getAllTickets,
+    getAllActiveTickets,
+    getAllClosedUser,
     getTicketById,
     updateTicket,
     assignTicket,
@@ -76,6 +78,12 @@ Router.delete('/delete-blocked-user/:id', authMiddleware, hasRole('admin'), dele
 Router.post('/ticket', authMiddleware, hasRole('admin'), createTicket);
 // Get all tickets (Admin can access all, User can access only their tickets)
 Router.get('/get-all-tickets',authMiddleware, hasRole('admin'), paginate('Ticket') , getAllTickets);
+// Get all active tickets
+Router.get('/get-all-active-tickets',authMiddleware, paginate('Ticket') , getAllActiveTickets);
+//get all closed tickets
+Router.get('/get-all-closed-user',authMiddleware, paginate('Ticket') , getAllClosedUser);
+//get all closed api 
+Router.get('/get-all-closed-tickets',authMiddleware, hasRole('admin'), paginate('Ticket') , getAllTickets);
 // Get a specific ticket by ID
 Router.get('/get-ticket/:ticketId', authMiddleware, hasRole('admin'), getTicketById);
 // Update a ticket (status, priority, description)
