@@ -16,13 +16,14 @@ const {
   ValidationError,
 } = require("../errors/custom.error");
 const BasicInfo = require("../models/basicInfo.model");
+const BlockUser = require("../models/blockUser.model");
 const twilio = require("twilio");
 
 const client = twilio(config.twilio.accountSid, config.twilio.twilioAuthToken);
 module.exports.validateUser = async function (userData) {
   try {
     const { firstName, lastName, email, phoneNo } = userData;
-    const existingUser = await User.findOne({ $or: [{ email }, { phoneNo }] });
+    const existingUser = await User.findOne({ $or: [{ email , isDeleted: false }, { phoneNo , isDeleted: false }] });
     if (existingUser) {
       const response = {
         errorCode: errorMessageConstants.CONFLICTS,
@@ -40,12 +41,19 @@ module.exports.validateUser = async function (userData) {
       lastName,
     });
     const basicInfoDetails = await basicInfo.save();
+
+    const blockUser = new BlockUser({
+      block: false,
+    });
+    const blockUserDetails = await blockUser.save();
+
     let user = new User({
       email,
       phoneNo,
       otp,
       otpExpiry,
       basicInfo: basicInfoDetails._id,
+      block: blockUserDetails._id,
     });
     user = await user.save();
     await this.sendOTP(user.phoneNo, otp);
@@ -57,7 +65,10 @@ module.exports.validateUser = async function (userData) {
       resendCount: user.resendCount,
       otp: user.otp,
       otpExpiry: user.otpExpiry,
-      block: user.block,
+      block: {
+        id: blockUserDetails._id,
+        status: blockUserDetails.block,
+      },
       isVerified: user.isVerified,
       id: user.id,
     };
@@ -71,7 +82,7 @@ module.exports.validateUser = async function (userData) {
 module.exports.verifyOtp = async function (userData) {
   try {
     const { phoneNo, otp } = userData;
-    const user = await User.findOne({ phoneNo });
+    const user = await User.findOne({ phoneNo ,isDeleted:false });
     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
@@ -81,16 +92,13 @@ module.exports.verifyOtp = async function (userData) {
 
     if (user.block) {
       if (user.blockExpiry > Date.now()) {
-        const remainingTime = Math.ceil(
-          (user.blockExpiry - Date.now()) / 1000 / 60
-        );
-        const response = {
+        const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
+        return createResponse.error({
           errorCode: 429,
           errorMessage: `Account blocked for ${remainingTime} minutes`,
-        };
-        return createResponse.error(response);
+        });
       } else {
-        user.block = false; // Unblock after expiry
+        user.block = false;
         user.blockExpiry = null;
         user.resendCount = 0;
         await user.save();
@@ -98,29 +106,27 @@ module.exports.verifyOtp = async function (userData) {
     }
 
     const now = Date.now();
-
-    if (
-      user.otp !== otp ||
-      (user.otpExpiry && now > user.otpExpiry.getTime())
-    ) {
+    if (user.otp !== otp || (user.otpExpiry && now > user.otpExpiry.getTime())) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
         "Invalid OTP or expired."
       );
     }
+
     user.otp = null;
     user.otpExpiry = null;
     user.isVerified = true;
     user.resendCount = 0;
     const data = await user.save();
+
     const finalData = {
       _id: data?.id,
-      email: data?.email,
       phoneNo: data?.phoneNo,
+      email: data?.email || null,
     };
+
     const token = await jwtUtil.generateToken(finalData);
-    const responseData = createResponse.success(data, token);
-    return responseData;
+    return createResponse.success(data, token);
   } catch (e) {
     console.log("error", e);
     if (e instanceof AuthenticationError) {
@@ -140,8 +146,9 @@ module.exports.decodeToken = function (token) {
 
 module.exports.login = async function (phoneNo) {
   try {
+    // First check if user exists
     let user;
-    user = await User.findOne({ phoneNo });
+    user = await User.findOne({ phoneNo , isDeleted: false }).populate('block');
     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
@@ -162,7 +169,7 @@ module.exports.login = async function (phoneNo) {
         const response = {
           errorCode: 429,
           errorMessage: `Account blocked for ${remainingTime} minutes`,
-        };
+        };4
         return createResponse.error(response);
       } else {
         user.block = false; // Unblock after expiry
@@ -174,11 +181,56 @@ module.exports.login = async function (phoneNo) {
     }
     const otp = authUtil.generateOTP();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-    user.otp = otp;
-    user.otpExpiry = otpExpiry;
-    user = await user.save();
-    await this.sendOTP(user?.phoneNo, otp);
-    return createResponse.success(user);
+
+    if (!user) {
+      // If user doesn't exist, create new user with minimal info
+      let basicInfo = new BasicInfo({});
+      const basicInfoDetails = await basicInfo.save();
+      
+      user = new User({
+        phoneNo,
+        otp,
+        otpExpiry,
+        basicInfo: basicInfoDetails._id,
+      });
+      user = await user.save();
+    } else {
+      // Existing user - handle block status
+      if (user.block) {
+        if (user.blockExpiry > Date.now()) {
+          const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
+          return createResponse.error({
+            errorCode: 429,
+            errorMessage: `Account blocked for ${remainingTime} minutes`,
+          });
+        } else {
+          user.block = false;
+          user.blockExpiry = null;
+          user.resendCount = 1;
+          await user.save();
+        }
+      }
+
+      // Update OTP for existing user
+      user.otp = otp;
+      user.otpExpiry = otpExpiry;
+      user = await user.save();
+    }
+
+    // Send OTP
+    await this.sendOTP(phoneNo, otp);
+
+    // Return user info without sensitive data
+    const userResponse = {
+      phoneNo: user.phoneNo,
+      resendCount: user.resendCount,
+      isVerified: user.isVerified,
+      id: user.id,
+      otp:user?.otp,
+    };
+
+    return createResponse.success(userResponse);
+
   } catch (e) {
     console.log("error", e);
     if (e instanceof AuthenticationError) {
@@ -188,6 +240,7 @@ module.exports.login = async function (phoneNo) {
     }
   }
 };
+
 module.exports.sendOTP = async function sendOTP(phone, otp) {
   try {
     // Replace with your SMS provider integration code
@@ -205,7 +258,7 @@ module.exports.sendOTP = async function sendOTP(phone, otp) {
 module.exports.resendOtp = async function (phoneNo) {
   try {
     let user;
-    user = await User.findOne({ phoneNo });
+    user = await User.findOne({ phoneNo , isDeleted: false });
     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
@@ -259,7 +312,7 @@ module.exports.resendOtp = async function (phoneNo) {
 
 module.exports.initiateEmailChange = async function (userId, newEmail) {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findOne({ _id: userId , isDeleted: false });
     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
@@ -275,7 +328,7 @@ module.exports.initiateEmailChange = async function (userId, newEmail) {
     }
 
     // Check if the new email is already in use
-    const existingUser = await User.findOne({ email: newEmail });
+    const existingUser = await User.findOne({ email: newEmail , isDeleted: false });
     if (existingUser) {
       throw new customError.ValidationError(
         globalConstants.INVALID_INPUT_CODE,
@@ -307,8 +360,11 @@ module.exports.verifyOtpAndChangeEmail = async function (
   newEmail
 ) {
   try {
-    const user = await User.findById(userId);
-    if (!user) {
+    const user = await User.findOne({ 
+      _id: userId, 
+      isDeleted: false 
+    });   
+     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
         "User not found."
@@ -346,7 +402,7 @@ module.exports.verifyOtpAndChangeEmail = async function (
     }
 
     // Check again if the new email is still available
-    const existingUser = await User.findOne({ email: newEmail });
+    const existingUser = await User.findOne({ email: newEmail , isDeleted: false });
     if (existingUser) {
       throw new customError.ValidationError(
         globalConstants.INVALID_INPUT_CODE,

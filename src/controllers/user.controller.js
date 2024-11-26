@@ -1039,7 +1039,6 @@ exports.getUserData = async (req, res) => {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
-
   userDao
     .getUserData(userId, ownUserId)
     .then((data) => {
@@ -1599,7 +1598,6 @@ exports.removeConnection = async (req, res) => {
 };
 
 // block and unBlock
-
 exports.getAllBlockedUsers = async (req, res) => {
   const userId = req.body.user._id;
   if (!userId) {

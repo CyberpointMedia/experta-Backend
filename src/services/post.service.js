@@ -9,7 +9,10 @@ const {deleteFile} = require("../utils/aws.utlis");
 
 module.exports.likeUnlikePost = async (postId, userId) => {
   try {
-    const post = await Post.findById(postId).populate('postedBy');
+    const post = await Post.findOne({
+      _id: postId,
+      isDeleted: false,
+    }).populate('postedBy');
     if (!post) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -23,7 +26,7 @@ module.exports.likeUnlikePost = async (postId, userId) => {
       post.likes.push(userId);
       // Send notification only when liking, not when unliking
       if (post.postedBy._id.toString() !== userId.toString()) {
-        const user = await BasicInfo.findOne({ user: userId }).select('firstName lastName displayName');
+        const user = await BasicInfo.findOne({ user: userId , isDeleted: false}).select('firstName lastName displayName');
         const displayName = user?.displayName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
         
         await FCMService.sendToUser(post.postedBy._id, {
@@ -55,7 +58,7 @@ module.exports.likeUnlikePost = async (postId, userId) => {
 
 module.exports.newComment = async (postId, userId, comment) => {
   try {
-    const post = await Post.findById(postId).populate('postedBy');
+    const post = await Post.findOne({_id:postId, isDeleted:false }).populate('postedBy');
     if (!post) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -73,7 +76,7 @@ module.exports.newComment = async (postId, userId, comment) => {
 
     // Send notification to post owner if commenter is not the owner
     if (post.postedBy._id.toString() !== userId.toString()) {
-      const user = await BasicInfo.findOne({ user: userId }).select('firstName lastName displayName');
+      const user = await BasicInfo.findOne({ user: userId , isDeleted: false }).select('firstName lastName displayName');
       const displayName = user?.displayName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
       
       await FCMService.sendToUser(post.postedBy._id, {
@@ -90,7 +93,7 @@ module.exports.newComment = async (postId, userId, comment) => {
     }
 
     // Populate and transform the comment data as before
-    const populatedPost = await Post.findById(postId).populate({
+    const populatedPost = await Post.findOne({_id:postId,isDeleted:false}).populate({
       path: 'comments.user',
       populate: [
         { path: 'basicInfo', select: 'rating profilePic displayName' },
@@ -133,7 +136,7 @@ module.exports.newComment = async (postId, userId, comment) => {
 
 module.exports.deletePost = async function (postId, userId, basicInfoId) {
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findOne({_id:postId, isDeleted:false});
     if (!post) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -150,7 +153,7 @@ module.exports.deletePost = async function (postId, userId, basicInfoId) {
     }
     await deleteFile(post.image);
     await post.remove();
-    const basicInfo = await BasicInfo.findById(basicInfoId);
+    const basicInfo = await BasicInfo.findOne({ _id: basicInfoId , isDeleted: false});
     if (basicInfo) {
       const index = basicInfo.posts.indexOf(postId);
       if (index > -1) {
@@ -171,7 +174,7 @@ module.exports.deletePost = async function (postId, userId, basicInfoId) {
 
 module.exports.updateComment = async (postId, commentId, userId, comment) => {
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findOne({_id:postId, isDeleted:false});
     if (!post) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -214,7 +217,7 @@ module.exports.updateComment = async (postId, commentId, userId, comment) => {
 
 module.exports.deleteComment = async (postId, commentId, userId) => {
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findOne({_id:postId, isDeleted:false});
     if (!post) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,

@@ -34,7 +34,7 @@ const OccupationModel = require("../models/occupation.model");
 module.exports.createOrUpdateIndustryOccupation = async function (
   userId,
   data
-) {
+) { 
   try {
     const {
       industry,
@@ -44,7 +44,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       achievements,
       expertise,
     } = data;
-    let user = await User.findById(userId).populate(
+    let user = await User.findOne({_id:userId,isDeleted:false}).populate(
       "industryOccupation expertise"
     );
     if (!user) {
@@ -54,7 +54,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (
       };
       return createResponse.error(response);
     }
-    let where = {};
+    let where = {isDeleted: false};
     if (user.industryOccupation) where._id = user.industryOccupation;
 
     let updatedIndustryOccupation = await IndustryOccupation.findOneAndUpdate(
@@ -66,12 +66,12 @@ module.exports.createOrUpdateIndustryOccupation = async function (
           registrationNumber,
           certificate,
           achievements,
-        },
+      },
       },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
-    let whereExpertise = {};
+    let whereExpertise = {isDeleted: false};
     if (user.expertise) where._id = user.expertise;
 
     let updatedExpertise = await Expertise.findOneAndUpdate(
@@ -111,7 +111,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (
 
 module.exports.createBasicInfo = async function (userId, basicInfoToSave) {
   try {
-    let user = await User.findById(userId).populate("basicInfo");
+    let user = await User.findOne({_id:userId,isDeleted:false }).populate("basicInfo");
 
     if (!user) {
       const response = {
@@ -151,7 +151,7 @@ module.exports.createOrUpdateExpertise = async function (userId, expertiseToSave
 
   try {
     // Find user and populate expertise
-    let user = await User.findById(userId)
+    let user = await User.findOne({_id:userId,isDeleted:false})
       .populate("expertise")
       .session(session);
 
@@ -171,8 +171,7 @@ module.exports.createOrUpdateExpertise = async function (userId, expertiseToSave
     if (user.expertise) {
       // Delete existing expertise document
       console.log("user.expertise._id--> ",user.expertise._id);
-      await Expertise.findByIdAndDelete(user.expertise._id).session(session);
-      
+      await Expertise.findOneAndDelete({ _id: user.expertise._id, isDeleted: false }).session(session);      
       // Create new expertise document
       updatedExpertise = new Expertise({
         expertise: expertiseToSave
@@ -195,7 +194,7 @@ module.exports.createOrUpdateExpertise = async function (userId, expertiseToSave
     }
 
     // Populate expertise data
-    const populatedExpertise = await Expertise.findById(updatedExpertise._id)
+    const populatedExpertise = await Expertise.findOne({_id:updatedExpertise._id, isDeleted: false})
       .populate('expertise', 'name')
       .session(session);
 
@@ -287,7 +286,7 @@ module.exports.createOrUpdateExpertise = async function (userId, expertiseToSave
 module.exports.createOrUpdateAbout = async (userId, data) => {
   try {
     const { about } = data;
-    let aboutInfo = await About.findOne({ user: userId });
+    let aboutInfo = await About.findOne({ user: userId , isDeleted: false});
     if (!aboutInfo) {
       aboutInfo = new About({
         user: userId,
@@ -316,7 +315,7 @@ module.exports.createOrUpdateUserInterest = async function (userId, interestsToS
   session.startTransaction();
 
   try {
-    const user = await User.findById(userId)
+    const user = await User.findOne({_id:userId,isDeleted:false})
       .populate("intereset")
       .session(session);
 
@@ -333,7 +332,7 @@ module.exports.createOrUpdateUserInterest = async function (userId, interestsToS
     // If user already has interests
     if (user.intereset) {
       // Delete existing interests
-      await Interest.findByIdAndDelete(user.intereset._id).session(session);
+      await Interest.findOneAndDelete({_id:user.intereset._id,isDeleted:false}).session(session);
       
       // Create new interests document
       updatedInterests = new Interest({
@@ -357,7 +356,7 @@ module.exports.createOrUpdateUserInterest = async function (userId, interestsToS
     }
 
     // Populate and return complete data
-    const populatedInterests = await Interest.findById(updatedInterests._id)
+    const populatedInterests = await Interest.findOne({_id:updatedInterests._id,isDeleted:false})
       .populate('intereset', 'name')
       .session(session);
 
@@ -381,7 +380,7 @@ module.exports.createOrUpdateUserLanguage = async function (userId, languageToSa
   session.startTransaction();
 
   try {
-    const user = await User.findById(userId)
+    const user = await User.findOne({_id:userId,isDeleted:false})
       .populate("language")
       .session(session);
 
@@ -398,7 +397,7 @@ module.exports.createOrUpdateUserLanguage = async function (userId, languageToSa
     // If user already has languages
     if (user.language) {
       // Delete existing language document
-      await Languages.findByIdAndDelete(user.language._id).session(session);
+      await Languages.findOneAndDelete({_id:user.language._id,isDeleted:false}).session(session);
       
       // Create new language document
       updatedLanguage = new Languages({
@@ -422,7 +421,7 @@ module.exports.createOrUpdateUserLanguage = async function (userId, languageToSa
     }
 
     // Populate and return complete data
-    const populatedLanguage = await Languages.findById(updatedLanguage._id)
+    const populatedLanguage = await Languages.findOne({_id:updatedLanguage._id,isDeleted:false})
       .populate('language', 'name')
       .session(session);
 
@@ -450,7 +449,7 @@ module.exports.createOrUpdateAvailability = async (
   try {
     const { _id, startTime, endTime, weeklyRepeat } = availabilityData;
 
-    let user = await User.findById(userId);
+    let user = await User.findOne({_id:userId,isDeleted:false});
     if (!user) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -461,8 +460,8 @@ module.exports.createOrUpdateAvailability = async (
 
     let availabilityEntry;
     if (_id) {
-      availabilityEntry = await Availability.findByIdAndUpdate(
-        _id,
+      availabilityEntry = await Availability.findOneAndDelete(
+        {_id:_id,isDeleted:false},
         { startTime, endTime, weeklyRepeat },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );
@@ -492,7 +491,7 @@ module.exports.createOrUpdateUserPricing = async function (
   pricingToSave
 ) {
   try {
-    let user = await User.findById(userId).populate("pricing");
+    let user = await User.findOne({_id:userId,isDeleted:false}).populate("pricing");
     if (!user) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -500,7 +499,7 @@ module.exports.createOrUpdateUserPricing = async function (
       };
       return createResponse.error(response);
     }
-    let where = {};
+    let where = {isDeleted: false};
     if (user.pricing) where._id = user.pricing;
     let updatedPricing = await Pricing.findOneAndUpdate(
       where,
@@ -526,7 +525,7 @@ module.exports.accountSetting = async (userId, data) => {
   try {
     const { username, dateOfBirth, gender } = data;
     const updatedAccountInfo = await UserAccount.findOneAndUpdate(
-      { user: userId },
+      { user: userId , isDeleted: false},
       {
         $set: {
           user: userId,
@@ -562,7 +561,7 @@ module.exports.addFollowerOrFollowing = async (userId, data) => {
     const { followUserId, followedByUserId } = data;
 
     // Find the user and their basic info
-    const user = await User.findById(userId).populate("basicInfo");
+    const user = await User.findOne({_id:userId,isDeleted:false}).populate("basicInfo");
     if (!user || !user.basicInfo) {
       return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -572,12 +571,12 @@ module.exports.addFollowerOrFollowing = async (userId, data) => {
 
     // Find the follow user and their basic info
     const followUser = followUserId
-      ? await User.findById(followUserId).populate("basicInfo")
+      ? await User.findOne({_id:followUserId, isDeleted:false}).populate("basicInfo")
       : null;
 
     // Find the followed by user and their basic info
     const followedByUser = followedByUserId
-      ? await User.findById(followedByUserId).populate("basicInfo")
+      ? await User.findOne({_id:followedByUserId,isDeleted:false}).populate("basicInfo")
       : null;
 
     if (followUserId && followUser && followUser.basicInfo) {
@@ -622,7 +621,7 @@ module.exports.addFollowerOrFollowing = async (userId, data) => {
 module.exports.unfollow = async (userId, unfollowUserId) => {
   try {
     // Find the user and their basic info
-    const user = await User.findById(userId).populate("basicInfo");
+    const user = await User.findOne({_id:userId,isDeleted:false}).populate("basicInfo");
     if (!user || !user.basicInfo) {
       return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -631,7 +630,7 @@ module.exports.unfollow = async (userId, unfollowUserId) => {
     }
 
     // Find the user to unfollow and their basic info
-    const unfollowUser = await User.findById(unfollowUserId).populate(
+    const unfollowUser = await User.findOne({_id:unfollowUserId,isDeleted:false}).populate(
       "basicInfo"
     );
     if (!unfollowUser || !unfollowUser.basicInfo) {
@@ -672,7 +671,7 @@ module.exports.createOrUpdateEducation = async (userId, educationData) => {
   try {
     const { _id, degree, schoolCollege, startDate, endDate } = educationData;
 
-    let user = await User.findById(userId);
+    let user = await User.findOne({_id:userId,isDeleted:false});
     if (!user) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -685,8 +684,8 @@ module.exports.createOrUpdateEducation = async (userId, educationData) => {
 
     let educationEntry;
     if (_id) {
-      educationEntry = await Education.findByIdAndUpdate(
-        _id,
+      educationEntry = await Education.findOneAndDelete(
+        {_id:_id,isDeleted:false},
         { degree, schoolCollege, startDate, endDate },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );
@@ -728,7 +727,7 @@ module.exports.createOrUpdateWorkExperience = async (
       endDate,
     } = workExperienceData;
 
-    let user = await User.findById(userId);
+    let user = await User.findOne({_id:userId,isDeleted:false});
     if (!user) {
       const response = {
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -742,8 +741,8 @@ module.exports.createOrUpdateWorkExperience = async (
     let workExperienceEntry;
     if (_id) {
       // Update existing work experience entry
-      workExperienceEntry = await WorkExperience.findByIdAndUpdate(
-        _id,
+      workExperienceEntry = await WorkExperience.findOneAndUpdate(
+        {_id:_id,isDeleted:false},
         { jobTitle, companyName, isCurrentlyWorking, startDate, endDate },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );
@@ -780,7 +779,7 @@ module.exports.createOrUpdateIndustryOccupationMaster = async function (data) {
     const { name, icon, id } = data;
 
     let updatedIndustryMaster = await IndustryModel.findOneAndUpdate(
-      { _id: id ?? new mongoose.Types.ObjectId() },
+      { _id: id ?? new mongoose.Types.ObjectId() , isDeleted: false},
       {
         $set: {
           name,
@@ -803,7 +802,7 @@ module.exports.createOrUpdateIndustryOccupationMaster = async function (data) {
 module.exports.createOrUpdateOccupation = async ({ name, industry, id }) => {
   try {
     let updatedOccupationMaster = await OccupationModel.findOneAndUpdate(
-      { _id: id ?? new mongoose.Types.ObjectId() },
+      { _id: id ?? new mongoose.Types.ObjectId() , isDeleted: false},
       {
         $set: {
           name,
@@ -826,7 +825,7 @@ module.exports.createOrUpdateOccupation = async ({ name, industry, id }) => {
 module.exports.removeConnection = async (userId, targetUserId, action) => {
   try {
     // Find the current user and their basic info
-    const user = await User.findById(userId).populate("basicInfo");
+    const user = await User.findOne({_id:userId,isDeleted:false}).populate("basicInfo");
     if (!user || !user.basicInfo) {
       return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -835,7 +834,7 @@ module.exports.removeConnection = async (userId, targetUserId, action) => {
     }
 
     // Find the target user and their basic info
-    const targetUser = await User.findById(targetUserId).populate("basicInfo");
+    const targetUser = await User.findOne({_id:targetUserId,isDeleted:false}).populate("basicInfo");
     if (!targetUser || !targetUser.basicInfo) {
       return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -893,10 +892,9 @@ module.exports.removeConnection = async (userId, targetUserId, action) => {
 };
 
 // block
-
 module.exports.blockUser = async (userId, userToBlockId) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findOne({_id:userId,isDeleted:false});
     if (!user) {
       return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -930,7 +928,7 @@ module.exports.blockUser = async (userId, userToBlockId) => {
 
 module.exports.unblockUser = async (userId, userToUnblockId) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findOne({_id:userId,isDeleted:false});
     if (!user) {
       return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
@@ -967,7 +965,7 @@ module.exports.unblockUser = async (userId, userToUnblockId) => {
 
 module.exports.shareProfile = async function (userId) {
   try {
-    const user = await User.findById(userId).populate("basicInfo").populate({
+    const user = await User.findOne({_id:userId,isDeleted:false}).populate("basicInfo").populate({
       path: "industryOccupation",
       populate: { path: "industry occupation" },
     });
