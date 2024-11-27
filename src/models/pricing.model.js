@@ -5,6 +5,7 @@ const PricingSchema = new Schema({
   audioCallPrice: { type: Number, required: true },
   videoCallPrice: { type: Number, required: true },
   messagePrice: { type: Number, default: 0 },
+  isDeleted: { type: Boolean, default: false },
 });
 
 const Pricing = mongoose.model("Pricing", PricingSchema);
