@@ -27,18 +27,14 @@ const basicInfoSchema = new mongoose.Schema(
     profilePic: {
       type: String,
     },
-    facebook: {
-      type: String,
-    },
-    linkedin: {
-      type: String,
-    },
-    instagram: {
-      type: String,
-    },
-    twitter: {
-      type: String,
-    },
+    socialLinks: [{
+      name: {
+        type: String,
+      },
+      link: {
+        type: String,
+      }
+    }],
     location: { type: String },
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

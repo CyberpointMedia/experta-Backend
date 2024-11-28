@@ -111,7 +111,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (
 
 module.exports.createBasicInfo = async function (userId, basicInfoToSave) {
   try {
-    let user = await User.findOne({_id:userId,isDeleted:false }).populate("basicInfo");
+    let user = await User.findById(userId).populate("basicInfo");
 
     if (!user) {
       const response = {
@@ -121,20 +121,39 @@ module.exports.createBasicInfo = async function (userId, basicInfoToSave) {
       return createResponse.error(response);
     }
 
-    let where = {isDeleted: false};
+    let socialLinks = [];
+    if (basicInfoToSave.socialLinks && Array.isArray(basicInfoToSave.socialLinks)) {
+      socialLinks = basicInfoToSave.socialLinks;
+    }
+
+    const {
+      facebook,
+      twitter,
+      instagram,
+      linkedin,
+      ...otherBasicInfo
+    } = basicInfoToSave;
+
+    const updatedBasicInfo = {
+      ...otherBasicInfo,
+      socialLinks
+    };
+
+    let where = {};
     if (user.basicInfo) where._id = user.basicInfo;
-    let updatedBasicInfo = await BasicInfo.findOneAndUpdate(
+
+    let savedBasicInfo = await BasicInfo.findOneAndUpdate(
       where,
-      { $set: basicInfoToSave },
+      { $set: updatedBasicInfo },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
     if (!user.basicInfo) {
-      user.basicInfo = updatedBasicInfo._id;
+      user.basicInfo = savedBasicInfo._id;
       await user.save();
     }
 
-    return createResponse.success(updatedBasicInfo);
+    return createResponse.success(savedBasicInfo);
   } catch (error) {
     console.error("Error:", error);
     const response = {

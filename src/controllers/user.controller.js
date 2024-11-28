@@ -63,32 +63,14 @@ exports.createBasicInfo = async (req, res) => {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       displayName: req.body.displayName,
+      bio: req.body.bio,
+      socialLinks: req.body.socialLinks ? JSON.parse(req.body.socialLinks) : [],
+      about: req.body.about,
+      profilePic: data?.url,
       username: req.body.username,
       dateOfBirth: req.body.dateOfBirth,
       gender: req.body.gender,
-      bio: req.body.bio,
-      facebook: req.body.facebook,
-      linkedin: req.body.linkedin,
-      instagram: req.body.instagram,
-      twitter: req.body.twitter,
-      about: req.body.about,
-      profilePic: data?.url,
     };
-
-    // Validate date of birth if provided
-    if (req.body.dateOfBirth) {
-      const dob = new Date(req.body.dateOfBirth);
-      if (isNaN(dob.getTime())) {
-        return res.json(createResponse.invalid("Invalid date of birth format"));
-      }
-      basicInfoToSave.dateOfBirth = dob;
-    }
-
-    // Validate gender if provided
-    if (req.body.gender && !['male', 'female', 'other'].includes(req.body.gender)) {
-      return res.json(createResponse.invalid("Invalid gender value. Must be 'male', 'female', or 'other'"));
-    }
-
     const savedBasicInfo = await userService.createBasicInfo(
       userId,
       basicInfoToSave
