@@ -30,6 +30,10 @@ const walletSchema = new mongoose.Schema(
         description: String,
       },
     ],
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
