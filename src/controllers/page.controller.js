@@ -4,15 +4,20 @@ const errorMessageConstants = require('../constants/error.messages');
 
 // Create a new page
 exports.createPage = async (req, res) => {
-  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL } = req.body;
+  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL , status } = req.body;
 
   try {
     const existingPage = await Page.findOne({ slug , isDeleted:false });
     if (existingPage) {
       return res.json(createResponse.invalid('Page with this slug already exists.'));
     }
+    const author = req.body.user._id;
+    if (!author) {
+      return res.json(createResponse.invalid('Author information is missing.'));
+    }
 
     const newPage = new Page({
+      author,
       title,
       slug,
       description,
@@ -22,12 +27,17 @@ exports.createPage = async (req, res) => {
       followLinks,
       metaRobots,
       breadcrumbs,
-      canonicalURL
+      canonicalURL,
+      status
     });
 
     const savedPage = await newPage.save();
-    res.json(createResponse.success('Page created successfully', savedPage));
-  } catch (error) {
+    res.json({
+      status: 'success',
+      message: 'Page created successfully',
+      data: savedPage,
+    });
+    } catch (error) {
     console.error(error);
     res.json(createResponse.error({
         errorCode: 500,
@@ -40,26 +50,35 @@ exports.createPage = async (req, res) => {
 exports.getAllPages = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
+    const { status } = req.query;
 
-    const pages = await Page.find({ isDeleted: false })
+    const filter = { isDeleted: false };
+    if (status) {
+      filter.status = status; // Add status filter if provided
+    }
+
+    const pages = await Page.find(filter)
       .skip(skip)  
       .limit(limit) 
       .exec();
 
-    const totalPages = Math.ceil(await Page.countDocuments({ isDeleted: false }) / limit);
-
+      const totalItems = await Page.countDocuments(filter);
+      const totalPages = Math.ceil(totalItems / limit);
+  
     if (!pages || pages.length === 0) {
       return res.json(createResponse.success([], "No pages found"));
     }
 
-    res.json(createResponse.success('Pages fetched successfully', {
-      pages,
+    res.json({
+      status: 'success',
+      message: 'Page fetched successfully',
+      data: pages,
       pagination: {
         currentPage: page,
         totalPages,
-        totalItems: await Page.countDocuments({ isDeleted: false }),
-      }
-    }));
+        totalItems,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
@@ -73,14 +92,24 @@ exports.getAllPages = async (req, res) => {
 // Get a page by its slug
 exports.getPageBySlug = async (req, res) => {
   const { slug } = req.params;
+  const { status } = req.query;
 
   try {
-    const page = await Page.findOne({ slug , isDeleted:false });
+    const filter = { slug, isDeleted: false };
+    if (status) {
+      filter.status = status;
+    }
+
+    const page = await Page.findOne(filter);
     if (!page) {
       return res.json(createResponse.invalid('Page not found.'));
     }
-    res.json(createResponse.success('Page fetched successfully', page));
-  } catch (error) {
+
+    res.json({
+      status: 'success',
+      message: 'Page fetch successfully',
+      data: page,
+    });  } catch (error) {
     console.error(error);
     res.json(createResponse.error({
         errorCode: 500,
@@ -92,7 +121,7 @@ exports.getPageBySlug = async (req, res) => {
 // Update a page
 exports.updatePage = async (req, res) => {
   const { pageId } = req.params;
-  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL } = req.body;
+  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL , status } = req.body;
 
   try {
     const page = await Page.findOne({ _id: pageId , isDeleted:false });
@@ -111,9 +140,14 @@ exports.updatePage = async (req, res) => {
     page.metaRobots = metaRobots || page.metaRobots;
     page.breadcrumbs = breadcrumbs || page.breadcrumbs;
     page.canonicalURL = canonicalURL || page.canonicalURL;
+    page.status = status ?? page.status;
 
     const updatedPage = await page.save();
-    res.json(createResponse.success('Page updated successfully', updatedPage));
+    res.json({
+      status: 'success',
+      message: 'Page updated successfully',
+      updatedPage
+  });
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({

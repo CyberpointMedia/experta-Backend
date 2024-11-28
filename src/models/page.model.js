@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const pageSchema = new mongoose.Schema(
   {
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
     title: { type: String, required: false },
     slug: { type: String, required: false, unique: true },
     description: { type: String },
@@ -14,6 +15,12 @@ const pageSchema = new mongoose.Schema(
     canonicalURL: { type: String },
     isDeleted: { type: Boolean, default
     : false },
+    status: {
+      type: String,
+      enum: ["published", "trash", "draft"], // Allowed values
+      default: "draft",
+    },
+
   },
   {
     timestamps: true,

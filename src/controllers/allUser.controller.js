@@ -8,6 +8,7 @@ exports.getAllUsers = async (req, res) => {
   const { page, limit, skip } = req.pagination;
   try {
     const users = await User.find({ isDeleted: false })
+    .populate('basicInfo')
     .skip(skip)
     .limit(limit)
     .select('-password -otp -otpExpiry -blockExpiry -isDeleted')
