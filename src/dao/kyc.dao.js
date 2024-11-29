@@ -81,16 +81,108 @@ module.exports.updatePanVerification = async function (userId, data) {
 
 module.exports.getKycStatus = async function (userId) {
   try {
-    const data= await KYC.findOne({ _id:userId,isDeleted:false }).lean();
-    const userData = await User.findOne({_id:userId,isDeleted:false}).select('email phoneNo').lean();
-    console.log("data--> ",data);
-    return {userData,...data}
-  
+    // Create default KYC structure
+    const defaultKyc = {
+      bankVerification: {
+        accountNumber: "",
+        ifsc: "",
+        verificationStatus: false,
+        bankDetails: {},
+        updatedAt: null
+      },
+      faceLiveness: {
+        status: false,
+        confidence: 0,
+        imageUrl: "",
+        updatedAt: null
+      },
+      faceMatch: {
+        status: false,
+        confidence: 0,
+        selfieUrl: "",
+        idCardUrl: "",
+        updatedAt: null
+      },
+      panVerification: {
+        panNumber: "",
+        verificationStatus: false,
+        panDetails: {},
+        updatedAt: null
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Get user data
+    const userData = await User.findById(userId).select('email phoneNo').lean();
+    if (!userData) {
+      throw new Error("User not found");
+    }
+
+    // Get KYC data
+    const kycData = await KYC.findOne({ userId }).lean();
+
+    // If KYC exists, merge it with defaults to ensure all fields exist
+    const mergedKyc = kycData ? mergeWithDefaults(kycData, defaultKyc) : defaultKyc;
+
+    // Calculate KYC status
+    const kycStatus = {
+      isComplete: false,
+      steps: {
+        bankVerification: mergedKyc.bankVerification.verificationStatus || false,
+        faceLiveness: mergedKyc.faceLiveness.status || false,
+        faceMatch: mergedKyc.faceMatch.status || false,
+        panVerification: mergedKyc.panVerification.verificationStatus || false
+      }
+    };
+
+    kycStatus.isComplete = Object.values(kycStatus.steps).every(status => status === true);
+
+    return {
+      userData,
+      bankVerification: mergedKyc.bankVerification,
+      faceLiveness: mergedKyc.faceLiveness,
+      faceMatch: mergedKyc.faceMatch,
+      panVerification: mergedKyc.panVerification,
+      kycStatus,
+      createdAt: mergedKyc.createdAt,
+      updatedAt: mergedKyc.updatedAt
+    };
+
   } catch (error) {
     throw error;
   }
 };
 
+function mergeWithDefaults(kycData, defaultKyc) {
+  const merged = { ...defaultKyc };
+
+  const mergeNestedObject = (source, target, key) => {
+    if (source[key]) {
+      Object.keys(target[key]).forEach(subKey => {
+        if (source[key][subKey] === null || source[key][subKey] === undefined) {
+          if (typeof target[key][subKey] === 'string') {
+            source[key][subKey] = "";
+          } else if (typeof target[key][subKey] === 'number') {
+            source[key][subKey] = 0;
+          } else if (typeof target[key][subKey] === 'boolean') {
+            source[key][subKey] = false;
+          } else if (typeof target[key][subKey] === 'object' && !Array.isArray(target[key][subKey])) {
+            source[key][subKey] = {};
+          }
+        }
+      });
+      merged[key] = source[key];
+    }
+  };
+
+  mergeNestedObject(kycData, defaultKyc, 'bankVerification');
+  mergeNestedObject(kycData, defaultKyc, 'faceLiveness');
+  mergeNestedObject(kycData, defaultKyc, 'faceMatch');
+  mergeNestedObject(kycData, defaultKyc, 'panVerification');
+
+  return merged;
+}
 
 
 
