@@ -505,38 +505,43 @@ module.exports.createOrUpdateAvailability = async (
   }
 };
 
-module.exports.createOrUpdateUserPricing = async function (
-  userId,
-  pricingToSave
-) {
+module.exports.createOrUpdateUserPricing = async function (userId, pricingToSave) {
   try {
-    let user = await User.findOne({_id:userId,isDeleted:false}).populate("pricing");
+    let user = await User.findOne({ 
+      _id: userId, 
+      isDeleted: false 
+    }).populate("pricing");
+
     if (!user) {
-      const response = {
+      return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
+      });
     }
-    let where = {isDeleted: false};
-    if (user.pricing) where._id = user.pricing;
-    let updatedPricing = await Pricing.findOneAndUpdate(
-      where,
-      { $set: pricingToSave },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-    if (!user.pricing) {
+
+    let updatedPricing;
+
+    if (user.pricing) {
+      updatedPricing = await Pricing.findOneAndUpdate(
+        { _id: user.pricing._id },
+        { $set: pricingToSave },
+        { new: true }
+      );
+    } else {
+      updatedPricing = await Pricing.create({
+        ...pricingToSave,
+      });
+
       user.pricing = updatedPricing._id;
       await user.save();
     }
     return createResponse.success(updatedPricing);
   } catch (error) {
     console.error("Error:", error);
-    const response = {
+    return createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
-    };
-    return createResponse.error(response);
+    });
   }
 };
 
