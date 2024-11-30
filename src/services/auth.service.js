@@ -16,7 +16,7 @@ const {
   ValidationError,
 } = require("../errors/custom.error");
 const BasicInfo = require("../models/basicInfo.model");
-const BlockedUser = require("../models/blockUser.model");
+const BlockUser = require("../models/blockUser.model");
 const twilio = require("twilio");
 
 const client = twilio(config.twilio.accountSid, config.twilio.twilioAuthToken);
@@ -42,7 +42,7 @@ module.exports.validateUser = async function (userData) {
     });
     const basicInfoDetails = await basicInfo.save();
 
-    const blockUser = new BlockedUser({
+    const blockUser = new BlockUser({
       block: false,
     });
     const blockUserDetails = await blockUser.save();
@@ -89,18 +89,17 @@ module.exports.verifyOtp = async function (userData) {
         "Invalid phone number."
       );
     }
-    const blockUser = await BlockedUser.findOne({ user: user._id });
 
-    if (blockUser && blockUser.block) {
-      if (blockUser.blockExpiry > Date.now()) {
-        const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
+    if (user.block) {
+      if (user.blockExpiry > Date.now()) {
+        const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
         return createResponse.error({
           errorCode: 429,
           errorMessage: `Account blocked for ${remainingTime} minutes`,
         });
       } else {
-        blockUser.block = false;
-        blockUser.blockExpiry = null;
+        user.block = false;
+        user.blockExpiry = null;
         user.resendCount = 0;
         await user.save();
       }
@@ -153,9 +152,6 @@ module.exports.login = async function (phoneNo) {
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     if (!user) {
-      // Check if user is blocked
-      const blockUser = new BlockedUser({block: false});
-      const blockUserDetails = await blockUser.save();
       // If user doesn't exist, create new user with minimal info
       let basicInfo = new BasicInfo({});
       const basicInfoDetails = await basicInfo.save();
@@ -164,25 +160,23 @@ module.exports.login = async function (phoneNo) {
         phoneNo,
         otp,
         otpExpiry,
-        block:blockUserDetails._id,
         basicInfo: basicInfoDetails._id,
       });
       user = await user.save();
     } else {
       // Existing user - handle block status
-      const blockUser = await BlockedUser.findOne({ user: user._id });
-
-      if (blockUser && blockUser.block) {
-        if (blockUser.blockExpiry > Date.now()) {
-          const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
+      if (user.block) {
+        if (user.blockExpiry > Date.now()) {
+          const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
           return createResponse.error({
             errorCode: 429,
             errorMessage: `Account blocked for ${remainingTime} minutes`,
           });
         } else {
-          blockUser.block = false; // Unblock the user
-          blockUser.blockExpiry = null;
-          await blockUser.save();
+          user.block = false;
+          user.blockExpiry = null;
+          user.resendCount = 1;
+          await user.save();
         }
       }
 

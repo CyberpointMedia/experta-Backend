@@ -4,10 +4,10 @@ const errorMessageConstants = require('../constants/error.messages');
 
 // Create a new page
 exports.createPage = async (req, res) => {
-  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL, status } = req.body;
+  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL , status } = req.body;
 
   try {
-    const existingPage = await Page.findOne({ slug, isDeleted: false });
+    const existingPage = await Page.findOne({ slug , isDeleted:false });
     if (existingPage) {
       return res.json(createResponse.invalid('Page with this slug already exists.'));
     }
@@ -37,12 +37,12 @@ exports.createPage = async (req, res) => {
       message: 'Page created successfully',
       data: savedPage,
     });
-  } catch (error) {
+    } catch (error) {
     console.error(error);
     res.json(createResponse.error({
-      errorCode: 500,
-      errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
-    }));
+        errorCode: 500,
+        errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
+      }));
   }
 };
 
@@ -50,41 +50,21 @@ exports.createPage = async (req, res) => {
 exports.getAllPages = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
-    const { status, search } = req.query;
+    const { status } = req.query;
 
     const filter = { isDeleted: false };
     if (status) {
-      filter.status = status;
-    }
-    if (search) {
-      filter.title = { $regex: search, $options: "i" };
+      filter.status = status; // Add status filter if provided
     }
 
     const pages = await Page.find(filter)
-      .populate({
-        path: 'author',
-        populate: {
-          path: 'roles',
-          select: 'name'
-        }
-      })
-      .skip(skip)
-      .limit(limit)
+      .skip(skip)  
+      .limit(limit) 
       .exec();
 
-    const totalItems = await Page.countDocuments(filter);
-    const totalPages = Math.ceil(totalItems / limit);
-
-    // Aggregate to get counts grouped by status
-    const statusCounts = await Page.aggregate([
-      { $match: { isDeleted: false } }, 
-      { $group: { _id: "$status", count: { $sum: 1 } } },
-    ]);
-    const statusSummary = statusCounts.reduce((acc, item) => {
-      acc[item._id] = item.count;
-      return acc;
-    }, {});
-
+      const totalItems = await Page.countDocuments(filter);
+      const totalPages = Math.ceil(totalItems / limit);
+  
     if (!pages || pages.length === 0) {
       return res.json(createResponse.success([], "No pages found"));
     }
@@ -98,7 +78,6 @@ exports.getAllPages = async (req, res) => {
         totalPages,
         totalItems,
       },
-      statusSummary,
     });
   } catch (error) {
     console.error(error);
@@ -108,6 +87,7 @@ exports.getAllPages = async (req, res) => {
     }));
   }
 };
+
 
 // Get a page by its slug
 exports.getPageBySlug = async (req, res) => {
@@ -120,15 +100,7 @@ exports.getPageBySlug = async (req, res) => {
       filter.status = status;
     }
 
-    const page = await Page.findOne(filter)
-      .populate({
-        path: 'author',
-        populate: {
-          path: 'roles',
-          select: 'name'
-        }
-      });
-
+    const page = await Page.findOne(filter);
     if (!page) {
       return res.json(createResponse.invalid('Page not found.'));
     }
@@ -137,23 +109,22 @@ exports.getPageBySlug = async (req, res) => {
       status: 'success',
       message: 'Page fetch successfully',
       data: page,
-    });
-  } catch (error) {
+    });  } catch (error) {
     console.error(error);
     res.json(createResponse.error({
-      errorCode: 500,
-      errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
-    }));
+        errorCode: 500,
+        errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
+      }));
   }
 };
 
 // Update a page
 exports.updatePage = async (req, res) => {
   const { pageId } = req.params;
-  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL, status } = req.body;
+  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL , status } = req.body;
 
   try {
-    const page = await Page.findOne({ _id: pageId, isDeleted: false });
+    const page = await Page.findOne({ _id: pageId , isDeleted:false });
     if (!page) {
       return res.json(createResponse.invalid('Page not found.'));
     }
@@ -176,13 +147,13 @@ exports.updatePage = async (req, res) => {
       status: 'success',
       message: 'Page updated successfully',
       updatedPage
-    });
+  });
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
-      errorCode: 500,
-      errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
-    }));
+        errorCode: 500,
+        errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
+      }));
   }
 };
 
@@ -191,7 +162,7 @@ exports.deletePage = async (req, res) => {
   const { pageId } = req.params;
 
   try {
-    const page = await Page.findOne({ _id: pageId, isDeleted: false });
+    const page = await Page.findOne({ _id: pageId , isDeleted:false });
     if (!page) {
       return res.json(createResponse.invalid('Page not found.'));
     }
@@ -201,9 +172,8 @@ exports.deletePage = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
-      errorCode: 500,
-      errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
-    }));
+        errorCode: 500,
+        errorMessage: errorMessageConstants.INTERNAL_SERVER_ERROR,
+      }));
   }
 };
-
