@@ -6,13 +6,32 @@ const errorMessageConstants = require('../constants/error.messages');
 // Controller to get all users
 exports.getAllUsers = async (req, res) => {
   const { page, limit, skip } = req.pagination;
+  const { name, phoneNo, country, role } = req.query;
   try {
-    const users = await User.find({ isDeleted: false })
-      .populate('basicInfo')
+
+    const filter = { isDeleted: false };
+    if (phoneNo) {
+      filter.phoneNo = phoneNo;
+    }
+    if (role) {
+      filter.roles = role;
+    }
+    const basicInfoFilter = {};
+    if (name) {
+      basicInfoFilter.displayName = { $regex: name, $options: 'i' };
+    }
+
+    const users = await User.find(filter)
+      .populate({
+        path: 'basicInfo',
+        match: basicInfoFilter,
+      })
       .skip(skip)
       .limit(limit)
       .select('-password -otp -otpExpiry -blockExpiry -isDeleted')
       .exec();
+
+    const filteredUsers = users.filter((user) => user.basicInfo);
 
     const totalUsers = await User.countDocuments({ isDeleted: false });
     const totalPages = Math.ceil(totalUsers / limit);
@@ -21,7 +40,7 @@ exports.getAllUsers = async (req, res) => {
       return res.json(createResponse.success([], "No users found"));
     }
     res.json(createResponse.success({
-      users,
+      users: filteredUsers,
       pagination: {
         currentPage: page,
         totalPages,
