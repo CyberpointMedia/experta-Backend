@@ -1702,7 +1702,8 @@ exports.getBioSuggestions = async (req, res) => {
     if (!userInput) {
       return res.json(createResponse.invalid("User input is required"));
     }
-    const suggestions =  userDao.generateBioSuggestions(userInput);
+    const suggestions =  await userDao.generateBioSuggestions(userInput);
+    console.log("suggestions--> ",suggestions);
     return res.json(createResponse.success(suggestions));
   } catch (error) {
     console.error("Error in getBioSuggestions:", error);

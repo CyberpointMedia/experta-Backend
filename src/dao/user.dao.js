@@ -2019,7 +2019,7 @@ exports.generateBioSuggestions = async (userInput)=> {
       max_tokens: 500,
     });
 
-    const response = JSON.parse(completion.data.choices[0].message.content);
+    const response = JSON.parse(completion.choices[0].message.content);
     return response;
   } catch (error) {
     console.error("Error generating bio suggestions:", error);
