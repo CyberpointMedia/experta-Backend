@@ -163,16 +163,10 @@ module.exports.login = async function (phoneNo) {
       user = await user.save();
     } else {
       // Existing user - handle block status
-<<<<<<< Updated upstream
-      if (user.block) {
-        if (user.blockExpiry > Date.now()) {
-          const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
-=======
       const blockUser = await BlockedUser.findOne({ user: user._id });
       if (blockUser && blockUser.block) {
         if (blockUser.blockExpiry > Date.now()) {
           const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
->>>>>>> Stashed changes
           return createResponse.error({
             errorCode: 429,
             errorMessage: `Account blocked for ${remainingTime} minutes`,

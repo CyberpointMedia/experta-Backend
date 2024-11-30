@@ -4,12 +4,7 @@ const errorMessageConstants = require('../constants/error.messages');
 
 // Create a new page
 exports.createPage = async (req, res) => {
-<<<<<<< Updated upstream
-  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL , status } = req.body;
-
-=======
   const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL, status } = req.body;
->>>>>>> Stashed changes
   try {
     const existingPage = await Page.findOne({ slug , isDeleted:false });
     if (existingPage) {
