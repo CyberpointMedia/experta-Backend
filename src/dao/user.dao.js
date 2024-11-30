@@ -1795,7 +1795,7 @@ exports.getUserDetailsForAvailability = function(userId) {
         resolve({
           email: user.email,
           phoneNo: user.phoneNo,
-          username: user.basicInfo.username
+          username: user.basicInfo.displayName
         });
       })
       .catch(err => {
@@ -1836,7 +1836,7 @@ exports.checkFieldsAvailabilityForOtherUsers = function(userId, email, phoneNo, 
         }).populate({
           path: 'basicInfo',
           match: { 
-            username: username,
+            displayName: username,
             isDeleted: false 
           }
         });
@@ -1863,7 +1863,7 @@ exports.checkUsernameExistsForOtherUser = function(userId, username) {
     }).populate({
       path: 'basicInfo',
       match: { 
-        username: username,
+        displayName: username,
         isDeleted: false 
       }
     })
@@ -1894,7 +1894,7 @@ exports.updateUsername = function(userId, newUsername) {
         user.basicInfo._id,
         { 
           $set: { 
-            username: newUsername 
+            displayName: newUsername 
           } 
         },
         { new: true }

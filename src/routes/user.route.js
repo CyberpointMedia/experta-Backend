@@ -207,6 +207,7 @@ module.exports = (app) => {
 
   router.get("/check-useraccount-availability",authMiddleware, userController.checkAvailability);
   router.post("/change-username", authMiddleware, userController.changeUsername);
+  router.post("/check-username-availability", userController.checkUsernameAvailability);
   
   app.use(routes.API, router);
 };

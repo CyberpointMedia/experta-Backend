@@ -1754,3 +1754,22 @@ exports.changeUsername = async (req, res) => {
     }));
   }
 };
+
+exports.checkUsernameAvailability = async (req, res) => {
+  try {
+    const { username } = req.body;
+    const userId = req.body.user?._id; // Optional user ID to exclude current user
+
+    if (!username) {
+      return res.json(createResponse.invalid("Username is required"));
+    }
+    const result = await userService.checkUsernameAvailability(userId, username);
+    return res.json(result);
+  } catch (error) {
+    console.error("Error in checking username availability:", error);
+    return res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message
+    }));
+  }
+};

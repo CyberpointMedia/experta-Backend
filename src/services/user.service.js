@@ -1060,3 +1060,22 @@ exports.changeUsername = async function(userId, newUsername) {
     throw error;
   }
 };
+
+exports.checkUsernameAvailability = async function(userId, username) {
+  try {
+    const usernameExists = await userDao.checkUsernameExistsForOtherUser(userId, username);
+    if (usernameExists) {
+      return createResponse.success({
+        available: false,
+        message: "Username is already taken"
+      });
+    }
+    return createResponse.success({
+      available: true,
+      message: "Username is available"
+    });
+  } catch (error) {
+    console.error("Error in username availability service:", error);
+    throw error;
+  }
+};
