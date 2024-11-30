@@ -30,6 +30,7 @@ const Pricing = require("../models/pricing.model");
 const UserAccount = require("../models/account.model");
 const IndustryModel = require("../models/industry.model");
 const OccupationModel = require("../models/occupation.model");
+const userDao=require("../dao/user.dao");
 
 module.exports.createOrUpdateIndustryOccupation = async function (
   userId,
@@ -1019,5 +1020,43 @@ module.exports.shareProfile = async function (userId) {
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
     });
+  }
+};
+
+
+exports.checkAvailability = async function(userId) {
+  try {
+    const userData = await userDao.getUserDetailsForAvailability(userId);
+    if (!userData) {
+      throw new Error("User not found");
+    }
+    const result = {
+      email: userData?.email ||  "",
+      phoneNo: userData?.phoneNo || "",
+      username: userData?.username || ""
+    };
+    return createResponse.success(result);
+  } catch (error) {
+    console.error("Error in availability service:", error);
+    throw error;
+  }
+};
+
+exports.changeUsername = async function(userId, newUsername) {
+  try {
+    const usernameExists = await userDao.checkUsernameExistsForOtherUser(userId, newUsername);
+    
+    if (usernameExists) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.CONFLICTS,
+        errorMessage: "Username already taken"
+      });
+    }
+
+    const updatedBasicInfo = await userDao.updateUsername(userId, newUsername);
+    return createResponse.success(updatedBasicInfo);
+  } catch (error) {
+    console.error("Error in change username service:", error);
+    throw error;
   }
 };

@@ -1782,30 +1782,129 @@ async function performBasicSearch(query) {
   }
 }
 
-exports.generateBioSuggestions = async (userInput)=> {
-  try {
-    const prompt = `Based on this description: "${userInput}", generate 4 unique, professional, and engaging bio suggestions. Each bio should be 2-3 sentences long and expand upon the given input while maintaining professionalism and personality. Format as JSON array of strings. Don't include quotation marks or numbers in the bios themselves.`;
+exports.getUserDetailsForAvailability = function(userId) {
+  return new Promise((resolve, reject) => {
+    User.findOne({ _id: userId, isDeleted: false })
+      .populate('basicInfo')
+      .then(user => {
+        if (!user || !user.basicInfo) {
+          resolve(null);
+          return;
+        }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: "You are a professional bio writer who creates engaging and professional bios that capture the essence of a person's professional identity.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
+        resolve({
+          email: user.email,
+          phoneNo: user.phoneNo,
+          username: user.basicInfo.username
+        });
+      })
+      .catch(err => {
+        console.error("Error in getUserDetailsForAvailability:", err);
+        reject(err);
+      });
+  });
+};
+
+exports.checkFieldsAvailabilityForOtherUsers = function(userId, email, phoneNo, username) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const result = {
+        emailExists: false,
+        phoneExists: false,
+        usernameExists: false
+      };
+
+      const [emailCheck, phoneCheck] = await Promise.all([
+        email ? User.findOne({ 
+          email, 
+          _id: { $ne: userId }, 
+          isDeleted: false 
+        }) : null,
+        phoneNo ? User.findOne({ 
+          phoneNo, 
+          _id: { $ne: userId }, 
+          isDeleted: false 
+        }) : null
+      ]);
+
+      console.log("phoneCheck--> ",phoneCheck,emailCheck);
+
+      if (username) {
+        const usernameCheck = await User.findOne({ 
+          _id: { $ne: userId }, 
+          isDeleted: false 
+        }).populate({
+          path: 'basicInfo',
+          match: { 
+            username: username,
+            isDeleted: false 
+          }
+        });
+
+        result.usernameExists = usernameCheck && usernameCheck.basicInfo;
+      }
+
+      result.emailExists = !!emailCheck;
+      result.phoneExists = !!phoneCheck;
+
+      resolve(result);
+    } catch (error) {
+      console.error("Error in checkFieldsAvailabilityForOtherUsers:", error);
+      reject(error);
+    }
+  });
+};
+
+exports.checkUsernameExistsForOtherUser = function(userId, username) {
+  return new Promise((resolve, reject) => {
+    User.findOne({
+      _id: { $ne: userId },
+      isDeleted: false
+    }).populate({
+      path: 'basicInfo',
+      match: { 
+        username: username,
+        isDeleted: false 
+      }
+    })
+    .then(user => {
+      resolve(user && user.basicInfo);
+    })
+    .catch(err => {
+      console.error("Error in checkUsernameExistsForOtherUser:", err);
+      reject(err);
     });
+  });
+};
 
-    const response = JSON.parse(completion.choices[0].message.content);
-    return response;
-  } catch (error) {
-    console.error("Error generating bio suggestions:", error);
-    throw error;
-  }
-}
+exports.updateUsername = function(userId, newUsername) {
+  return new Promise((resolve, reject) => {
+    User.findOne({ 
+      _id: userId, 
+      isDeleted: false 
+    })
+    .populate('basicInfo')
+    .then(async user => {
+      if (!user || !user.basicInfo) {
+        reject(new Error("User or BasicInfo not found"));
+        return;
+      }
+
+      const basicInfo = await BasicInfo.findByIdAndUpdate(
+        user.basicInfo._id,
+        { 
+          $set: { 
+            username: newUsername 
+          } 
+        },
+        { new: true }
+      );
+
+      resolve(basicInfo);
+    })
+    .catch(err => {
+      console.error("Error in updateUsername:", err);
+      reject(err);
+    });
+  });
+};

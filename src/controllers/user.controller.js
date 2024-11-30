@@ -1680,7 +1680,6 @@ exports.shareProfile = async (req, res) => {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
-
   try {
     const result = await userService.shareProfile(userId);
     res.json(result);
@@ -1713,5 +1712,45 @@ exports.getBioSuggestions = async (req, res) => {
         errorMessage: error.message,
       })
     );
+  }
+};
+
+// username ,phone remove this from there 
+
+exports.checkAvailability = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    if (!userId) {
+      return res.json(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    }
+    
+    const result = await userService.checkAvailability(userId);
+    return res.json(result);
+  } catch (error) {
+    console.error("Error in checking availability:", error);
+    return res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message
+    }));
+  }
+};
+
+exports.changeUsername = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const { newUsername } = req.body;
+
+    if (!newUsername) {
+      return res.json(createResponse.invalid("New username is required"));
+    }
+
+    const result = await userService.changeUsername(userId, newUsername);
+    return res.json(result);
+  } catch (error) {
+    console.error("Error in changing username:", error);
+    return res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message
+    }));
   }
 };

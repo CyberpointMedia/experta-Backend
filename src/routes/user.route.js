@@ -204,6 +204,9 @@ module.exports = (app) => {
     authMiddleware,
     userController.getBioSuggestions
   );
+
+  router.get("/check-useraccount-availability",authMiddleware, userController.checkAvailability);
+  router.post("/change-username", authMiddleware, userController.changeUsername);
   
   app.use(routes.API, router);
 };
