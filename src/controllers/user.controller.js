@@ -13,6 +13,8 @@ const { AuthenticationError } = require("../errors/custom.error");
 const userDao = require("../dao/user.dao");
 const BasicInfo = require("../models/basicInfo.model");
 const UserAccount=require("../models/account.model");
+const User=require("../models/user.model");
+
 
 // import { createOrUpdateIndustryOccupation } from "../services/user.service";
 exports.getBasicInfo = async (req, res) => {
@@ -63,7 +65,7 @@ exports.createBasicInfo = async (req, res) => {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       displayName: req.body.displayName,
-      bio: req.body.bio,
+      // bio: req.body.bio,
       socialLinks: req.body.socialLinks ? JSON.parse(req.body.socialLinks) : [],
       about: req.body.about,
       profilePic: data?.url,
@@ -1767,6 +1769,67 @@ exports.checkUsernameAvailability = async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error("Error in checking username availability:", error);
+    return res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message
+    }));
+  }
+};
+
+
+exports.updateUserBio= async (req, res) => {
+  const userId = req.body.user._id;
+  const { bio } = req.body;
+
+  if (!userId) {
+    return res.json(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+  }
+
+  try {
+    const user = await User.findOne({ _id: userId, isDeleted: false }).populate("basicInfo");
+    
+    if (!user || !user.basicInfo) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User or BasicInfo not found"
+      }));
+    }
+
+    user.basicInfo.bio = bio;
+    await user.basicInfo.save();
+
+    return res.json(createResponse.success(user.basicInfo));
+  } catch (error) {
+    console.error("Error updating bio:", error);
+    return res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message
+    }));
+  }
+};
+
+exports.getUserBio = async (req, res) => {
+  const userId = req.body.user._id;
+  
+  if (!userId) {
+    return res.json(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+  }
+
+  try {
+    const user = await User.findOne({ _id: userId, isDeleted: false })
+      .populate("basicInfo")
+      .select("basicInfo");
+
+    if (!user || !user.basicInfo) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "Bio not found"
+      }));
+    }
+
+    return res.json(createResponse.success({ bio: user.basicInfo.bio }));
+  } catch (error) {
+    console.error("Error getting bio:", error);
     return res.json(createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message
