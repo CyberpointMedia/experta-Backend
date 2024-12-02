@@ -16,14 +16,14 @@ const {
   ValidationError,
 } = require("../errors/custom.error");
 const BasicInfo = require("../models/basicInfo.model");
-const BlockUser = require("../models/blockUser.model");
+const BlockedUser = require("../models/blockUser.model");
 const twilio = require("twilio");
 
 const client = twilio(config.twilio.accountSid, config.twilio.twilioAuthToken);
 module.exports.validateUser = async function (userData) {
   try {
     const { firstName, lastName, email, phoneNo } = userData;
-    const existingUser = await User.findOne({ $or: [{ email , isDeleted: false }, { phoneNo , isDeleted: false }] });
+    const existingUser = await User.findOne({ $or: [{ email, isDeleted: false }, { phoneNo, isDeleted: false }] });
     if (existingUser) {
       const response = {
         errorCode: errorMessageConstants.CONFLICTS,
@@ -42,7 +42,7 @@ module.exports.validateUser = async function (userData) {
     });
     const basicInfoDetails = await basicInfo.save();
 
-    const blockUser = new BlockUser({
+    const blockUser = new BlockedUser({
       block: false,
     });
     const blockUserDetails = await blockUser.save();
@@ -82,7 +82,7 @@ module.exports.validateUser = async function (userData) {
 module.exports.verifyOtp = async function (userData) {
   try {
     const { phoneNo, otp } = userData;
-    const user = await User.findOne({ phoneNo ,isDeleted:false });
+    const user = await User.findOne({ phoneNo, isDeleted: false });
     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
@@ -90,16 +90,18 @@ module.exports.verifyOtp = async function (userData) {
       );
     }
 
-    if (user.block) {
-      if (user.blockExpiry > Date.now()) {
-        const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
+    const blockUser = await BlockedUser.findOne({ user: user._id });
+
+    if (blockUser && blockUser.block) {
+      if (blockUser.blockExpiry > Date.now()) {
+        const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
         return createResponse.error({
           errorCode: 429,
           errorMessage: `Account blocked for ${remainingTime} minutes`,
         });
       } else {
-        user.block = false;
-        user.blockExpiry = null;
+        blockUser.block = false;
+        blockUser.blockExpiry = null;
         user.resendCount = 0;
         await user.save();
       }
@@ -147,17 +149,19 @@ module.exports.decodeToken = function (token) {
 module.exports.login = async function (phoneNo) {
   try {
     // First check if user exists
-    let user = await User.findOne({ phoneNo , isDeleted: false});
+    let user = await User.findOne({ phoneNo, isDeleted: false });
     const otp = authUtil.generateOTP();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     if (!user) {
-      // If user doesn't exist, create new user with minimal info
+      const blockUser = new BlockedUser({ block: false });
+      const blockUserDetails = await blockUser.save();
       let basicInfo = new BasicInfo({});
       const basicInfoDetails = await basicInfo.save();
       user = new User({
         phoneNo,
         otp,
         otpExpiry,
+        block:blockUserDetails._id,
         basicInfo: basicInfoDetails._id,
       });
       user = await user.save();
@@ -172,8 +176,8 @@ module.exports.login = async function (phoneNo) {
             errorMessage: `Account blocked for ${remainingTime} minutes`,
           });
         } else {
-          user.block = false;
-          user.blockExpiry = null;
+          blockUser.block = false;
+          blockUser.blockExpiry = null;
           user.resendCount = 1;
           await user.save();
         }
@@ -194,7 +198,7 @@ module.exports.login = async function (phoneNo) {
       resendCount: user.resendCount,
       isVerified: user.isVerified,
       id: user.id,
-      otp:user?.otp,
+      otp: user?.otp,
     };
 
     return createResponse.success(userResponse);
@@ -226,7 +230,7 @@ module.exports.sendOTP = async function sendOTP(phone, otp) {
 module.exports.resendOtp = async function (phoneNo) {
   try {
     let user;
-    user = await User.findOne({ phoneNo , isDeleted: false });
+    user = await User.findOne({ phoneNo, isDeleted: false });
     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
@@ -280,7 +284,7 @@ module.exports.resendOtp = async function (phoneNo) {
 
 module.exports.initiateEmailChange = async function (userId, newEmail) {
   try {
-    const user = await User.findOne({ _id: userId , isDeleted: false });
+    const user = await User.findOne({ _id: userId, isDeleted: false });
     if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
@@ -296,7 +300,7 @@ module.exports.initiateEmailChange = async function (userId, newEmail) {
     }
 
     // Check if the new email is already in use
-    const existingUser = await User.findOne({ email: newEmail , isDeleted: false });
+    const existingUser = await User.findOne({ email: newEmail, isDeleted: false });
     if (existingUser) {
       throw new customError.ValidationError(
         globalConstants.INVALID_INPUT_CODE,
@@ -328,11 +332,11 @@ module.exports.verifyOtpAndChangeEmail = async function (
   newEmail
 ) {
   try {
-    const user = await User.findOne({ 
-      _id: userId, 
-      isDeleted: false 
-    });   
-     if (!user) {
+    const user = await User.findOne({
+      _id: userId,
+      isDeleted: false
+    });
+    if (!user) {
       throw new customError.AuthenticationError(
         globalConstants.INVALID_USER_CODE,
         "User not found."
@@ -370,7 +374,7 @@ module.exports.verifyOtpAndChangeEmail = async function (
     }
 
     // Check again if the new email is still available
-    const existingUser = await User.findOne({ email: newEmail , isDeleted: false });
+    const existingUser = await User.findOne({ email: newEmail, isDeleted: false });
     if (existingUser) {
       throw new customError.ValidationError(
         globalConstants.INVALID_INPUT_CODE,

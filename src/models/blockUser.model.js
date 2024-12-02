@@ -10,6 +10,7 @@ const blockedUserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    blockExpiry: Date,
     isDeleted: {
       type: Boolean,
       default: false,
