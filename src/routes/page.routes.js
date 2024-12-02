@@ -19,7 +19,7 @@ pageRouter.post('/create-page',authMiddleware, hasRole('admin'), createPage);
 pageRouter.get('/pages', authMiddleware, hasRole('admin'),paginate('Page'), getAllPages);
 
 // Route to get a page by its slug
-pageRouter.get('/page/:slug',authMiddleware, hasRole('admin'), getPageBySlug);
+pageRouter.get('/page/:slug', getPageBySlug);
 
 // Route to update a page
 pageRouter.put('/page/:pageId', authMiddleware, hasRole('admin'), updatePage);
@@ -28,5 +28,5 @@ pageRouter.put('/page/:pageId', authMiddleware, hasRole('admin'), updatePage);
 pageRouter.delete('/page/:pageId',authMiddleware, hasRole('admin'), deletePage);
 
 module.exports = (app) => {
-  app.use(routes.API, pageRouter);  // Prefix all routes with `/api`
+  app.use(routes.API, pageRouter);
 };

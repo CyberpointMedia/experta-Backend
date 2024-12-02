@@ -62,7 +62,6 @@ exports.getNonVerifiedUsers = async (req, res) => {
 //get new users 
 exports.getNewUsers = async (req, res) => {
   try {
-    // Get the pagination parameters
     const { page, limit, skip } = req.pagination;
 
     // Get the current date
@@ -70,20 +69,18 @@ exports.getNewUsers = async (req, res) => {
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // First day of the current month
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999); // Last day of the current month
 
-    // Query for users created in the current month
     const users = await User.find({
       isDeleted: false,
       createdAt: {
-        $gte: startOfMonth, // Greater than or equal to the start of the current month
-        $lte: endOfMonth, // Less than or equal to the end of the current month
+        $gte: startOfMonth, 
+        $lte: endOfMonth,
       },
     })
       .skip(skip)
       .limit(limit)
-      .populate('basicInfo') // Populate the basicInfo field if needed
+      .populate('basicInfo') 
       .exec();
 
-    // Get the total count of users created in the current month
     const totalUsers = await User.countDocuments({
       isDeleted: false,
       createdAt: {
@@ -109,7 +106,7 @@ exports.getNewUsers = async (req, res) => {
       }
     }));
   } catch (error) {
-    console.error(error);  // Log error details for debugging
+    console.error(error);  
 
     // Return the error with appropriate code and message
     res.json(createResponse.error({

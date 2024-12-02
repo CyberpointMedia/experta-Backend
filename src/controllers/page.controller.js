@@ -4,10 +4,9 @@ const errorMessageConstants = require('../constants/error.messages');
 
 // Create a new page
 exports.createPage = async (req, res) => {
-  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL , status } = req.body;
-
+  const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL, status } = req.body;
   try {
-    const existingPage = await Page.findOne({ slug , isDeleted:false });
+    const existingPage = await Page.findOne({ slug , isDeleted:false , status: 'published' });
     if (existingPage) {
       return res.json(createResponse.invalid('Page with this slug already exists.'));
     }
@@ -50,20 +49,40 @@ exports.createPage = async (req, res) => {
 exports.getAllPages = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
-    const { status } = req.query;
+    const { status ,search } = req.query;
 
     const filter = { isDeleted: false };
     if (status) {
-      filter.status = status; // Add status filter if provided
+      filter.status = status;
+    }
+
+    if (search) {
+      filter.title = { $regex: search, $options: "i" };
     }
 
     const pages = await Page.find(filter)
-      .skip(skip)  
+    .populate({
+      path: 'author',
+      populate: {
+        path: 'roles',
+        select: 'name'
+      }
+    })
+    .skip(skip)  
       .limit(limit) 
       .exec();
 
       const totalItems = await Page.countDocuments(filter);
       const totalPages = Math.ceil(totalItems / limit);
+
+      const statusCounts = await Page.aggregate([
+        { $match: { isDeleted: false } }, 
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]);
+      const statusSummary = statusCounts.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {});
   
     if (!pages || pages.length === 0) {
       return res.json(createResponse.success([], "No pages found"));
@@ -78,6 +97,7 @@ exports.getAllPages = async (req, res) => {
         totalPages,
         totalItems,
       },
+      statusSummary,
     });
   } catch (error) {
     console.error(error);
@@ -95,13 +115,20 @@ exports.getPageBySlug = async (req, res) => {
   const { status } = req.query;
 
   try {
-    const filter = { slug, isDeleted: false };
+    const filter = { slug, isDeleted: false , status: 'published' };
     if (status) {
       filter.status = status;
     }
 
-    const page = await Page.findOne(filter);
-    if (!page) {
+    const page = await Page.findOne(filter)
+    .populate({
+      path: 'author',
+      populate: {
+        path: 'roles',
+        select: 'name'
+      }
+    });
+        if (!page) {
       return res.json(createResponse.invalid('Page not found.'));
     }
 

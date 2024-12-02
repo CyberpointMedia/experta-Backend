@@ -150,12 +150,10 @@ module.exports.login = async function (phoneNo) {
     let user = await User.findOne({ phoneNo , isDeleted: false});
     const otp = authUtil.generateOTP();
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
     if (!user) {
       // If user doesn't exist, create new user with minimal info
       let basicInfo = new BasicInfo({});
       const basicInfoDetails = await basicInfo.save();
-      
       user = new User({
         phoneNo,
         otp,
@@ -165,9 +163,10 @@ module.exports.login = async function (phoneNo) {
       user = await user.save();
     } else {
       // Existing user - handle block status
-      if (user.block) {
-        if (user.blockExpiry > Date.now()) {
-          const remainingTime = Math.ceil((user.blockExpiry - Date.now()) / 1000 / 60);
+      const blockUser = await BlockedUser.findOne({ user: user._id });
+      if (blockUser && blockUser.block) {
+        if (blockUser.blockExpiry > Date.now()) {
+          const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
           return createResponse.error({
             errorCode: 429,
             errorMessage: `Account blocked for ${remainingTime} minutes`,
@@ -234,29 +233,29 @@ module.exports.resendOtp = async function (phoneNo) {
         "Invalid phone number."
       );
     }
-    if (user.block) {
-      if (user.blockExpiry > Date.now()) {
+    const blockUser = await BlockedUser.findOne({ _id: user.block });
+    if (blockUser && blockUser.block) {
+      if (blockUser.blockExpiry > Date.now()) {
         const remainingTime = Math.ceil(
-          (user.blockExpiry - Date.now()) / 1000 / 60
+          (blockUser.blockExpiry - Date.now()) / 1000 / 60
         );
-        const response = {
+        return createResponse.error({
           errorCode: 429,
           errorMessage: `Account blocked for ${remainingTime} minutes`,
-        };
-        return createResponse.error(response);
+        });
       } else {
-        user.block = false; // Unblock after expiry
-        user.blockExpiry = null;
-        user.resendCount = 1;
-        await user.save();
+        // Unblock the user after block expiry
+        blockUser.block = false;
+        blockUser.blockExpiry = null;
+        await blockUser.save();
       }
     }
     const resendCount = user.resendCount + 1;
     user.resendCount = resendCount;
     if (resendCount >= 6) {
-      user.block = true;
-      user.blockExpiry = new Date(Date.now() + 15 * 60 * 1000); // Block for 15 minutes
-      await user.save();
+      blockUser.block = true;
+      blockUser.blockExpiry = new Date(Date.now() + 15 * 60 * 1000); // Block for 15 minutes
+      await blockUser.save();
       const response = {
         errorCode: 429,
         errorMessage: `Account blocked for 15 minutes`,
