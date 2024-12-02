@@ -210,6 +210,8 @@ module.exports = (app) => {
   router.post("/check-username-availability", userController.checkUsernameAvailability);
   router.post("/user-bio", authMiddleware, userController.updateUserBio);
   router.get("/user-bio", authMiddleware, userController.getUserBio);
+
+  router.delete("/delete-account", authMiddleware, userController.deleteAccount);
   
   app.use(routes.API, router);
 };

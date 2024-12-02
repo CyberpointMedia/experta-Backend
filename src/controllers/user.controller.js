@@ -1836,3 +1836,17 @@ exports.getUserBio = async (req, res) => {
     }));
   }
 };
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+    const result = await userService.deleteAccount(userId);
+    res.json(result);
+  } catch (error) {
+    console.error("Delete account controller error:", error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message
+    }));
+  }
+};
