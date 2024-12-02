@@ -1908,3 +1908,50 @@ exports.updateUsername = function(userId, newUsername) {
     });
   });
 };
+
+exports.generateBioSuggestions = async function(userInput) {
+  try {
+    const completion = await openai.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `Generate 4 unique professional bios based on the user's input. Guidelines:
+          - Maximum 150 characters each
+          - Focus on expertise, value proposition, and industry relevance
+          - Maintain a professional tone
+          - Include key skills and accomplishments where relevant
+          - Make them engaging and unique
+          - Optimize for profile discovery`
+        },
+        {
+          role: "user",
+          content: userInput
+        }
+      ],
+      model: "gpt-3.5-turbo",
+      max_tokens: 400,
+      temperature: 0.7
+    });
+
+    const suggestions = completion.choices[0].message.content
+      .split('\n')
+      .filter(line => line.trim())
+      .map(bio => bio.replace(/^\d+\.\s+/, '').trim())
+      .slice(0, 4);
+
+    if (!suggestions.length) {
+      return [
+        "Experienced professional delivering innovative solutions and driving measurable results",
+        "Expert focused on excellence and client success across multiple domains",
+        "Results-driven specialist with proven expertise in development and problem-solving",
+        "Dedicated professional passionate about creating impactful solutions"
+      ];
+    }
+
+    return suggestions;
+
+  } catch (error) {
+    console.error("Error generating bio suggestions:", error);
+    throw error;
+  }
+};
