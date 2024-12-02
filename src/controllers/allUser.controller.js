@@ -1,5 +1,7 @@
 // controllers/allUser.controller.js
 const User = require('../models/user.model');
+const BasicInfo = require('../models/basicInfo.model');
+const Role = require('../models/role.model');
 const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 
@@ -7,21 +9,35 @@ const errorMessageConstants = require('../constants/error.messages');
 exports.createUser = async (req, res) => {
   const { phoneNo, email, firstName, lastName, roles } = req.body;
   try {
+    // Save basicInfo separately and get its ObjectId
+    const basicInfo = new BasicInfo({
+      displayName: `${firstName} ${lastName}`,
+      firstName,
+      lastName,
+    });
+    const savedBasicInfo = await basicInfo.save();
+
+    // Convert roles to ObjectIds (if referencing a Role collection)
+    const roleIds = await Role.find({ name: { $in: roles } }).select('_id');
+
+    // Create the user with referenced ObjectIds
     const user = new User({
       phoneNo,
       email,
-      roles,
-      basicInfo: {
-        displayName: `${firstName} ${lastName}`,
-        firstName,
-        lastName
-      }
+      roles: roleIds.map((role) => role._id),
+      basicInfo: savedBasicInfo._id,
     });
+
     await user.save();
     res.json(createResponse.success(user));
   } catch (error) {
     console.error(error);
-    res.json(createResponse.error({ errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE, errorMessage: error.message }));
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
   }
 };
 

@@ -1,7 +1,7 @@
 // allUsersRoutes.js
 const express = require('express');
 const allUsersRouters = express.Router();
-const { getAllUsers, getUserById, updateUser, deleteUser } = require('../controllers/allUser.controller'); 
+const { createUser, getAllUsers, getUserById, updateUser, deleteUser } = require('../controllers/allUser.controller'); 
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const {hasRole}=require("../middlewares/role.middleware")
 const routes = require("../constants/route.url");
