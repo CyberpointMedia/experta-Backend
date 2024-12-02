@@ -22,14 +22,14 @@ const userSchema = new mongoose.Schema(
     otp: String,
     otpExpiry: Date,
     block: {
-      type: Boolean,
-      default: false,
+      type:mongoose.Schema.Types.ObjectId,
+      ref:'BlockUser'
     },
     isVerified: {
       type: Boolean,
       default: false,
     },
-    blockExpiry: Date,
+    // blockExpiry: Date,
     isDeleted: {
       type: Boolean,
       default: false,

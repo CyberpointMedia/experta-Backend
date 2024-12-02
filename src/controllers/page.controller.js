@@ -108,7 +108,6 @@ exports.getAllPages = async (req, res) => {
   }
 };
 
-
 // Get a page by its slug
 exports.getPageBySlug = async (req, res) => {
   const { slug } = req.params;
@@ -193,7 +192,7 @@ exports.deletePage = async (req, res) => {
     if (!page) {
       return res.json(createResponse.invalid('Page not found.'));
     }
-    page.isDeleted = true;
+    page.status = "trash";
     await page.save();
     res.json(createResponse.success('Page deleted successfully.'));
   } catch (error) {

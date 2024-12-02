@@ -3,6 +3,28 @@ const User = require('../models/user.model');
 const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 
+//controller to create new user
+exports.createUser = async (req, res) => {
+  const { phoneNo, email, firstName, lastName, roles } = req.body;
+  try {
+    const user = new User({
+      phoneNo,
+      email,
+      roles,
+      basicInfo: {
+        displayName: `${firstName} ${lastName}`,
+        firstName,
+        lastName
+      }
+    });
+    await user.save();
+    res.json(createResponse.success(user));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({ errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE, errorMessage: error.message }));
+  }
+};
+
 // Controller to get all users
 exports.getAllUsers = async (req, res) => {
   const { page, limit, skip } = req.pagination;

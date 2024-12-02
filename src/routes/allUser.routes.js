@@ -7,6 +7,9 @@ const {hasRole}=require("../middlewares/role.middleware")
 const routes = require("../constants/route.url");
 const { paginate } = require('../middlewares/paginate.middleware');
 
+//route to create the user
+allUsersRouters.post('/create-user',authMiddleware, hasRole('admin'), createUser);
+
 // Route to get all users
 allUsersRouters.get('/all-users',authMiddleware, hasRole('admin'), paginate('User') , getAllUsers);
 
