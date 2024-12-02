@@ -1079,3 +1079,27 @@ exports.checkUsernameAvailability = async function(userId, username) {
     throw error;
   }
 };
+
+exports.deleteAccount = async (userId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const user = await userDao.getUserById(userId);
+    if (!user) {
+      return createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User not found"
+      });
+    }
+
+    await userDao.deleteUserAndAssociatedData(userId, user, session);
+    await session.commitTransaction();
+    return createResponse.success({ message: "Account deleted successfully" });
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};

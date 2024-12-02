@@ -1955,3 +1955,29 @@ exports.generateBioSuggestions = async function(userInput) {
     throw error;
   }
 };
+
+exports.deleteUserAndAssociatedData = async (userId, user, session) => {
+  const updatePromises = [
+    User.findOneAndUpdate({ _id: userId }, { isDeleted: true }, { session }),
+    BasicInfo.findOneAndUpdate({ _id: user.basicInfo }, { isDeleted: true }, { session }),
+    IndustryOccupation.findOneAndUpdate({ _id: user.industryOccupation }, { isDeleted: true }, { session }),
+    Education.updateMany({ _id: { $in: user.education } }, { isDeleted: true }, { session }),
+    WorkExperience.updateMany({ _id: { $in: user.workExperience } }, { isDeleted: true }, { session }),
+    Interest.findOneAndUpdate({ _id: user.intereset }, { isDeleted: true }, { session }),
+    Languages.findOneAndUpdate({ _id: user.language }, { isDeleted: true }, { session }), 
+    Expertise.findOneAndUpdate({ _id: user.expertise }, { isDeleted: true }, { session }),
+    Pricing.findOneAndUpdate({ _id: user.pricing }, { isDeleted: true }, { session }),
+    Availability.updateMany({ _id: { $in: user.availability } }, { isDeleted: true }, { session }),
+    Post.updateMany({ postedBy: userId }, { isDeleted: true }, { session }),
+    Review.updateMany({ reviewBy: userId }, { isDeleted: true }, { session }),
+    Booking.updateMany({ $or: [{ expert: userId }, { client: userId }] }, { isDeleted: true }, { session }),
+    Message.updateMany({ sender: userId }, { isDeleted: true }, { session }),
+    Chat.updateMany({ users: userId }, { isDeleted: true }, { session }),
+    Device.updateMany({ user: userId }, { isDeleted: true }, { session }),
+    Notification.updateMany({ $or: [{ recipient: userId }, { sender: userId }] }, { isDeleted: true }, { session }),
+    KYC.findOneAndUpdate({ userId }, { isDeleted: true }, { session }),
+    UserAccount.findOneAndUpdate({ user: userId }, { isDeleted: true }, { session })
+  ];
+
+  await Promise.all(updatePromises);
+};
