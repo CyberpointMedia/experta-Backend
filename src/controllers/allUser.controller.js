@@ -70,9 +70,8 @@ exports.getAllUsers = async (req, res) => {
       }
     }
     if (name) {
-      basicInfoFilter.displayName = { $regex: name, $options: 'i' };
+      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' }; 
     }
-
     const pipeline = [
       { $match: filter },
       {
@@ -83,9 +82,9 @@ exports.getAllUsers = async (req, res) => {
           as: 'basicInfo',
         },
       },
-      { $unwind: '$basicInfo' }, 
-      { $match: basicInfoFilter }, 
-      {
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
+      { $match: { 'basicInfo.displayName': { $regex: `.*${name}.*`, $options: 'i' } } },
+       {
         $project: {
           password: 0,
           otp: 0,
