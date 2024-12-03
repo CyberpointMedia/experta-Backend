@@ -26,11 +26,17 @@ const Education = require("../models/education.model");
 const IndustryModel = require("../models/industry.model");
 const OccupationModel = require("../models/occupation.model");
 const OpenAI = require('openai');
-
+const Review=require("../models/review.model");
+const Booking=require("../models/booking.model");
+const Message=require("../models/message.model");
+const Chat=require("../models/chat.model");
+const Device=require("../models/device.model");
+const Notification=require("../models/notification.model");
+const KYC=require("../models/kyc.model");
 
 module.exports.getUserDetailsById = function (id) {
   return new Promise((resolve, reject) => {
-    user
+    User
       .findOne({ where: { id: id , isDeleted: false } })
       .then(async (data) => {
         if (null != data) {
@@ -46,7 +52,7 @@ module.exports.getUserDetailsById = function (id) {
 };
 
 module.exports.getEmailById = async function (id) {
-  let userData = await user.findByPk(id);
+  let userData = await User.findOne({_id:id,isDeleted:false});
   if (null != userData) {
     return userData.email;
   } else {
@@ -55,7 +61,7 @@ module.exports.getEmailById = async function (id) {
 };
 
 module.exports.getUserById = async function (id) {
-  let userData = await user.findByPk(id);
+  let userData = await User.findOne({_id:id,isDeleted:false});
   if (null != userData) {
     return userData;
   } else {
@@ -136,19 +142,6 @@ module.exports.createBasicInfo = function (basicInfoToSave) {
       });
   });
 };
-
-// module.exports.getIndustryOccupation = function (userId) {
-//   return new Promise((resolve, reject) => {
-//     IndustryOccupation.findOne({ user: userId })
-//       .then((data) => {
-//         resolve(data);
-//       })
-//       .catch((err) => {
-//         console.log(err);
-//         reject(err);
-//       });
-//   });
-// };
 
 module.exports.getExpertise = function (userId) {
   return new Promise((resolve, reject) => {
@@ -446,189 +439,6 @@ module.exports.getAccountSetting = function (userId) {
       });
   });
 };
-
-// module.exports.getUserData = function (userId) {
-//   return new Promise(async (resolve, reject) => {
-//     User.aggregate([
-//       { $match: { _id: new mongoose.Types.ObjectId(userId) } },
-//       {
-//         $lookup: {
-//           from: "basicinfos",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "basicInfo",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "educations",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "education",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "availabilities",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "availability",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "abouts",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "about",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "pricings",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "pricing",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "useraccounts",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "userAccount",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "expertise",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "expertise",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "interests",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "interest",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "industryoccupations",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "industryOccupation",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "workexperiences",
-//           localField: "_id",
-//           foreignField: "user",
-//           as: "workExperience",
-//         },
-//       },
-//       { $unwind: { path: "$basicInfo", preserveNullAndEmptyArrays: true } },
-//       { $unwind: { path: "$education", preserveNullAndEmptyArrays: true } },
-//       { $unwind: { path: "$about", preserveNullAndEmptyArrays: true } },
-//       { $unwind: { path: "$userAccount", preserveNullAndEmptyArrays: true } },
-//       { $unwind: { path: "$availability", preserveNullAndEmptyArrays: true } },
-//       { $unwind: { path: "$pricing", preserveNullAndEmptyArrays: true } },
-//       {
-//         $unwind: {
-//           path: "$industryOccupation",
-//           preserveNullAndEmptyArrays: true,
-//         },
-//       },
-//       {
-//         $unwind: { path: "$workExperience", preserveNullAndEmptyArrays: true },
-//       },
-//       {
-//         $lookup: {
-//           from: "expertiseitems",
-//           localField: "expertise.expertise",
-//           foreignField: "_id",
-//           as: "expertise.expertiseItems",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "interestitems",
-//           localField: "interest.intereset",
-//           foreignField: "_id",
-//           as: "interest.interestItems",
-//         },
-//       },
-//       {
-//         $project: {
-//           firstName: 1,
-//           lastName: 1,
-//           email: 1,
-//           phoneNo: 1,
-//           about: "$about.about",
-//           username: "$userAccount.username",
-//           dateOfBirth: "$userAccount.dateOfBirth",
-//           gender: "$userAccount.gender",
-//           basicInfo: {
-//             _id: "$basicInfo._id",
-//             name: "$basicInfo.name",
-//             displayName: "$basicInfo.displayName",
-//             bio: "$basicInfo.bio",
-//             facebook: "$basicInfo.facebook",
-//             linkedin: "$basicInfo.linkedin",
-//             instagram: "$basicInfo.instagram",
-//             twitter: "$basicInfo.twitter",
-//           },
-//           education: {
-//             _id: "$education._id",
-//             education: "$education.education",
-//           },
-//           availability: {
-//             _id: "$availability._id",
-//             slots: "$availability.slots",
-//           },
-//           expertise: {
-//             _id: "$expertise._id",
-//             expertise: "$expertise.expertiseItems.name",
-//           },
-//           workExperience: {
-//             _id: "$workExperience._id",
-//             expertise: "$workExperience.workExperience",
-//           },
-//           interest: {
-//             _id: "$interest._id",
-//             interest: "$interest.interestItems.name",
-//           },
-//           pricing: {
-//             _id: "$pricing._id",
-//             audioCallPrice: "$pricing.audioCallPrice",
-//             videoCallPrice: "$pricing.videoCallPrice",
-//             messagePrice: "$pricing.messagePrice",
-//           },
-
-//           industryOccupation: {
-//             _id: "$industryOccupation._id",
-//             industry: "$industryOccupation.industry",
-//             occupation: "$industryOccupation.occupation",
-//             registrationNumber: "$industryOccupation.registrationNumber",
-//             certificate: "$industryOccupation.certificate",
-//             achievements: "$industryOccupation.achievements",
-//           },
-//         },
-//       },
-//     ])
-//       .then((data) => {
-//         resolve(data);
-//       })
-//       .catch((err) => {
-//         console.log(err);
-//         reject(err);
-//       });
-//   });
-// };
 
 module.exports.followersandfollowing = function (userId) {
   return new Promise((resolve, reject) => {
