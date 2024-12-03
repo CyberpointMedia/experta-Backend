@@ -57,7 +57,7 @@ exports.getAllPages = async (req, res) => {
     }
 
     if (search) {
-      filter.title = { $regex: search, $options: "i" };
+      filter.title = { $regex: new RegExp(search, "i") };
     }
 
     const pages = await Page.find(filter)
