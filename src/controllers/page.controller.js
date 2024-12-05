@@ -72,20 +72,35 @@ exports.getAllPages = async (req, res) => {
       .limit(limit) 
       .exec();
 
-      const totalItems = await Page.countDocuments(filter);
-      const totalPages = Math.ceil(totalItems / limit);
-
       const statusCounts = await Page.aggregate([
         { $match: { isDeleted: false } }, 
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]);
-      const statusSummary = statusCounts.reduce((acc, item) => {
-        acc[item._id] = item.count;
-        return acc;
-      }, {});
+      const defaultStatuses = ['draft', 'published', 'trash'];
+      const statusSummary = defaultStatuses.reduce((acc, status) => {
+      acc[status] = 0;
+      return acc;
+    }, {});
+
+    statusCounts.forEach(item => {
+      statusSummary[item._id] = item.count;
+    });
+
+    const totalItems = Object.values(statusSummary).reduce((sum, count) => sum + count, 0);
+    const totalPages = Math.ceil(totalItems / limit);
   
     if (!pages || pages.length === 0) {
-      return res.json(createResponse.success([], "No pages found"));
+      return res.json({
+        status: 'success',
+        message: 'No pages found',
+        data: [],
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems,
+        },
+        statusSummary,
+      });
     }
 
     res.json({
