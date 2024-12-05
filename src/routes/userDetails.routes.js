@@ -12,7 +12,6 @@ const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBo
     createMessage,  
     getMessagesByTicketId, 
     getMessagesBetweenUsers,
-    getAllUsers,
     getBlockedUserById,
     getAllBlockedUsers,
     editBlockedUser,
@@ -26,13 +25,13 @@ const routes = require("../constants/route.url");
 // Route to get all all-basic-info
 Router.get('/all-basic-info',authMiddleware, hasRole('admin'), getAllBasicInfo);
 //New Users routes
-Router.get('/get-all-users',authMiddleware, hasRole('admin'),paginate('User'), getAllUsers);
+// Router.get('/get-all-users',authMiddleware, hasRole('admin'),paginate('User'), getAllUsers);
 
 //Booking history routes
 // Route to get all bookings
-Router.get('/all-bookings',authMiddleware, hasRole('admin'),paginate('Booking'), getAllBookings); 
-// Get all bookings
-Router.get('/bookings',authMiddleware, hasRole('admin'), authMiddleware, getAllBookings);
+Router.get('/all-bookings/:id',authMiddleware, hasRole('admin'),paginate('Booking'), getAllBookings); 
+//get booking by cliend id
+
 // Get a booking by ID
 Router.get('/bookings/:id',authMiddleware, hasRole('admin'), getBookingById);
 // Create a new booking
@@ -72,6 +71,10 @@ Router.get('/blocked-users/:id', authMiddleware, hasRole('admin'), getBlockedUse
 Router.get('/get-all-blocked-users', authMiddleware, hasRole('admin'), paginate('BlockedUser'), getAllBlockedUsers);
 Router.put('/edit-blocked-user/:id', authMiddleware, hasRole('admin'), editBlockedUser);
 Router.delete('/delete-blocked-user/:id', authMiddleware, hasRole('admin'), deleteBlockedUser);
+
+
+//add the industry 
+
 
 //ticket routes 
 // Create a new ticket

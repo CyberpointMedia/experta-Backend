@@ -4,7 +4,7 @@ const User = require('../models/user.model');
 const BasicInfo = require('../models/basicInfo.model');
 const Role = require('../models/role.model');
 const createResponse = require('../utils/response');
-const BlockedUser = require("../models/blockUser.model"); 
+const BlockedUser = require("../models/blockUser.model");
 const errorMessageConstants = require('../constants/error.messages');
 
 //controller to create new user
@@ -31,7 +31,7 @@ exports.createUser = async (req, res) => {
       email,
       roles: roleIds.map((role) => role._id),
       basicInfo: savedBasicInfo._id,
-      block: savedBlockedUser._id, 
+      block: savedBlockedUser._id,
     });
 
     await user.save();
@@ -50,27 +50,36 @@ exports.createUser = async (req, res) => {
 // Controller to get all users
 exports.getAllUsers = async (req, res) => {
   const { page, limit, skip } = req.pagination;
-  const { name, phoneNo, country, role } = req.query;
+  const { name, phoneNo, country, role, isVerified, isBlocked } = req.query;
 
   try {
     const filter = { isDeleted: false };
-    const basicInfoFilter = {};  
+
+    if (isVerified !== undefined) {
+      filter.isVerified = isVerified === 'true';
+    }
+
     if (phoneNo) {
       filter.phoneNo = phoneNo;
     }
+
     if (role) {
       const roleObj = await Role.findOne({ name: role });
       if (roleObj) {
-        filter.roles = roleObj._id; 
+        filter.roles = roleObj._id;
       } else {
-        return res.json(createResponse.error({
-          errorCode: errorMessageConstants.NOT_FOUND_ERROR_CODE,
-          errorMessage: 'Role not found',
-        }));
+        return res.json(
+          createResponse.error({
+            errorCode: errorMessageConstants.NOT_FOUND_ERROR_CODE,
+            errorMessage: 'Role not found',
+          })
+        );
       }
     }
+
+    const basicInfoFilter = {};
     if (name) {
-      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' }; 
+      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' }; // Case-insensitive match
     }
     const pipeline = [
       { $match: filter },
@@ -83,25 +92,76 @@ exports.getAllUsers = async (req, res) => {
         },
       },
       { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
-      { $match: { 'basicInfo.displayName': { $regex: `.*${name}.*`, $options: 'i' } } },
-       {
+      { $match: { ...basicInfoFilter } },
+      {
+        $lookup: {
+          from: 'blockedusers',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'blockInfo',
+        },
+      },
+      {
+        $addFields: {
+          isBlocked: {
+            $cond: [
+              {
+                $and: [
+                  { $arrayElemAt: ['$blockInfo.block', 0] },
+                  { $eq: [{ $arrayElemAt: ['$blockInfo.isDeleted', 0] }, false] },
+                ],
+              },
+              true,
+              false,
+            ],
+          },
+        },
+      },
+      {
         $project: {
           password: 0,
           otp: 0,
           otpExpiry: 0,
           blockExpiry: 0,
           isDeleted: 0,
+          blockInfo: 0,
         },
       },
       { $skip: skip },
       { $limit: limit },
     ];
+    if (isBlocked !== undefined) {
+      pipeline.push({
+        $match: {
+          isBlocked: isBlocked === 'true',
+        },
+      });
+    }
     const users = await User.aggregate(pipeline);
-    const totalUsers = await User.countDocuments(filter);
+    const totalUsers = await User.countDocuments({ isDeleted: false });
+    const totalVerified = await User.countDocuments({ isDeleted: false, isVerified: true });
+    const totalUnverified = await User.countDocuments({ isDeleted: false, isVerified: false });
     const totalPages = Math.ceil(totalUsers / limit);
+    const totalBlocked = await BlockedUser.countDocuments({ block: true, isDeleted: false });
+    // const totalUnblocked = await BlockedUser.countDocuments({ block: false, isDeleted: false });
+
 
     if (users.length === 0) {
-      return res.json(createResponse.success([], 'No users found'));
+      return res.json(createResponse.success(
+      {
+        users,
+        
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems: totalUsers,
+        },
+        statusSummary:{
+          totalVerified,
+        totalUnverified,
+        totalBlocked,
+        }
+      }));
     }
 
     res.json(
@@ -112,6 +172,11 @@ exports.getAllUsers = async (req, res) => {
           totalPages,
           totalItems: totalUsers,
         },
+        statusSummary:{
+          totalVerified,
+        totalUnverified,
+        totalBlocked,
+        }
       })
     );
   } catch (error) {
@@ -130,20 +195,26 @@ exports.getUserById = async (req, res) => {
   const { id } = req.params;
   try {
     const user = await User.findOne({ _id: id, isDeleted: false })
-    .populate('basicInfo')
+      .populate('basicInfo')
       .populate('roles')
       .populate('education')
       .populate('industryOccupation')
       .populate('workExperience')
       .populate('intereset')
       .populate('language')
-      .populate('expertise')
+      .populate({
+        path: 'expertise',
+        populate: {
+          path: 'expertise',
+          model: 'ExpertiseItem',
+        },
+      })
       .populate('pricing')
       .populate('availability')
       .populate('notifications')
       .populate('blockedUsers', '-password -otp -otpExpiry -isDeleted')
       .exec();
-      if (!user) {
+    if (!user) {
       return res.status(404).json(createResponse.error({ errorCode: 'USER_NOT_FOUND', errorMessage: 'User not found' }));
     }
     res.json(createResponse.success(user));
@@ -189,7 +260,7 @@ exports.updateUser = async (req, res) => {
 // Controller to delete a user
 exports.deleteUser = async (req, res) => {
   const { id } = req.params;
-  const { ids } = req.body; 
+  const { ids } = req.body;
   try {
     if (ids && Array.isArray(ids)) {
       // Handle multiple user deletions
@@ -228,7 +299,7 @@ exports.blockStatus = async (req, res) => {
       });
     }
 
-    const objectIds = userIds.map(id =>new mongoose.Types.ObjectId(id));
+    const objectIds = userIds.map(id => new mongoose.Types.ObjectId(id));
 
     const users = await User.find({ _id: { $in: objectIds } }, { block: 1 }).lean();
     if (!users || users.length === 0) {
@@ -253,7 +324,7 @@ exports.blockStatus = async (req, res) => {
     );
 
     console.log("Update result for BlockedUser:", result);
-     if (block) {
+    if (block) {
       await User.updateMany(
         { _id: { $in: userIds } },
         { $addToSet: { blockedUsers: { $each: userIds } } }
