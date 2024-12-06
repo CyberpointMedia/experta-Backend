@@ -11,21 +11,17 @@ const errorMessageConstants = require('../constants/error.messages');
 exports.createUser = async (req, res) => {
   const { phoneNo, email, firstName, lastName, roles } = req.body;
   try {
-    // Save basicInfo separately and get its ObjectId
     const basicInfo = new BasicInfo({
       displayName: `${firstName} ${lastName}`,
       firstName,
       lastName,
     });
     const savedBasicInfo = await basicInfo.save();
-
-    // Convert roles to ObjectIds (if referencing a Role collection)
     const roleIds = await Role.find({ name: { $in: roles } }).select('_id');
     const blockedUser = new BlockedUser({
       block: false,
     });
     const savedBlockedUser = await blockedUser.save();
-    // Create the user with referenced ObjectIds
     const user = new User({
       phoneNo,
       email,
@@ -79,7 +75,7 @@ exports.getAllUsers = async (req, res) => {
 
     const basicInfoFilter = {};
     if (name) {
-      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' }; // Case-insensitive match
+      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' }; 
     }
     const pipeline = [
       { $match: filter },
@@ -138,14 +134,12 @@ exports.getAllUsers = async (req, res) => {
       });
     }
     const users = await User.aggregate(pipeline);
-    const totalUsers = await User.countDocuments({ isDeleted: false });
+    const totalUsers = await User.countDocuments(filter);
     const totalVerified = await User.countDocuments({ isDeleted: false, isVerified: true });
     const totalUnverified = await User.countDocuments({ isDeleted: false, isVerified: false });
     const totalPages = Math.ceil(totalUsers / limit);
     const totalBlocked = await BlockedUser.countDocuments({ block: true, isDeleted: false });
     // const totalUnblocked = await BlockedUser.countDocuments({ block: false, isDeleted: false });
-
-
     if (users.length === 0) {
       return res.json(createResponse.success(
       {

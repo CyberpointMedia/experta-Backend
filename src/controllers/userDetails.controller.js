@@ -110,7 +110,7 @@ exports.getAllBookings = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
     const id = req.params.id;
-    const {displayName} = req.query;
+    const {fullName} = req.query;
     console.log("id",id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -127,13 +127,24 @@ exports.getAllBookings = async (req, res) => {
       $or: [{ client: id }, { expert: id }],
     };
 
-    if (displayName) {
+    if (fullName) {
+      const regexPattern = new RegExp(fullName, "i");
       baseQuery.$or.push(
         {
-          "expert.basicInfo.displayName": { $regex: displayName, $options: "i" },
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ["$expert.basicInfo.firstName", " ", "$expert.basicInfo.lastName"] },
+              regex: regexPattern,
+            },
+          },
         },
         {
-          "client.basicInfo.displayName": { $regex: displayName, $options: "i" },
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ["$client.basicInfo.firstName", " ", "$client.basicInfo.lastName"] },
+              regex: regexPattern,
+            },
+          },
         }
       );
     }
@@ -146,32 +157,26 @@ exports.getAllBookings = async (req, res) => {
       select: "-__v",
       populate: {
         path: "basicInfo",
-        match: displayName
-            ? { displayName: { $regex: displayName, $options: "i" } }
-            : {},
+        select: "firstName lastName", 
       },
     })
+
     .populate({
       path: "client",
       select: "-__v",
       populate: {
         path: "basicInfo",
-        match: displayName
-            ? { displayName: { $regex: displayName, $options: "i" } }
-            : {},
+        select: "firstName lastName",
       },
     })
       .select("-__v")
       .exec();
-      const totalBookings = await Booking.countDocuments({
-        isDeleted: false,
-        $or: [{ client: id }, { expert: id }],
-      });
+      const totalBookings = await Booking.countDocuments(baseQuery);
       const totalPages = Math.ceil(totalBookings / limit);
     if (!bookings || bookings.length === 0) {
       return res.json(createResponse.success({
         bookings,
-      pagination: {
+        pagination: {
         currentPage: page,
         totalPages,
         totalItems: totalBookings,
