@@ -72,6 +72,9 @@ exports.getAllPages = async (req, res) => {
       .limit(limit) 
       .exec();
 
+      const totalItems = await Page.countDocuments(filter);
+      const totalPages = Math.ceil(totalItems / limit);
+
       const statusCounts = await Page.aggregate([
         { $match: { isDeleted: false } }, 
         { $group: { _id: "$status", count: { $sum: 1 } } },
@@ -85,9 +88,6 @@ exports.getAllPages = async (req, res) => {
     statusCounts.forEach(item => {
       statusSummary[item._id] = item.count;
     });
-
-    const totalItems = Object.values(statusSummary).reduce((sum, count) => sum + count, 0);
-    const totalPages = Math.ceil(totalItems / limit);
   
     if (!pages || pages.length === 0) {
       return res.json({
