@@ -168,8 +168,32 @@ exports.getAllUsers = async (req, res) => {
 
     const totalVerified = await User.countDocuments({ ...filter, isVerified: true });
     const totalUnverified = await User.countDocuments({ ...filter, isVerified: false });
-    const totalBlocked = await BlockedUser.countDocuments({ block: true, isDeleted: false });
-
+    const totalBlocked = await User.aggregate([
+      {
+        $lookup: {
+          from: 'blockedusers', // Name of the blocked users collection
+          localField: '_id',    // Field in User collection
+          foreignField: 'user', // Field in BlockedUser collection
+          as: 'blockInfo',      // Output array
+        },
+      },
+      {
+        $unwind: { path: '$blockInfo', preserveNullAndEmptyArrays: true },
+      },
+      {
+        $match: {
+          'blockInfo.block': true,       // Ensure the user is blocked
+          'blockInfo.isDeleted': false, // Ensure the block entry is not deleted
+        },
+      },
+      {
+        $count: 'totalCount', // Count the matching users
+      },
+    ]);
+    
+    // Extract the count or default to 0
+    const totalBlockedCount = totalBlocked.length > 0 ? totalBlocked[0].totalCount : 0;
+    
     if (users.length === 0) {
       return res.json(
         createResponse.success({
@@ -182,7 +206,7 @@ exports.getAllUsers = async (req, res) => {
           statusSummary: {
             totalVerified,
             totalUnverified,
-            totalBlocked,
+            totalBlocked:totalBlockedCount,
           },
         })
       );

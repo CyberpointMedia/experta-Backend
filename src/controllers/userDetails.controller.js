@@ -309,9 +309,9 @@ exports.deleteBooking = async (req, res) => {
 exports.getAllTransactions = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
-    const { userId } = req.params;
-    const {status}= req.params;
-
+    const userId = req.params.id;
+    const {status}= req.query;
+    
     if (!userId) {
       return res.json(createResponse.error({
         errorCode: errorMessageConstants.BAD_REQUEST_ERROR_CODE,
