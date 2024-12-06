@@ -46,19 +46,19 @@ exports.createUser = async (req, res) => {
 // Controller to get all users
 exports.getAllUsers = async (req, res) => {
   const { page, limit, skip } = req.pagination;
-  const { name, phoneNo, country, role, isVerified, isBlocked } = req.query;
+  const { name, phoneNo, country, role,status } = req.query;
 
   try {
     const filter = { isDeleted: false };
 
-    if (isVerified !== undefined) {
-      filter.isVerified = isVerified === 'true';
+    if (status === 'isVerified') {
+      filter.isVerified = true;
+    } else if (status === 'notVerified') {
+      filter.isVerified = false;
     }
-
     if (phoneNo) {
       filter.phoneNo = phoneNo;
     }
-
     if (role) {
       const roleObj = await Role.findOne({ name: role });
       if (roleObj) {
@@ -72,11 +72,11 @@ exports.getAllUsers = async (req, res) => {
         );
       }
     }
-
     const basicInfoFilter = {};
     if (name) {
-      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' }; 
+      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' };
     }
+
     const pipeline = [
       { $match: filter },
       {
@@ -103,6 +103,7 @@ exports.getAllUsers = async (req, res) => {
             $cond: [
               {
                 $and: [
+                  { $gt: [{ $size: '$blockInfo' }, 0] }, 
                   { $arrayElemAt: ['$blockInfo.block', 0] },
                   { $eq: [{ $arrayElemAt: ['$blockInfo.isDeleted', 0] }, false] },
                 ],
@@ -113,6 +114,7 @@ exports.getAllUsers = async (req, res) => {
           },
         },
       },
+      ...(status === 'blocked' ? [{ $match: { isBlocked: true } }] : []),
       {
         $project: {
           password: 0,
@@ -126,36 +128,64 @@ exports.getAllUsers = async (req, res) => {
       { $skip: skip },
       { $limit: limit },
     ];
-    if (isBlocked !== undefined) {
-      pipeline.push({
-        $match: {
-          isBlocked: isBlocked === 'true',
-        },
-      });
-    }
+
     const users = await User.aggregate(pipeline);
-    const totalUsers = await User.countDocuments(filter);
-    const totalVerified = await User.countDocuments({ isDeleted: false, isVerified: true });
-    const totalUnverified = await User.countDocuments({ isDeleted: false, isVerified: false });
-    const totalPages = Math.ceil(totalUsers / limit);
-    const totalBlocked = await BlockedUser.countDocuments({ block: true, isDeleted: false });
-    // const totalUnblocked = await BlockedUser.countDocuments({ block: false, isDeleted: false });
-    if (users.length === 0) {
-      return res.json(createResponse.success(
+    const totalUsers = await User.aggregate([
+      { $match: filter },
+      { $lookup: { from: 'basicinfos', localField: 'basicInfo', foreignField: '_id', as: 'basicInfo' } },
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
+      { $match: { ...basicInfoFilter } },
       {
-        users,
-        
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalItems: totalUsers,
+        $lookup: {
+          from: 'blockedusers',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'blockInfo',
         },
-        statusSummary:{
-          totalVerified,
-        totalUnverified,
-        totalBlocked,
-        }
-      }));
+      },
+      {
+        $addFields: {
+          isBlocked: {
+            $cond: [
+              {
+                $and: [
+                  { $arrayElemAt: ['$blockInfo.block', 0] },
+                  { $eq: [{ $arrayElemAt: ['$blockInfo.isDeleted', 0] }, false] },
+                ],
+              },
+              true,
+              false,
+            ],
+          },
+        },
+      },
+      ...(status === 'blocked' ? [{ $match: { isBlocked: true } }] : []),
+      { $count: 'totalCount' },
+    ]);
+
+    const totalUsersCount = totalUsers.length > 0 ? totalUsers[0].totalCount : 0;
+    const totalPages = Math.ceil(totalUsersCount / limit);
+
+    const totalVerified = await User.countDocuments({ ...filter, isVerified: true });
+    const totalUnverified = await User.countDocuments({ ...filter, isVerified: false });
+    const totalBlocked = await BlockedUser.countDocuments({ block: true, isDeleted: false });
+
+    if (users.length === 0) {
+      return res.json(
+        createResponse.success({
+          users,
+          pagination: {
+            currentPage: page,
+            totalPages,
+            totalItems: totalUsersCount,
+          },
+          statusSummary: {
+            totalVerified,
+            totalUnverified,
+            totalBlocked,
+          },
+        })
+      );
     }
 
     res.json(
@@ -164,13 +194,13 @@ exports.getAllUsers = async (req, res) => {
         pagination: {
           currentPage: page,
           totalPages,
-          totalItems: totalUsers,
+          totalItems: totalUsersCount,
         },
-        statusSummary:{
+        statusSummary: {
           totalVerified,
-        totalUnverified,
-        totalBlocked,
-        }
+          totalUnverified,
+          totalBlocked,
+        },
       })
     );
   } catch (error) {
