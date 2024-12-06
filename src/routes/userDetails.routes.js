@@ -30,7 +30,6 @@ Router.get('/all-basic-info',authMiddleware, hasRole('admin'), getAllBasicInfo);
 //Booking history routes
 // Route to get all bookings
 Router.get('/all-bookings/:id',authMiddleware, hasRole('admin'),paginate('Booking'), getAllBookings); 
-//get booking by cliend id
 
 // Get a booking by ID
 Router.get('/bookings/:id',authMiddleware, hasRole('admin'), getBookingById);
@@ -43,7 +42,7 @@ Router.delete('/bookings/:id',authMiddleware, hasRole('admin'), deleteBooking);
 
 //Transaction history routes
 // Get all transactions
-Router.get('/transactions', authMiddleware, hasRole('admin'),paginate('PaymentTransaction'), getAllTransactions);
+Router.get('/all-transactions/:id', authMiddleware, hasRole('admin'),paginate('PaymentTransaction'), getAllTransactions);
 // Get a transaction by ID
 Router.get('/transactions/:id', authMiddleware, hasRole('admin'), getTransactionById);
 // Create a new transaction
