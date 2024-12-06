@@ -309,6 +309,30 @@ exports.deleteBooking = async (req, res) => {
 exports.getAllTransactions = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
+    const { userId } = req.params;
+    const {status}= req.params;
+
+    if (!userId) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.BAD_REQUEST_ERROR_CODE,
+        errorMessage: 'User ID is required',
+      }));
+    }
+    const filter = {
+      isDeleted: false,
+      user: userId, 
+    };
+
+    if (status) {
+      const allowedStatuses = ['completed', 'pending', 'failed'];
+      if (!allowedStatuses.includes(status)) {
+        return res.json(createResponse.error({
+          errorCode: errorMessageConstants.BAD_REQUEST_ERROR_CODE,
+          errorMessage: 'Invalid status value',
+        }));
+      }
+      filter.status = status;
+    }
 
     const transactions = await PaymentTransaction.find({ isDeleted: false })
       .skip(skip)
@@ -333,6 +357,11 @@ exports.getAllTransactions = async (req, res) => {
     res.json(createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalTransactions
+      }
     }));
   }
 };
