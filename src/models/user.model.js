@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false,
-      select: false, // Exclude isDeleted from query results by default
+      // select: false, // Exclude isDeleted from query results by default
     },
     basicInfo: {
       type: mongoose.Schema.Types.ObjectId,
