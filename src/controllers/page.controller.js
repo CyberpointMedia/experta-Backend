@@ -57,7 +57,7 @@ exports.getAllPages = async (req, res) => {
     }
 
     if (search) {
-      filter.title = { $regex: search, $options: "i" };
+      filter.title = { $regex: new RegExp(search, "i") };
     }
 
     const pages = await Page.find(filter)
@@ -79,13 +79,28 @@ exports.getAllPages = async (req, res) => {
         { $match: { isDeleted: false } }, 
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]);
-      const statusSummary = statusCounts.reduce((acc, item) => {
-        acc[item._id] = item.count;
-        return acc;
-      }, {});
+      const defaultStatuses = ['draft', 'published', 'trash'];
+      const statusSummary = defaultStatuses.reduce((acc, status) => {
+      acc[status] = 0;
+      return acc;
+    }, {});
+
+    statusCounts.forEach(item => {
+      statusSummary[item._id] = item.count;
+    });
   
     if (!pages || pages.length === 0) {
-      return res.json(createResponse.success([], "No pages found"));
+      return res.json({
+        status: 'success',
+        message: 'No pages found',
+        data: [],
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems,
+        },
+        statusSummary,
+      });
     }
 
     res.json({

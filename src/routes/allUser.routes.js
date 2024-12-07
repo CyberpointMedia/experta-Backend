@@ -1,7 +1,7 @@
 // allUsersRoutes.js
 const express = require('express');
 const allUsersRouters = express.Router();
-const { createUser, getAllUsers, getUserById, updateUser, deleteUser } = require('../controllers/allUser.controller'); 
+const { createUser, getAllUsers, getUserById, updateUser, deleteUser , blockStatus } = require('../controllers/allUser.controller'); 
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const {hasRole}=require("../middlewares/role.middleware")
 const routes = require("../constants/route.url");
@@ -20,9 +20,13 @@ allUsersRouters.get('/user/:id',authMiddleware ,hasRole('admin'), getUserById);
 allUsersRouters.put('/user/:id',authMiddleware , hasRole('admin'),  updateUser);
 
 // Route to delete a user
-allUsersRouters.delete('/user/:id',authMiddleware , hasRole('admin'), deleteUser);
+allUsersRouters.delete('/delete-user/:id',authMiddleware , hasRole('admin'), deleteUser);
+allUsersRouters.delete('/delete-user',authMiddleware , hasRole('admin'), deleteUser);
 
-// Export the routes as middleware to be used in app.js
+allUsersRouters.put('/block-user/:id',authMiddleware , hasRole('admin'),  blockStatus);
+allUsersRouters.put('/block-user',authMiddleware , hasRole('admin'),  blockStatus);
+
+
 module.exports = (app) => {
-    app.use(routes.API, allUsersRouters);  // Prefix your routes with `/api`
+    app.use(routes.API, allUsersRouters); 
 };

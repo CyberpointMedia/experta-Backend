@@ -8,49 +8,84 @@ const Message = require('../models/ticketchats.model');
 const BlockedUser = require('../models/blockUser.model');
 const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
+const mongoose = require('mongoose');
 
 // Get all users
-exports.getAllUsers = async (req, res) => {
-  try {
-    const { page, limit, skip } = req.pagination;
-    const users = await User.find({ isDeleted: false })
-      .skip(skip)
-      .limit(limit)
-      .populate('basicInfo') // Populate the basicInfo field
-      // .populate('pricing') 
-      // .populate('education') 
-      // .populate('workExperience')
-      // .populate('language') 
-      // .populate('intereset')
-      // .populate('availability')
-      // .populate('notifications') 
-      .exec();
-    const totalUsers = await User.countDocuments({ isDeleted: false });
-    const totalPages = Math.ceil(totalUsers / limit);
+// exports.getAllUsers = async (req, res) => {
+//   try {
+//     const { page, limit, skip } = req.pagination;
+//     const { isVerified, isBlocked } = req.query;
 
-    if (!users || users.length === 0) {
-      return res.json(createResponse.success([], "No users found"));
-    }
+//     const userFilter = { isDeleted: false };
+//     if (isVerified !== undefined) {
+//       filter.isVerified = isVerified === 'true';
+//     }
 
-    // Return populated user data
-    res.json(createResponse.success({
-      users,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems: totalUsers
-      }
-    }));
-  } catch (error) {
-    console.error(error);  // Log error details for debugging
+//     const users = await User.find(filter)
+//       .skip(skip)
+//       .limit(limit)
+//       .populate('basicInfo')
+//       .populate({
+//         path: 'block',
+//         model: 'BlockedUser',
+//         match: { isDeleted: false },
+//         select: 'block blockExpiry',
+//       })
+//       // .populate('pricing') 
+//       // .populate('education') 
+//       // .populate('workExperience')
+//       // .populate('language') 
+//       // .populate('intereset')
+//       // .populate('availability')
+//       // .populate('notifications') 
+//       .exec();
 
-    // Return the error with appropriate code and message
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message || 'An error occurred while fetching users'
-    }));
-  }
-};
+//     const verifiedCount = await User.countDocuments({ isDeleted: false, isVerified: true });
+//     const unverifiedCount = await User.countDocuments({ isDeleted: false, isVerified: false });
+//     const blockedCount = await BlockedUser.countDocuments({ block: true, isDeleted: false });
+//     const unblockedCount = await BlockedUser.countDocuments({ block: false, isDeleted: false });
+
+//     const totalUsers = await User.countDocuments({ isDeleted: false });
+//     const totalPages = Math.ceil(totalUsers / limit);
+
+//     if (!filteredUsers || filteredUsers.length === 0) {
+//       return res.json(createResponse.success({
+//         errorMessage: 'No users found',
+//         counts: {
+//           verified: verifiedCount,
+//           unverified: unverifiedCount,
+//           blocked: blockedCount,
+//           unblocked: unblockedCount,
+//         },
+//         pagination: {
+//           currentPage: page,
+//           totalPages,
+//           totalItems: totalUsers
+//         }
+//       }));
+//     }
+//     res.json(createResponse.success({
+//       users,
+//       counts: {
+//         verified: verifiedCount,
+//         unverified: unverifiedCount,
+//         blocked: blockedCount,
+//         unblocked: unblockedCount,
+//       },
+//       pagination: {
+//         currentPage: page,
+//         totalPages,
+//         totalItems: totalUsers
+//       }
+//     }));
+//   } catch (error) {
+//     console.error(error);
+//     res.json(createResponse.error({
+//       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+//       errorMessage: error.message || 'An error occurred while fetching users'
+//     }));
+//   }
+// };
 
 // Controller to get all BasicInfo
 exports.getAllBasicInfo = async (req, res) => {
@@ -74,18 +109,80 @@ exports.getAllBasicInfo = async (req, res) => {
 exports.getAllBookings = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
+    const id = req.params.id;
+    const {fullName} = req.query;
+    console.log("id",id);
 
-    const bookings = await Booking.find({ isDeleted: false })
-      .skip(skip)
-      .limit(limit)
-      .populate('expert client')
-      .select('-__v')
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(
+        createResponse.error({
+          errorCode: "INVALID_ID",
+          errorMessage: "The provided ID is not valid",
+        })
+      );
+    }
+
+    const baseQuery = {
+      isDeleted: false,
+      $or: [{ client: id }, { expert: id }],
+    };
+
+    if (fullName) {
+      const regexPattern = new RegExp(fullName, "i");
+      baseQuery.$or.push(
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ["$expert.basicInfo.firstName", " ", "$expert.basicInfo.lastName"] },
+              regex: regexPattern,
+            },
+          },
+        },
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ["$client.basicInfo.firstName", " ", "$client.basicInfo.lastName"] },
+              regex: regexPattern,
+            },
+          },
+        }
+      );
+    }
+
+    const bookings = await Booking.find(baseQuery)
+    .skip(skip)
+    .limit(limit)
+    .populate({
+      path: "expert",
+      select: "-__v",
+      populate: {
+        path: "basicInfo",
+        select: "firstName lastName", 
+      },
+    })
+
+    .populate({
+      path: "client",
+      select: "-__v",
+      populate: {
+        path: "basicInfo",
+        select: "firstName lastName",
+      },
+    })
+      .select("-__v")
       .exec();
-
-    const totalBookings = await Booking.countDocuments({ isDeleted: false });
-    const totalPages = Math.ceil(totalBookings / limit);
+      const totalBookings = await Booking.countDocuments(baseQuery);
+      const totalPages = Math.ceil(totalBookings / limit);
     if (!bookings || bookings.length === 0) {
-      return res.json(createResponse.success([], "No bookings found"));
+      return res.json(createResponse.success({
+        bookings,
+        pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalBookings,
+        }, 
+        message: "No bookings found"
+      }));
     }
     res.json(createResponse.success({
       bookings,
@@ -108,7 +205,7 @@ exports.getAllBookings = async (req, res) => {
 exports.getBookingById = async (req, res) => {
   const { id } = req.params;
   try {
-    const booking = await Booking.findOne({_id:id, isDeleted: false})
+    const booking = await Booking.findOne({ _id: id, isDeleted: false })
       .populate('expert client')
       .select('-__v');
 
@@ -125,7 +222,6 @@ exports.getBookingById = async (req, res) => {
     }));
   }
 };
-
 
 // Create a new booking
 exports.createBooking = async (req, res) => {
@@ -213,10 +309,34 @@ exports.deleteBooking = async (req, res) => {
 exports.getAllTransactions = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
+    const userId = req.params.id;
+    const {status}= req.query;
+    
+    if (!userId) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.BAD_REQUEST_ERROR_CODE,
+        errorMessage: 'User ID is required',
+      }));
+    }
+    const filter = {
+      isDeleted: false,
+      user: userId, 
+    };
+
+    if (status) {
+      const allowedStatuses = ['completed', 'pending', 'failed'];
+      if (!allowedStatuses.includes(status)) {
+        return res.json(createResponse.error({
+          errorCode: errorMessageConstants.BAD_REQUEST_ERROR_CODE,
+          errorMessage: 'Invalid status value',
+        }));
+      }
+      filter.status = status;
+    }
 
     const transactions = await PaymentTransaction.find({ isDeleted: false })
-      .skip(skip) 
-      .limit(limit) 
+      .skip(skip)
+      .limit(limit)
       .populate('user')
       .select('-__v')
       .exec();
@@ -237,6 +357,11 @@ exports.getAllTransactions = async (req, res) => {
     res.json(createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalTransactions
+      }
     }));
   }
 };
@@ -350,29 +475,27 @@ exports.deleteTransaction = async (req, res) => {
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
   try {
-    console.log("Inside getAllReviews controller");
-    // Extract pagination info from the request object (set by the pagination middleware)
     const { page, limit, skip } = req.pagination;
-
-    // Fetch reviews with pagination and populate the reviewer's details
+    const userId = req.params.id;
     const reviews = await Review.find({ isDeleted: false })
-      .populate("reviewBy", "firstName lastName")  // Populate reviewer's info (firstName, lastName)
-      .skip(skip)  // Skip the appropriate number of reviews based on pagination
-      .limit(limit)  // Limit the number of reviews returned
-      .select("-__v")  // Optionally exclude the __v field
+      .populate("reviewBy", "firstName lastName")  
+      .skip(skip)  
+      .limit(limit)  
+      .select("-__v")  
       .exec();
-
-    // Get the total number of reviews to calculate total pages
-    const totalReviews = await Review.countDocuments({ isDeleted: false });
-
-    // Calculate total pages
-    const totalPages = Math.ceil(totalReviews / limit);
-
-    // If no reviews found
+      const totalReviews = await Review.countDocuments({ reviewBy: userId, isDeleted: false });
+      const totalPages = Math.ceil(totalReviews / limit);
     if (!reviews || reviews.length === 0) {
-      return res.json(createResponse.success([], "No reviews found"));
+      return res.json(createResponse.success({
+      reviews: [],
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalReviews
+      },
+      message: "No reviews found"
+      }));
     }
-
     res.json(createResponse.success({
       reviews,
       pagination: {
@@ -403,33 +526,6 @@ exports.getReviewById = async (req, res) => {
     }
 
     res.json(createResponse.success(review));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    }));
-  }
-};
-
-// Create a new review
-exports.createReview = async (req, res) => {
-  const { reviewBy, rating, review } = req.body;
-
-  if (!reviewBy || !rating || !review) {
-    return res.json(createResponse.invalid("Missing required fields"));
-  }
-
-  try {
-    const newReview = new Review({
-      reviewBy,
-      rating,
-      review,
-    });
-
-    await newReview.save();
-
-    res.json(createResponse.success(newReview));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
@@ -519,17 +615,17 @@ exports.createTicket = async (req, res) => {
 // Get all tickets (Admin or User can access their own tickets)
 exports.getAllTickets = async (req, res) => {
   const { page, limit, skip } = req.pagination;
-  const userId = req.body.user._id; 
+  const userId = req.body.user._id;
 
   try {
     const tickets = await Ticket.find({
       isDeleted: false,
-      $or: [{ userId }, { assignId: userId }]  
+      $or: [{ userId }, { assignId: userId }]
     })
-    .skip(skip)
-    .limit(limit)
-    .populate('userId assignId')
-    .exec();
+      .skip(skip)
+      .limit(limit)
+      .populate('userId assignId')
+      .exec();
 
     const totalTickets = await Ticket.countDocuments({
       isDeleted: false,
@@ -559,18 +655,18 @@ exports.getAllTickets = async (req, res) => {
 // Get all active tickets (Admin or User can access their own tickets)
 exports.getAllActiveTickets = async (req, res) => {
   const { page, limit, skip } = req.pagination;
-  const userId = req.body.user._id; 
+  const userId = req.body.user._id;
 
   try {
     const tickets = await Ticket.find({
       isDeleted: false,
       status: "open",
-      $or: [{ userId }, { assignId: userId }]  
+      $or: [{ userId }, { assignId: userId }]
     })
-    .skip(skip)
-    .limit(limit)
-    .populate('userId assignId')
-    .exec();
+      .skip(skip)
+      .limit(limit)
+      .populate('userId assignId')
+      .exec();
 
     const totalTickets = await Ticket.countDocuments({
       isDeleted: false,
@@ -602,18 +698,18 @@ exports.getAllActiveTickets = async (req, res) => {
 // Get all closed tickets (Admin or User can access their own tickets)
 exports.getAllClosedTickets = async (req, res) => {
   const { page, limit, skip } = req.pagination;
-  const userId = req.body.user._id; 
+  const userId = req.body.user._id;
 
   try {
     const tickets = await Ticket.find({
       isDeleted: false,
       status: "closed",
-      $or: [{ userId }, { assignId: userId }]  
+      $or: [{ userId }, { assignId: userId }]
     })
-    .skip(skip)
-    .limit(limit)
-    .populate('userId assignId')
-    .exec();
+      .skip(skip)
+      .limit(limit)
+      .populate('userId assignId')
+      .exec();
 
     const totalTickets = await Ticket.countDocuments({
       isDeleted: false,
@@ -692,7 +788,7 @@ exports.updateTicket = async (req, res) => {
       }));
     }
 
-  // Update only provided fields
+    // Update only provided fields
     ticket.status = status || ticket.status;
     ticket.priority = priority || ticket.priority;
     ticket.description = description || ticket.description;
@@ -835,7 +931,7 @@ exports.getMessagesByTicketId = async (req, res) => {
   const { ticketId } = req.params;
 
   try {
-    const messages = await Message.find({ _id : ticketId , isDeleted: false })
+    const messages = await Message.find({ _id: ticketId, isDeleted: false })
       .populate('senderId receiverId')
       .sort({ timestamp: 1 });
 
@@ -887,42 +983,41 @@ exports.getMessagesBetweenUsers = async (req, res) => {
 exports.getBlockedUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const blockedUser = await BlockedUser.findOne({_id:id,isDeleted:false}).populate('user');
-    if (!blockedUser) {
-      return res.json(createResponse.error({
-        errorCode: errorMessageConstants.NOT_FOUND_CODE,
-        errorMessage: 'Blocked user not found',
-      }));
+    const { page, limit , skip  } = req.pagination; 
+    console.log("id",id);
+    // Validate the provided user ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(
+        createResponse.error({
+          errorCode: "INVALID_ID",
+          errorMessage: "The provided ID is not valid",
+        })
+      );
     }
-    res.json(createResponse.success(blockedUser));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message || 'An error occurred while fetching the blocked user',
-    }));
-  }
-};
 
-// Get All BlockedUsers
-exports.getAllBlockedUsers = async (req, res) => {
-  try {
-    const { page, limit, skip } = req.pagination;
-    const blockedUsers = await BlockedUser.find({ isDeleted: false })
-      .skip(skip)
-      .limit(limit)
-      .populate('user')
+    const user = await User.findOne({ _id: id, isDeleted: false })
+      .populate({
+        path: 'blockedUsers',
+        options: { skip, limit },
+      })
       .exec();
 
-    const totalBlockedUsers = await BlockedUser.countDocuments();
-    const totalPages = Math.ceil(totalBlockedUsers / limit);
-
-    if (!blockedUsers || blockedUsers.length === 0) {
-      return res.json(createResponse.success([], "No blocked users found"));
+    if (!user) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.NOT_FOUND_CODE,
+        errorMessage: 'User not found',
+      }));
     }
 
+    const totalBlockedUsers = user.blockedUsers.length;
+    const totalPages = Math.ceil(totalBlockedUsers / limit);
+
     res.json(createResponse.success({
-      blockedUsers,
+      blockedUsers: user.blockedUsers,
+      blockTiming: {
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
       pagination: {
         currentPage: page,
         totalPages,
@@ -938,61 +1033,7 @@ exports.getAllBlockedUsers = async (req, res) => {
   }
 };
 
-// Edit BlockedUser
-exports.editBlockedUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { block } = req.body;
 
-    const blockedUser = await BlockedUser.findOneAndUpdate(
-      {_id:id,isDeleted:false},
-      { block },
-      { new: true }
-    );
-
-    if (!blockedUser) {
-      return res.json(createResponse.error({
-        errorCode: errorMessageConstants.NOT_FOUND_CODE,
-        errorMessage: 'Blocked user not found',
-      }));
-    }
-
-    res.json(createResponse.success(blockedUser, 'Blocked user updated successfully'));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message || 'An error occurred while updating the blocked user',
-    }));
-  }
-};
-
-// Delete BlockedUser
-exports.deleteBlockedUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const blockedUser = await BlockedUser.findOne({_id:id,isDeleted:false});
-
-    blockedUser.isDeleted = true;
-    await blockedUser.save();
-
-    if (!blockedUser) {
-      return res.json(createResponse.error({
-        errorCode: errorMessageConstants.NOT_FOUND_CODE,
-        errorMessage: 'Blocked user not found',
-      }));
-    }
-
-    res.json(createResponse.success(null, 'Blocked user deleted successfully'));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message || 'An error occurred while deleting the blocked user',
-    }));
-  }
-};
 
 
 
