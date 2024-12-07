@@ -62,11 +62,7 @@ Router.put('/reviews/:id', authMiddleware, hasRole('admin'), updateReview);
 Router.delete('/reviews/:id', authMiddleware, hasRole('admin'), deleteReview);
 
 //block user routes
-Router.get('/blocked-users/:id', authMiddleware, hasRole('admin'), getBlockedUserById);
-Router.get('/get-all-blocked-users', authMiddleware, hasRole('admin'), paginate('BlockedUser'), getAllBlockedUsers);
-Router.put('/edit-blocked-user/:id', authMiddleware, hasRole('admin'), editBlockedUser);
-Router.delete('/delete-blocked-user/:id', authMiddleware, hasRole('admin'), deleteBlockedUser);
-
+Router.get('/all-blocked-users/:id', authMiddleware, hasRole('admin'),paginate('User'), getBlockedUserById);
 
 //add the industry 
 
