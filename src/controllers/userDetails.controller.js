@@ -475,29 +475,27 @@ exports.deleteTransaction = async (req, res) => {
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
   try {
-    console.log("Inside getAllReviews controller");
-    // Extract pagination info from the request object (set by the pagination middleware)
     const { page, limit, skip } = req.pagination;
-
-    // Fetch reviews with pagination and populate the reviewer's details
+    const userId = req.params.id;
     const reviews = await Review.find({ isDeleted: false })
-      .populate("reviewBy", "firstName lastName")  // Populate reviewer's info (firstName, lastName)
-      .skip(skip)  // Skip the appropriate number of reviews based on pagination
-      .limit(limit)  // Limit the number of reviews returned
-      .select("-__v")  // Optionally exclude the __v field
+      .populate("reviewBy", "firstName lastName")  
+      .skip(skip)  
+      .limit(limit)  
+      .select("-__v")  
       .exec();
-
-    // Get the total number of reviews to calculate total pages
-    const totalReviews = await Review.countDocuments({ isDeleted: false });
-
-    // Calculate total pages
-    const totalPages = Math.ceil(totalReviews / limit);
-
-    // If no reviews found
+      const totalReviews = await Review.countDocuments({ reviewBy: userId, isDeleted: false });
+      const totalPages = Math.ceil(totalReviews / limit);
     if (!reviews || reviews.length === 0) {
-      return res.json(createResponse.success([], "No reviews found"));
+      return res.json(createResponse.success({
+      reviews: [],
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalReviews
+      },
+      message: "No reviews found"
+      }));
     }
-
     res.json(createResponse.success({
       reviews,
       pagination: {
@@ -528,33 +526,6 @@ exports.getReviewById = async (req, res) => {
     }
 
     res.json(createResponse.success(review));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    }));
-  }
-};
-
-// Create a new review
-exports.createReview = async (req, res) => {
-  const { reviewBy, rating, review } = req.body;
-
-  if (!reviewBy || !rating || !review) {
-    return res.json(createResponse.invalid("Missing required fields"));
-  }
-
-  try {
-    const newReview = new Review({
-      reviewBy,
-      rating,
-      review,
-    });
-
-    await newReview.save();
-
-    res.json(createResponse.success(newReview));
   } catch (error) {
     console.error(error);
     res.json(createResponse.error({
