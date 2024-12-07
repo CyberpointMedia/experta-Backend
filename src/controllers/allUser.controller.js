@@ -43,52 +43,27 @@ exports.createUser = async (req, res) => {
   }
 };
 
-// Controller to get all users
 exports.getAllUsers = async (req, res) => {
-  const { page, limit, skip } = req.pagination;
-  const { name, phoneNo, country, role,status } = req.query;
-
   try {
-    const filter = { isDeleted: false };
+    const { page, limit, skip } = req.pagination;
+    const { phoneNo, status } = req.query;
+    const filter = {};
 
-    if (status === 'isVerified') {
-      filter.isVerified = true;
-    } else if (status === 'notVerified') {
-      filter.isVerified = false;
-    }
     if (phoneNo) {
       filter.phoneNo = phoneNo;
     }
-    if (role) {
-      const roleObj = await Role.findOne({ name: role });
-      if (roleObj) {
-        filter.roles = roleObj._id;
-      } else {
-        return res.json(
-          createResponse.error({
-            errorCode: errorMessageConstants.NOT_FOUND_ERROR_CODE,
-            errorMessage: 'Role not found',
-          })
-        );
+    if (status) {
+      if (status === 'isVerified') {
+        filter.isVerified = true;
+        filter['blockInfo.block'] = { $ne: true };
+      } else if (status === 'notVerified') {
+        filter.isVerified = false;
+        filter['blockInfo.block'] = { $ne: true }; 
+      } else if (status === 'block') {
+        filter['blockInfo.block'] = true; 
       }
     }
-    const basicInfoFilter = {};
-    if (name) {
-      basicInfoFilter.displayName = { $regex: `.*${name}.*`, $options: 'i' };
-    }
-
-    const pipeline = [
-      { $match: filter },
-      {
-        $lookup: {
-          from: 'basicinfos',
-          localField: 'basicInfo',
-          foreignField: '_id',
-          as: 'basicInfo',
-        },
-      },
-      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
-      { $match: { ...basicInfoFilter } },
+    const users = await User.aggregate([
       {
         $lookup: {
           from: 'blockedusers',
@@ -97,44 +72,28 @@ exports.getAllUsers = async (req, res) => {
           as: 'blockInfo',
         },
       },
+      { $unwind: { path: '$blockInfo', preserveNullAndEmptyArrays: true } },
       {
-        $addFields: {
-          isBlocked: {
-            $cond: [
-              {
-                $and: [
-                  { $gt: [{ $size: '$blockInfo' }, 0] }, 
-                  { $arrayElemAt: ['$blockInfo.block', 0] },
-                  { $eq: [{ $arrayElemAt: ['$blockInfo.isDeleted', 0] }, false] },
-                ],
-              },
-              true,
-              false,
-            ],
-          },
-        },
-      },
-      ...(status === 'blocked' ? [{ $match: { isBlocked: true } }] : []),
-      {
-        $project: {
-          password: 0,
-          otp: 0,
-          otpExpiry: 0,
-          blockExpiry: 0,
-          isDeleted: 0,
-          blockInfo: 0,
+        $match: {
+          ...filter,
+          $or: [
+            { 'blockInfo.block': { $exists: true } },
+            { blockInfo: null }, 
+          ],
         },
       },
       { $skip: skip },
-      { $limit: limit },
-    ];
+      { $limit: parseInt(limit, 10) },
+      {
+        $project: {
+          password: 0,
+          isDeleted: 0,
+        },
+      },
+    ]);
 
-    const users = await User.aggregate(pipeline);
+    // Total users count
     const totalUsers = await User.aggregate([
-      { $match: filter },
-      { $lookup: { from: 'basicinfos', localField: 'basicInfo', foreignField: '_id', as: 'basicInfo' } },
-      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
-      { $match: { ...basicInfoFilter } },
       {
         $lookup: {
           from: 'blockedusers',
@@ -143,87 +102,70 @@ exports.getAllUsers = async (req, res) => {
           as: 'blockInfo',
         },
       },
+      { $unwind: { path: '$blockInfo', preserveNullAndEmptyArrays: true } },
       {
-        $addFields: {
-          isBlocked: {
-            $cond: [
-              {
-                $and: [
-                  { $arrayElemAt: ['$blockInfo.block', 0] },
-                  { $eq: [{ $arrayElemAt: ['$blockInfo.isDeleted', 0] }, false] },
-                ],
-              },
-              true,
-              false,
-            ],
-          },
+        $match: {
+          ...filter,
+          $or: [
+            { 'blockInfo.block': { $exists: true } },
+            { blockInfo: null },
+          ],
         },
       },
-      ...(status === 'blocked' ? [{ $match: { isBlocked: true } }] : []),
       { $count: 'totalCount' },
     ]);
 
     const totalUsersCount = totalUsers.length > 0 ? totalUsers[0].totalCount : 0;
     const totalPages = Math.ceil(totalUsersCount / limit);
 
-    const totalVerified = await User.countDocuments({ ...filter, isVerified: true });
-    const totalUnverified = await User.countDocuments({ ...filter, isVerified: false });
+    // Status summaries
+    const totalVerified = await User.countDocuments({
+      ...filter,
+      isVerified: true,
+    });
+
+    const totalUnverified = await User.countDocuments({
+      ...filter,
+      isVerified: false,
+    });
+
     const totalBlocked = await User.aggregate([
       {
         $lookup: {
-          from: 'blockedusers', // Name of the blocked users collection
-          localField: '_id',    // Field in User collection
-          foreignField: 'user', // Field in BlockedUser collection
-          as: 'blockInfo',      // Output array
+          from: 'blockedusers',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'blockInfo',
         },
       },
-      {
-        $unwind: { path: '$blockInfo', preserveNullAndEmptyArrays: true },
-      },
+      { $unwind: { path: '$blockInfo', preserveNullAndEmptyArrays: true } },
       {
         $match: {
-          'blockInfo.block': true,       // Ensure the user is blocked
-          'blockInfo.isDeleted': false, // Ensure the block entry is not deleted
+          ...filter,
+          'blockInfo.block': true,
+          'blockInfo.isDeleted': false,
         },
       },
-      {
-        $count: 'totalCount', // Count the matching users
-      },
+      { $count: 'totalCount' },
     ]);
-    
-    // Extract the count or default to 0
+
     const totalBlockedCount = totalBlocked.length > 0 ? totalBlocked[0].totalCount : 0;
-    
-    if (users.length === 0) {
-      return res.json(
-        createResponse.success({
+
+    res.json(
+      createResponse.success({
+        message: 'Users fetched successfully',
+        data: {
           users,
           pagination: {
-            currentPage: page,
+            currentPage: parseInt(page, 10),
             totalPages,
             totalItems: totalUsersCount,
           },
           statusSummary: {
             totalVerified,
             totalUnverified,
-            totalBlocked:totalBlockedCount,
+            totalBlocked: totalBlockedCount,
           },
-        })
-      );
-    }
-
-    res.json(
-      createResponse.success({
-        users,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalItems: totalUsersCount,
-        },
-        statusSummary: {
-          totalVerified,
-          totalUnverified,
-          totalBlocked,
         },
       })
     );

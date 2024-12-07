@@ -53,16 +53,13 @@ Router.delete('/transactions/:id', authMiddleware, hasRole('admin'), deleteTrans
 
 //review history routes
 // Get all reviews
-Router.get('/reviews', authMiddleware, hasRole('admin'), paginate('Review'), getAllReviews);
+Router.get('/all-reviews/:id', authMiddleware, hasRole('admin'), paginate('Review'), getAllReviews);
 // Get a review by ID
 Router.get('/reviews/:id', authMiddleware, hasRole('admin'), getReviewById);
-// Create a new review
-Router.post('/reviews', authMiddleware, hasRole('admin'), createReview);
 // Update a review
 Router.put('/reviews/:id', authMiddleware, hasRole('admin'), updateReview);
 // Delete a review
 Router.delete('/reviews/:id', authMiddleware, hasRole('admin'), deleteReview);
-
 
 //block user routes
 Router.get('/blocked-users/:id', authMiddleware, hasRole('admin'), getBlockedUserById);
