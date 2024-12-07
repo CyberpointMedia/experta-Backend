@@ -45,7 +45,7 @@ exports.createUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const { page, limit, skip } = req.pagination;
+    const { page, limit,skip } = req.pagination;
     const { phoneNo, status } = req.query;
     const filter = {};
 
@@ -63,16 +63,22 @@ exports.getAllUsers = async (req, res) => {
         filter['blockInfo.block'] = true; 
       }
     }
+
     const users = await User.aggregate([
       {
         $lookup: {
           from: 'blockedusers',
-          localField: '_id',
-          foreignField: 'user',
+          localField: 'block',
+          foreignField: '_id',
           as: 'blockInfo',
         },
       },
       { $unwind: { path: '$blockInfo', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          'blockInfo.block': { $ifNull: ['$blockInfo.block', false] },
+        },
+      },
       {
         $match: {
           ...filter,
@@ -97,12 +103,17 @@ exports.getAllUsers = async (req, res) => {
       {
         $lookup: {
           from: 'blockedusers',
-          localField: '_id',
-          foreignField: 'user',
+          localField: 'block',
+          foreignField: '_id',
           as: 'blockInfo',
         },
       },
       { $unwind: { path: '$blockInfo', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          'blockInfo.block': { $ifNull: ['$blockInfo.block', false] },
+        },
+      },
       {
         $match: {
           ...filter,
@@ -133,8 +144,8 @@ exports.getAllUsers = async (req, res) => {
       {
         $lookup: {
           from: 'blockedusers',
-          localField: '_id',
-          foreignField: 'user',
+          localField: 'block',
+          foreignField: '_id',
           as: 'blockInfo',
         },
       },
