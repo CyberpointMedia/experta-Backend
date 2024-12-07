@@ -983,42 +983,41 @@ exports.getMessagesBetweenUsers = async (req, res) => {
 exports.getBlockedUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const blockedUser = await BlockedUser.findOne({ _id: id, isDeleted: false }).populate('user');
-    if (!blockedUser) {
-      return res.json(createResponse.error({
-        errorCode: errorMessageConstants.NOT_FOUND_CODE,
-        errorMessage: 'Blocked user not found',
-      }));
+    const { page, limit , skip  } = req.pagination; 
+    console.log("id",id);
+    // Validate the provided user ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json(
+        createResponse.error({
+          errorCode: "INVALID_ID",
+          errorMessage: "The provided ID is not valid",
+        })
+      );
     }
-    res.json(createResponse.success(blockedUser));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message || 'An error occurred while fetching the blocked user',
-    }));
-  }
-};
 
-// Get All BlockedUsers
-exports.getAllBlockedUsers = async (req, res) => {
-  try {
-    const { page, limit, skip } = req.pagination;
-    const blockedUsers = await BlockedUser.find({ isDeleted: false })
-      .skip(skip)
-      .limit(limit)
-      .populate('user')
+    const user = await User.findOne({ _id: id, isDeleted: false })
+      .populate({
+        path: 'blockedUsers',
+        options: { skip, limit },
+      })
       .exec();
 
-    const totalBlockedUsers = await BlockedUser.countDocuments();
-    const totalPages = Math.ceil(totalBlockedUsers / limit);
-
-    if (!blockedUsers || blockedUsers.length === 0) {
-      return res.json(createResponse.success([], "No blocked users found"));
+    if (!user) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.NOT_FOUND_CODE,
+        errorMessage: 'User not found',
+      }));
     }
 
+    const totalBlockedUsers = user.blockedUsers.length;
+    const totalPages = Math.ceil(totalBlockedUsers / limit);
+
     res.json(createResponse.success({
-      blockedUsers,
+      blockedUsers: user.blockedUsers,
+      blockTiming: {
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
       pagination: {
         currentPage: page,
         totalPages,
@@ -1034,61 +1033,7 @@ exports.getAllBlockedUsers = async (req, res) => {
   }
 };
 
-// Edit BlockedUser
-exports.editBlockedUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { block } = req.body;
 
-    const blockedUser = await BlockedUser.findOneAndUpdate(
-      { _id: id, isDeleted: false },
-      { block },
-      { new: true }
-    );
-
-    if (!blockedUser) {
-      return res.json(createResponse.error({
-        errorCode: errorMessageConstants.NOT_FOUND_CODE,
-        errorMessage: 'Blocked user not found',
-      }));
-    }
-
-    res.json(createResponse.success(blockedUser, 'Blocked user updated successfully'));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message || 'An error occurred while updating the blocked user',
-    }));
-  }
-};
-
-// Delete BlockedUser
-exports.deleteBlockedUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const blockedUser = await BlockedUser.findOne({ _id: id, isDeleted: false });
-
-    blockedUser.isDeleted = true;
-    await blockedUser.save();
-
-    if (!blockedUser) {
-      return res.json(createResponse.error({
-        errorCode: errorMessageConstants.NOT_FOUND_CODE,
-        errorMessage: 'Blocked user not found',
-      }));
-    }
-
-    res.json(createResponse.success(null, 'Blocked user deleted successfully'));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message || 'An error occurred while deleting the blocked user',
-    }));
-  }
-};
 
 
 
