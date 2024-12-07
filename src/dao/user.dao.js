@@ -33,6 +33,7 @@ const Chat=require("../models/chat.model");
 const Device=require("../models/device.model");
 const Notification=require("../models/notification.model");
 const KYC=require("../models/kyc.model");
+const BlockedUser=require("../models/blockUser.model");
 
 module.exports.getUserDetailsById = function (id) {
   return new Promise((resolve, reject) => {
@@ -1766,28 +1767,263 @@ exports.generateBioSuggestions = async function(userInput) {
   }
 };
 
+exports.deleteAccount = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const userId = req.body.user._id;
+    
+    const user = await User.findOne({ _id: userId, isDeleted: false }).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User not found"
+      }));
+    }
+
+    await userDao.deleteUserAndAssociatedData(userId, user, session);
+    await session.commitTransaction();
+
+    res.json(createResponse.success({ message: "Account deleted successfully" }));
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Delete account error:", error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE, 
+      errorMessage: error.message
+    }));
+  } finally {
+    session.endSession();
+  }
+};
+
 exports.deleteUserAndAssociatedData = async (userId, user, session) => {
-  const updatePromises = [
-    User.findOneAndUpdate({ _id: userId }, { isDeleted: true }, { session }),
-    BasicInfo.findOneAndUpdate({ _id: user.basicInfo }, { isDeleted: true }, { session }),
-    IndustryOccupation.findOneAndUpdate({ _id: user.industryOccupation }, { isDeleted: true }, { session }),
-    Education.updateMany({ _id: { $in: user.education } }, { isDeleted: true }, { session }),
-    WorkExperience.updateMany({ _id: { $in: user.workExperience } }, { isDeleted: true }, { session }),
-    Interest.findOneAndUpdate({ _id: user.intereset }, { isDeleted: true }, { session }),
-    Languages.findOneAndUpdate({ _id: user.language }, { isDeleted: true }, { session }), 
-    Expertise.findOneAndUpdate({ _id: user.expertise }, { isDeleted: true }, { session }),
-    Pricing.findOneAndUpdate({ _id: user.pricing }, { isDeleted: true }, { session }),
-    Availability.updateMany({ _id: { $in: user.availability } }, { isDeleted: true }, { session }),
-    Post.updateMany({ postedBy: userId }, { isDeleted: true }, { session }),
-    Review.updateMany({ reviewBy: userId }, { isDeleted: true }, { session }),
-    Booking.updateMany({ $or: [{ expert: userId }, { client: userId }] }, { isDeleted: true }, { session }),
-    Message.updateMany({ sender: userId }, { isDeleted: true }, { session }),
-    Chat.updateMany({ users: userId }, { isDeleted: true }, { session }),
-    Device.updateMany({ user: userId }, { isDeleted: true }, { session }),
-    Notification.updateMany({ $or: [{ recipient: userId }, { sender: userId }] }, { isDeleted: true }, { session }),
-    KYC.findOneAndUpdate({ userId }, { isDeleted: true }, { session }),
-    UserAccount.findOneAndUpdate({ user: userId }, { isDeleted: true }, { session })
+  try {
+    // All queries must use the same session
+    const updatePromises = [
+      User.findOneAndUpdate(
+        { _id: userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      BasicInfo.findOneAndUpdate(
+        { _id: user.basicInfo }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      IndustryOccupation.findOneAndUpdate(
+        { _id: user.industryOccupation }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Education.updateMany(
+        { _id: { $in: user.education } }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      WorkExperience.updateMany(
+        { _id: { $in: user.workExperience } }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Interest.findOneAndUpdate(
+        { _id: user.intereset }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Languages.findOneAndUpdate(
+        { _id: user.language }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Expertise.findOneAndUpdate(
+        { _id: user.expertise }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Pricing.findOneAndUpdate(
+        { _id: user.pricing }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Availability.updateMany(
+        { _id: { $in: user.availability } }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Post.updateMany(
+        { postedBy: userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Review.updateMany(
+        { reviewBy: userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Booking.updateMany(
+        { $or: [{ expert: userId }, { client: userId }] }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Message.updateMany(
+        { sender: userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Chat.updateMany(
+        { users: userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Device.updateMany(
+        { user: userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      Notification.updateMany(
+        { $or: [{ recipient: userId }, { sender: userId }] }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      KYC.findOneAndUpdate(
+        { userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      UserAccount.findOneAndUpdate(
+        { user: userId }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+      BlockedUser.findOneAndUpdate(
+        { _id: user.block }, 
+        { isDeleted: true }, 
+        { session }
+      ),
+    ];
+
+    await Promise.all(updatePromises);
+  } catch (error) {
+    throw error; // Let the controller handle the error
+  }
+};
+
+exports.restoreAccount = async function(user, session) {
+  user = await user.save({ session });
+
+  // Restore ALL associated data - matching every model from deletion
+  const reactivationPromises = [
+    // Core user data
+    BasicInfo.findOneAndUpdate(
+      { _id: user.basicInfo }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    BlockedUser.findOneAndUpdate(
+      { _id: user.block }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    IndustryOccupation.findOneAndUpdate(
+      { _id: user.industryOccupation }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+
+    // Arrays of references
+    Education.updateMany(
+      { _id: { $in: user.education } }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    WorkExperience.updateMany(
+      { _id: { $in: user.workExperience } }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    
+    // Single references
+    Interest.findOneAndUpdate(
+      { _id: user.intereset }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Languages.findOneAndUpdate(
+      { _id: user.language }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Expertise.findOneAndUpdate(
+      { _id: user.expertise }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Pricing.findOneAndUpdate(
+      { _id: user.pricing }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    
+    // Arrays of references
+    Availability.updateMany(
+      { _id: { $in: user.availability } }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+
+    // Related content where user is referenced
+    Post.updateMany(
+      { postedBy: user._id }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Review.updateMany(
+      { reviewBy: user._id }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Booking.updateMany(
+      { $or: [{ expert: user._id }, { client: user._id }] },
+      { isDeleted: false },
+      { session }
+    ),
+    Message.updateMany(
+      { sender: user._id }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Chat.updateMany(
+      { users: user._id }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Device.updateMany(
+      { user: user._id }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    Notification.updateMany(
+      { $or: [{ recipient: user._id }, { sender: user._id }] },
+      { isDeleted: false },
+      { session }
+    ),
+    
+    // User-specific documents
+    KYC.findOneAndUpdate(
+      { userId: user._id }, 
+      { isDeleted: false }, 
+      { session }
+    ),
+    UserAccount.findOneAndUpdate(
+      { user: user._id }, 
+      { isDeleted: false }, 
+      { session }
+    )
   ];
 
-  await Promise.all(updatePromises);
+  await Promise.all(reactivationPromises);
+  return user;
 };

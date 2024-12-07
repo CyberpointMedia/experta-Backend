@@ -20,6 +20,13 @@ const BlockedUser = require("../models/blockUser.model");
 const twilio = require("twilio");
 
 const client = twilio(config.twilio.accountSid, config.twilio.twilioAuthToken);
+const userDao=require("../dao/user.dao");
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const RESTORE_WINDOW_DAYS = 30;
+const RESTORE_WINDOW_MS = RESTORE_WINDOW_DAYS * MS_PER_DAY;
+const mongoose = require("mongoose");
+
+
 module.exports.validateUser = async function (userData) {
   try {
     const { firstName, lastName, email, phoneNo } = userData;
@@ -146,31 +153,65 @@ module.exports.decodeToken = function (token) {
   });
 };
 
+
+
 module.exports.login = async function (phoneNo) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    // First check if user exists
-    let user = await User.findOne({ phoneNo, isDeleted: false });
+    let user = await User.findOne({ phoneNo });
     const otp = authUtil.generateOTP();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+    console.log("user--> ",user)
     if (!user) {
       const blockUser = new BlockedUser({ block: false });
-      const blockUserDetails = await blockUser.save();
+      const blockUserDetails = await blockUser.save({ session });
       let basicInfo = new BasicInfo({});
-      const basicInfoDetails = await basicInfo.save();
+      const basicInfoDetails = await basicInfo.save({ session });
       user = new User({
         phoneNo,
         otp,
         otpExpiry,
-        block:blockUserDetails._id,
+        block: blockUserDetails._id,
         basicInfo: basicInfoDetails._id,
       });
-      user = await user.save();
+      user = await user.save({ session });
+    } else if (user.isDeleted) {
+      console.log("eneter --> ",user);
+      const deletedAt = user.updatedAt;
+      const timeSinceDeletion = Date.now() - deletedAt;
+
+      if (timeSinceDeletion <= RESTORE_WINDOW_MS) {
+        // Within 30 days - restore account
+        user.otp = otp;
+        user.otpExpiry = otpExpiry;
+        user.isDeleted=false;
+        console.log("user--> ",user);
+        user = await userDao.restoreAccount(user, session);
+      } else {
+        // After 30 days - create new account
+        const blockUser = new BlockedUser({ block: false });
+        const blockUserDetails = await blockUser.save({ session });
+        let basicInfo = new BasicInfo({});
+        const basicInfoDetails = await basicInfo.save({ session });
+
+        user = new User({
+          phoneNo,
+          otp,
+          otpExpiry,
+          block: blockUserDetails._id,
+          basicInfo: basicInfoDetails._id,
+        });
+        user = await user.save({ session });
+      }
     } else {
-      // Existing user - handle block status
-      const blockUser = await BlockedUser.findOne({ user: user._id });
-      if (blockUser && blockUser.block) {
+      // Existing active user - handle block status
+      const blockUser = await BlockedUser.findOne({ _id: user.block });
+      if (blockUser?.block) {
         if (blockUser.blockExpiry > Date.now()) {
           const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
+          await session.abortTransaction();
           return createResponse.error({
             errorCode: 429,
             errorMessage: `Account blocked for ${remainingTime} minutes`,
@@ -179,37 +220,36 @@ module.exports.login = async function (phoneNo) {
           blockUser.block = false;
           blockUser.blockExpiry = null;
           user.resendCount = 1;
-          await user.save();
+          await blockUser.save({ session });
         }
       }
 
-      // Update OTP for existing user
       user.otp = otp;
       user.otpExpiry = otpExpiry;
-      user = await user.save();
+      user = await user.save({ session });
     }
 
-    // Send OTP
+    await session.commitTransaction();
     await this.sendOTP(phoneNo, otp);
 
-    // Return user info without sensitive data
-    const userResponse = {
+    return createResponse.success({
       phoneNo: user.phoneNo,
       resendCount: user.resendCount,
       isVerified: user.isVerified,
       id: user.id,
       otp: user?.otp,
-    };
-
-    return createResponse.success(userResponse);
+    });
 
   } catch (e) {
+    await session.abortTransaction();
     console.log("error", e);
     if (e instanceof AuthenticationError) {
       throw e;
     } else {
       throw new Error(e.message);
     }
+  } finally {
+    session.endSession();
   }
 };
 

@@ -14,6 +14,7 @@ const userDao = require("../dao/user.dao");
 const BasicInfo = require("../models/basicInfo.model");
 const UserAccount=require("../models/account.model");
 const User=require("../models/user.model");
+const mongoose=require("mongoose");
 
 
 // import { createOrUpdateIndustryOccupation } from "../services/user.service";
@@ -1838,15 +1839,33 @@ exports.getUserBio = async (req, res) => {
 };
 
 exports.deleteAccount = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const userId = req.body.user._id;
-    const result = await userService.deleteAccount(userId);
-    res.json(result);
+    
+    const user = await User.findOne({ _id: userId, isDeleted: false }).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: "User not found"
+      }));
+    }
+
+    await userDao.deleteUserAndAssociatedData(userId, user, session);
+    await session.commitTransaction();
+
+    res.json(createResponse.success({ message: "Account deleted successfully" }));
   } catch (error) {
-    console.error("Delete account controller error:", error);
+    await session.abortTransaction();
+    console.error("Delete account error:", error);
     res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE, 
       errorMessage: error.message
     }));
+  } finally {
+    session.endSession();
   }
 };
