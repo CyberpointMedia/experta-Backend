@@ -17,6 +17,7 @@ const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBo
     editBlockedUser,
     deleteBlockedUser,
     getUserkycStatus,
+    getAllActivities,
 } = require('../controllers/userDetails.controller');
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const {hasRole}=require("../middlewares/role.middleware");
@@ -63,6 +64,9 @@ Router.get('/all-blocked-users/:id', authMiddleware, hasRole('admin'),paginate('
 
 //get kyc status
 Router.get('/all-users-kyc-status/:id', authMiddleware, hasRole('admin'), getUserkycStatus);
+
+//activity routes
+Router.get('/all-activity/:id', authMiddleware, hasRole('admin'), paginate('User'), getAllActivities);
 
 //ticket routes 
 // Create a new ticket
