@@ -44,10 +44,6 @@ Router.delete('/bookings/:id',authMiddleware, hasRole('admin'), deleteBooking);
 Router.get('/get-all-transactions/:id', authMiddleware, hasRole('admin'),paginate('PaymentTransaction'), getAllTransactions);
 // Get a transaction by ID
 Router.get('/transactions/:id', authMiddleware, hasRole('admin'), getTransactionById);
-// Create a new transaction
-Router.post('/transactions', authMiddleware, hasRole('admin'), createTransaction);
-// Update a transaction
-Router.put('/transactions/:id', authMiddleware, hasRole('admin'), updateTransaction);
 // Delete a transaction
 Router.delete('/transactions/:id', authMiddleware, hasRole('admin'), deleteTransaction);
 
@@ -64,8 +60,8 @@ Router.delete('/reviews/:id', authMiddleware, hasRole('admin'), deleteReview);
 //block user routes
 Router.get('/all-blocked-users/:id', authMiddleware, hasRole('admin'),paginate('User'), getBlockedUserById);
 
-//add the industry 
-
+//get kyc status
+// Router.get('/all-users-kyc-status/:id', authMiddleware, hasRole('admin'), getUserkycStatus);
 
 //ticket routes 
 // Create a new ticket
