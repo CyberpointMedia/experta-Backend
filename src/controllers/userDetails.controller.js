@@ -9,6 +9,8 @@ const BlockedUser = require('../models/blockUser.model');
 const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 const mongoose = require('mongoose');
+const kycService = require("../services/kyc.service");
+
 
 // Get all users
 // exports.getAllUsers = async (req, res) => {
@@ -412,26 +414,28 @@ exports.deleteTransaction = async (req, res) => {
 };
 
 //user kyc status controller
-// exports.getUserkycStatus = async (req, res) => {
-//   const userId = req.params.id;
-//   if (!userId) {
-//     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
-//     return;
-//   }
+exports.getUserkycStatus = async (req, res) => {
+  const userId = req.params.id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
 
-//   try {
-//     const kycStatus = await kycService.getKycStatus(userId);
-//     res.json(createResponse.success(kycStatus));
-//   } catch (error) {
-//     console.log(error);
-//     res.json(
-//       createResponse.error({
-//         errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-//         errorMessage: error.message,
-//       })
-//     );
-//   }
-// };
+  try {
+    const kycStatusResponse = await kycService.getKycStatus(userId);
+    const { userData, kycStatus } = kycStatusResponse;
+
+    res.json(createResponse.success({ userData, kycStatus }));
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
 
 //Reviews controller
 // Get all reviews
