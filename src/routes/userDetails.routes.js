@@ -15,8 +15,7 @@ const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBo
     getBlockedUserById,
     getAllBlockedUsers,
     editBlockedUser,
-    deleteBlockedUser,
-    getUserkycStatus,
+    deleteBlockedUser
 } = require('../controllers/userDetails.controller');
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const {hasRole}=require("../middlewares/role.middleware");
@@ -62,7 +61,7 @@ Router.delete('/reviews/:id', authMiddleware, hasRole('admin'), deleteReview);
 Router.get('/all-blocked-users/:id', authMiddleware, hasRole('admin'),paginate('User'), getBlockedUserById);
 
 //get kyc status
-Router.get('/all-users-kyc-status/:id', authMiddleware, hasRole('admin'), getUserkycStatus);
+// Router.get('/all-users-kyc-status/:id', authMiddleware, hasRole('admin'), getUserkycStatus);
 
 //ticket routes 
 // Create a new ticket
