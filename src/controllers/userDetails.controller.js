@@ -10,6 +10,7 @@ const Post = require('../models/post.model');
 const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 const mongoose = require('mongoose');
+const kycService = require('../services/kyc.service');
 
 // Get all users
 // exports.getAllUsers = async (req, res) => {
