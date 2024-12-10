@@ -737,6 +737,7 @@ exports.getAllClosedTickets = async (req, res) => {
   }
 };
 
+
 // Get a specific ticket by ID
 exports.getTicketById = async (req, res) => {
   const { ticketId } = req.params;
@@ -765,6 +766,7 @@ exports.getTicketById = async (req, res) => {
     }));
   }
 };
+
 
 // Update a ticket (e.g., change status, priority)
 exports.updateTicket = async (req, res) => {
@@ -997,9 +999,6 @@ exports.getBlockedUserById = async (req, res) => {
       .populate({
         path: 'blockedUsers',
         options: { skip, limit },
-        populate: {
-          path: 'basicInfo',
-        },
       })
       .exec();
 
@@ -1033,7 +1032,6 @@ exports.getBlockedUserById = async (req, res) => {
     }));
   }
 };
-
 
 
 
