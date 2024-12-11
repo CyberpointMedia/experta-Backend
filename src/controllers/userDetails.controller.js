@@ -445,24 +445,35 @@ exports.getAllActivities = async (req, res) => {
   }
 
   try {
-    const userData = await User.findOne({ _id: userId, isDeleted: false })
-      .populate({
+    // Find posts where comments.user matches userId
+    const posts = await Post.find({
+      isDeleted: false,
+      'comments.user': new mongoose.Types.ObjectId(userId)
+    })
+    .populate({
+      path: 'postedBy',
+      model: 'User',
+      select: 'email',
+      populate: {
         path: 'basicInfo',
-        populate: {
-          path: 'posts',
-          model: 'Post',
-        },
-        populate: {
-          path: 'reviews',
-          model: 'Review',
-        },
-      })
-      .select('-__v');
+        model: 'BasicInfo',
+        select: 'firstName lastName username profilePic'
+      }
+    })
+    .select('-__v')
 
-    if (!userData) {
-      return res.json(createResponse.invalid("User not found"));
+    if (!posts.length) {
+      return res.json(createResponse.invalid("No posts found"));
     }
-    res.json(createResponse.success({ userData }));
+
+    // Filter comments within each post to only include those where comment.user matches userId
+    posts.forEach(post => {
+      post.comments = post.comments.filter(comment => comment.user._id.toString() === userId);
+    });
+
+    const review = await Review.find({ isDeleted: false, reviewBy: userId });
+
+    res.json(createResponse.success({ posts, review }));
   } catch (error) {
     console.log(error);
     res.json(
@@ -473,7 +484,6 @@ exports.getAllActivities = async (req, res) => {
     );
   }
 };
-
 //Reviews controller
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
