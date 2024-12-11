@@ -6,9 +6,11 @@ const User = require("../models/user.model");
 const Ticket = require('../models/ticket.model');
 const Message = require('../models/ticketchats.model');
 const BlockedUser = require('../models/blockUser.model');
+const Post = require('../models/post.model');
 const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 const mongoose = require('mongoose');
+const kycService = require('../services/kyc.service');
 
 // Get all users
 // exports.getAllUsers = async (req, res) => {
@@ -388,66 +390,6 @@ exports.getTransactionById = async (req, res) => {
   }
 };
 
-// Create a new transaction
-exports.createTransaction = async (req, res) => {
-  const { user, type, amount, status, paymentMethod, relatedBooking } = req.body;
-
-  if (!user || !type || !amount || !status || !paymentMethod) {
-    return res.json(createResponse.invalid("Missing required fields"));
-  }
-
-  try {
-    const newTransaction = new PaymentTransaction({
-      user,
-      type,
-      amount,
-      status,
-      paymentMethod,
-      relatedBooking,
-    });
-
-    await newTransaction.save();
-
-    res.json(createResponse.success(newTransaction));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    }));
-  }
-};
-
-// Update a transaction
-exports.updateTransaction = async (req, res) => {
-  const { id } = req.params;
-  const { status, amount, paymentMethod, relatedBooking } = req.body;
-
-  try {
-    const transaction = await PaymentTransaction.findOne({ _id: id, isDeleted: false });
-
-    if (!transaction) {
-      return res.json(createResponse.invalid("Transaction not found"));
-    }
-
-    // Update fields
-    if (status) transaction.status = status;
-    if (amount) transaction.amount = amount;
-    if (paymentMethod) transaction.paymentMethod = paymentMethod;
-    if (relatedBooking) transaction.relatedBooking = relatedBooking;
-
-    await transaction.save();
-
-    res.json(createResponse.success(transaction));
-  } catch (error) {
-    console.error(error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message,
-    }));
-  }
-};
-
 // Delete a transaction
 exports.deleteTransaction = async (req, res) => {
   const { id } = req.params;
@@ -471,6 +413,77 @@ exports.deleteTransaction = async (req, res) => {
   }
 };
 
+//user kyc status controller
+exports.getUserkycStatus = async (req, res) => {
+  const userId = req.params.id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+
+  try {
+    const kycStatusResponse = await kycService.getKycStatus(userId);
+    const { userData, kycStatus } = kycStatusResponse;
+    res.json(createResponse.success({ userData, kycStatus }));
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
+//activity 
+exports.getAllActivities = async (req, res) => {
+  const userId = req.params.id;
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+
+  try {
+    // Find posts where comments.user matches userId
+    const posts = await Post.find({
+      isDeleted: false,
+      'comments.user': new mongoose.Types.ObjectId(userId)
+    })
+    .populate({
+      path: 'postedBy',
+      model: 'User',
+      select: 'email',
+      populate: {
+        path: 'basicInfo',
+        model: 'BasicInfo',
+        select: 'firstName lastName username profilePic'
+      }
+    })
+    .select('-__v')
+
+    if (!posts.length) {
+      return res.json(createResponse.invalid("No posts found"));
+    }
+
+    // Filter comments within each post to only include those where comment.user matches userId
+    posts.forEach(post => {
+      post.comments = post.comments.filter(comment => comment.user._id.toString() === userId);
+    });
+
+    const review = await Review.find({ isDeleted: false, reviewBy: userId });
+
+    res.json(createResponse.success({ posts, review }));
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
 //Reviews controller
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
@@ -999,6 +1012,9 @@ exports.getBlockedUserById = async (req, res) => {
       .populate({
         path: 'blockedUsers',
         options: { skip, limit },
+        populate: {
+          path: 'basicInfo',
+        },
       })
       .exec();
 
