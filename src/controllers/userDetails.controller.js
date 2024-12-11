@@ -452,13 +452,16 @@ exports.getAllActivities = async (req, res) => {
           path: 'posts',
           model: 'Post',
         },
+        populate: {
+          path: 'reviews',
+          model: 'Review',
+        },
       })
       .select('-__v');
 
     if (!userData) {
       return res.json(createResponse.invalid("User not found"));
     }
-
     res.json(createResponse.success({ userData }));
   } catch (error) {
     console.log(error);
