@@ -86,35 +86,31 @@ module.exports.getBasicInfo = function (userId) {
 
 module.exports.getIndustryOccupation = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId , isDeleted: false })
+    User.findOne({ _id: userId, isDeleted: false })
       .populate({
         path: "industryOccupation",
-        populate: { path: "industry occupation" },
-      })
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
-
-
-module.exports.getIndustryOccupation = function (userId) {
-  return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId , isDeleted: false })
-      .populate({
-        path: "industryOccupation",
-        populate: { path: "industry occupation" },
+        populate: [
+          {
+            path: "level1Service",
+            select: "name"
+          },
+          {
+            path: "level2Service",
+            select: "name"
+          },
+          {
+            path: "level3Services",
+            select: "name"
+          }
+        ]
       })
       .populate("education")
       .populate("workExperience")
       .then((data) => {
         const flatData = {
-          industry: data.industryOccupation?.industry?.name || null,
-          occupation: data.industryOccupation?.occupation?.name || null,
+          level1: data.industryOccupation?.level1Service?.name || null,
+          level2: data.industryOccupation?.level2Service?.name || null,
+          level3: data.industryOccupation?.level3Services?.map(service => service.name) || [],
           registrationNumber: data.industryOccupation?.registrationNumber || null,
           certificate: data.industryOccupation?.certificate || null,
           achievements: data.industryOccupation?.achievements || [],

@@ -31,49 +31,104 @@ const UserAccount = require("../models/account.model");
 const IndustryModel = require("../models/industry.model");
 const OccupationModel = require("../models/occupation.model");
 const userDao=require("../dao/user.dao");
+const Service =require("../models/service.model");
 
-module.exports.createOrUpdateIndustryOccupation = async function (
-  userId,
-  data
-) { 
+module.exports.createOrUpdateIndustryOccupation = async function (userId, data) { 
   try {
     const {
-      industry,
-      occupation,
+      level1ServiceId,  
+      level2ServiceId,  
+      level3ServiceIds, 
       registrationNumber,
       certificate,
       achievements,
       expertise,
     } = data;
-    let user = await User.findOne({_id:userId,isDeleted:false}).populate(
-      "industryOccupation expertise"
-    );
+    
+    let user = await User.findOne({_id: userId, isDeleted: false})
+      .populate("industryOccupation expertise");
+    
     if (!user) {
-      const response = {
+      return createResponse.error({
         errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
         errorMessage: errorMessageConstants.UNABLE_TO_SAVE_MESSAGE,
-      };
-      return createResponse.error(response);
+      });
     }
-    let where = {isDeleted: false};
+    console.log("level1ServiceId--> ", level1ServiceId,
+      level2ServiceId,
+      level3ServiceIds,)
+    const level1Service = await Service.findOne({
+      _id: level1ServiceId,
+      level: 1,
+      isDeleted: false
+    });
+
+    if (!level1Service) {
+      throw new Error('Invalid Level 1 service selection');
+    }
+
+    const level2Service = await Service.findOne({
+      _id: level2ServiceId,
+      level: 2,
+      parent: level1ServiceId,
+      isDeleted: false
+    });
+
+    if (!level2Service) {
+      throw new Error('Invalid Level 2 service selection');
+    }
+
+    let validatedLevel3Ids = [];
+    console.log("level3ServiceIds--> ",level3ServiceIds.length)
+    if (Array.isArray(level3ServiceIds) && level3ServiceIds.length > 0) {
+      validatedLevel3Ids = await Service.find({
+        _id:  level3ServiceIds[0],
+        level: 3,
+        parent: level2ServiceId,
+        isDeleted: false
+      }).distinct('_id');
+      console.log("validatedLevel3Ids--> ",validatedLevel3Ids,level3ServiceIds[0]);
+      if (validatedLevel3Ids.length === 0) {
+        throw new Error('No valid Level 3 services selected');
+      }
+    }
+    let where = { isDeleted: false };
     if (user.industryOccupation) where._id = user.industryOccupation;
 
     let updatedIndustryOccupation = await IndustryOccupation.findOneAndUpdate(
       where,
       {
         $set: {
-          industry,
-          occupation,
+          level1Service: level1Service._id,
+          level2Service: level2Service._id,
+          level3Services: validatedLevel3Ids,
           registrationNumber,
           certificate,
           achievements,
+        },
       },
+      { 
+        new: true, 
+        upsert: true, 
+        setDefaultsOnInsert: true 
+      }
+    ).populate([
+      {
+        path: 'level1Service',
+        match: { isDeleted: false }
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
+      {
+        path: 'level2Service',
+        match: { isDeleted: false }
+      },
+      {
+        path: 'level3Services',
+        match: { isDeleted: false }
+      }
+    ]);
 
-    let whereExpertise = {isDeleted: false};
-    if (user.expertise) where._id = user.expertise;
+    let whereExpertise = { isDeleted: false };
+    if (user.expertise) whereExpertise._id = user.expertise;
 
     let updatedExpertise = await Expertise.findOneAndUpdate(
       whereExpertise,
@@ -88,13 +143,11 @@ module.exports.createOrUpdateIndustryOccupation = async function (
 
     if (!user.expertise) {
       user.expertise = updatedExpertise._id;
-      await user.save();
     }
-
     if (!user.industryOccupation) {
       user.industryOccupation = updatedIndustryOccupation._id;
-      await user.save();
     }
+    await user.save();
 
     return createResponse.addSuccess(
       updatedIndustryOccupation,
@@ -102,14 +155,12 @@ module.exports.createOrUpdateIndustryOccupation = async function (
     );
   } catch (error) {
     console.error("Error:", error);
-    const response = {
+    return createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
-    };
-    return createResponse.error(response);
+    });
   }
 };
-
 module.exports.createBasicInfo = async function (userId, basicInfoToSave) {
   try {
     let user = await User.findById(userId).populate("basicInfo");

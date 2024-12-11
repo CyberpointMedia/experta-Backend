@@ -93,21 +93,14 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
   try {
     const userId = req.body.user._id;
     const {
-      industry,
-      occupation,
+      level1ServiceId,
+      level2ServiceId,
+      level3ServiceIds,
       registrationNumber,
       achievements,
       expertise,
     } = req.body;
     const certificate = req?.file;
-    if (!industry || "" == industry) {
-      res.send(createResponse.invalid("Industry cannot be empty"));
-      return;
-    }
-    if (!occupation || "" == occupation) {
-      res.send(createResponse.invalid("Occupation cannot be empty"));
-      return;
-    }
     if (
       (!registrationNumber || "" == registrationNumber) &&
       (!certificate || "" == certificate)
@@ -133,8 +126,9 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
 
     const savedIndustryOccupation =
       await userService.createOrUpdateIndustryOccupation(userId, {
-        industry,
-        occupation,
+        level1ServiceId,
+        level2ServiceId,
+        level3ServiceIds,
         registrationNumber,
         certificate: data?.url,
         achievements,
