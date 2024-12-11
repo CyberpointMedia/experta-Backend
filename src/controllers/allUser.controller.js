@@ -52,7 +52,6 @@ exports.getAllUsers = async (req, res) => {
     if (phoneNo) {
       filter.phoneNo = phoneNo;
     }
-
     const matchStatus = {};
     if (status) {
       if (status === 'isVerified') {
@@ -89,6 +88,15 @@ exports.getAllUsers = async (req, res) => {
           as: 'roleInfo',
         },
       },
+      {
+        $lookup: {
+          from: 'basicinfos',
+          localField: 'basicInfo',
+          foreignField: '_id',
+          as: 'basicInfo',
+        },
+      },
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
       {
         $match: {
           ...filter,
@@ -130,6 +138,15 @@ exports.getAllUsers = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: 'basicinfos',
+          localField: 'basicInfo',
+          foreignField: '_id',
+          as: 'basicInfo',
+        },
+      },
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
+      {
         $match: {
           ...filter,
           ...matchStatus,
@@ -162,6 +179,15 @@ exports.getAllUsers = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: 'basicinfos',
+          localField: 'basicInfo',
+          foreignField: '_id',
+          as: 'basicInfo',
+        },
+      },
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
+      {
         $match: {
           isVerified: true,
           isDeleted: false,
@@ -187,6 +213,15 @@ exports.getAllUsers = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: 'basicinfos',
+          localField: 'basicInfo',
+          foreignField: '_id',
+          as: 'basicInfo',
+        },
+      },
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
+      {
         $match: {
           isVerified: false,
           isDeleted: false,
@@ -211,6 +246,15 @@ exports.getAllUsers = async (req, res) => {
           'blockInfo.block': { $ifNull: ['$blockInfo.block', false] },
         },
       },
+      {
+        $lookup: {
+          from: 'basicinfos',
+          localField: 'basicInfo',
+          foreignField: '_id',
+          as: 'basicInfo',
+        },
+      },
+      { $unwind: { path: '$basicInfo', preserveNullAndEmptyArrays: true } },
       {
         $match: {
           ...filter,
