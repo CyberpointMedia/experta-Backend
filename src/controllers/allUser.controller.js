@@ -7,6 +7,7 @@ const createResponse = require('../utils/response');
 const BlockedUser = require("../models/blockUser.model");
 const errorMessageConstants = require('../constants/error.messages');
 
+
 //controller to create new user
 exports.createUser = async (req, res) => {
   const { phoneNo, email, firstName, lastName, roles } = req.body;
