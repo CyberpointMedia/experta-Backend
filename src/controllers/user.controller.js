@@ -1457,13 +1457,13 @@ exports.getOccupation = async (req, res) => {
 };
 
 exports.getUserByIndustry = async (req, res) => {
-  const { industryId } = req.params;
-  if (!industryId) {
+  const { level1ServiceId } = req.params;
+  if (!level1ServiceId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
   userDao
-    .getUserByIndustry(industryId)
+    .getUserByIndustry(level1ServiceId)
     .then((data) => {
       if (null != data) {
         res.json(createResponse.success(data));

@@ -71,7 +71,7 @@ exports.updateUserWallet = async function (userId, amount, session) {
 
 exports.getBookingsAsClient = function (userId, filters = {}) {
   return new Promise((resolve, reject) => {
-    const query = { client: userId , isDeleted:false};
+    const query = { client: userId, isDeleted: false };
     
     if (filters.startDate || filters.endDate) {
       query.startTime = {};
@@ -93,15 +93,41 @@ exports.getBookingsAsClient = function (userId, filters = {}) {
           {
             path: "industryOccupation",
             populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
+              { 
+                path: "level1Service",
+                select: "name"
+              },
+              { 
+                path: "level2Service",
+                select: "name"
+              },
+              { 
+                path: "level3Services",
+                select: "name"
+              }
             ],
           },
         ],
       })
       .sort({ createdAt: -1 })
       .then((bookings) => {
-        resolve(bookings);
+        // Transform the bookings to include formatted service information
+        const transformedBookings = bookings.map(booking => {
+          const bookingObj = booking.toObject();
+          if (bookingObj.expert && bookingObj.expert.industryOccupation) {
+            const services = {
+              level1: bookingObj.expert.industryOccupation.level1Service?.name || null,
+              level2: bookingObj.expert.industryOccupation.level2Service?.name || null,
+              level3: bookingObj.expert.industryOccupation.level3Services?.map(service => service.name) || []
+            };
+            
+            bookingObj.expert.services = services;
+            delete bookingObj.expert.industryOccupation;  // Remove the original industryOccupation object
+          }
+          return bookingObj;
+        });
+        
+        resolve(transformedBookings);
       })
       .catch((err) => {
         console.log(err);
@@ -242,8 +268,9 @@ exports.getBookingById = function (bookingId) {
           {
             path: "industryOccupation",
             populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
             ],
           },
         ],
@@ -257,7 +284,19 @@ exports.getBookingById = function (bookingId) {
         },
       })
       .then((data) => {
-        resolve(data);
+        // Transform data to include formatted service information
+        if (data && data.expert && data.expert.industryOccupation) {
+          const bookingData = data.toObject();
+          bookingData.expert.services = {
+            level1: data.expert.industryOccupation.level1Service?.name || "",
+            level2: data.expert.industryOccupation.level2Service?.name || "",
+            level3: data.expert.industryOccupation.level3Services?.map(service => service.name) || []
+          };
+          delete bookingData.expert.industryOccupation;
+          resolve(bookingData);
+        } else {
+          resolve(data);
+        }
       })
       .catch((err) => {
         console.log(err);
@@ -265,7 +304,6 @@ exports.getBookingById = function (bookingId) {
       });
   });
 };
-
 /// 
 exports.getWithdrawalTransactionById = async function (withdrawalId) {
   return await PaymentTransaction.findOne({

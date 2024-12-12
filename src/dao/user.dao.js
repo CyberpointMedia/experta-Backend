@@ -437,9 +437,10 @@ module.exports.getAccountSetting = function (userId) {
   });
 };
 
+
 module.exports.followersandfollowing = function (userId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId , isDeleted: false })
+    User.findOne({ _id: userId, isDeleted: false })
       .populate({
         path: "basicInfo",
         select: "following followers",
@@ -449,22 +450,22 @@ module.exports.followersandfollowing = function (userId) {
           populate: [
             {
               path: "basicInfo",
-              select: "rating profilePic displayName",
+              select: "rating profilePic displayName", 
             },
             {
               path: "industryOccupation",
-              select: "industry occupation",
               populate: [
-                { path: "industry", select: "name" },
-                { path: "occupation", select: "name" },
-              ],
+                { path: "level1Service", select: "name" },
+                { path: "level2Service", select: "name" },
+                { path: "level3Services", select: "name" }
+              ]
             },
           ],
         },
       })
       .then((data) => {
         const { following, followers } = data.basicInfo;
-
+ 
         Promise.all(
           following.map(
             (user) =>
@@ -473,10 +474,11 @@ module.exports.followersandfollowing = function (userId) {
                   id: user?._id || "",
                   online: user?.online || false,
                   rating: user?.basicInfo?.rating || "",
-                  profilePic: user?.basicInfo?.profilePic || "",
+                  profilePic: user?.basicInfo?.profilePic || "", 
                   displayName: user?.basicInfo?.displayName || "",
-                  industry: user?.industryOccupation?.industry?.name || "",
-                  occupation: user?.industryOccupation?.occupation?.name || "",
+                  level1: user?.industryOccupation?.level1Service?.name || "",
+                  level2: user?.industryOccupation?.level2Service?.name || "",
+                  level3: user?.industryOccupation?.level3Services?.map(service => service.name) || []
                 };
                 resolve(filteredUser);
               })
@@ -493,9 +495,9 @@ module.exports.followersandfollowing = function (userId) {
                       rating: user?.basicInfo?.rating || "",
                       profilePic: user?.basicInfo?.profilePic || "",
                       displayName: user?.basicInfo?.displayName || "",
-                      industry: user?.industryOccupation?.industry?.name || "",
-                      occupation:
-                        user?.industryOccupation?.occupation?.name || "",
+                      level1: user?.industryOccupation?.level1Service?.name || "",
+                      level2: user?.industryOccupation?.level2Service?.name || "",
+                      level3: user?.industryOccupation?.level3Services?.map(service => service.name) || []
                     };
                     resolve(filteredUser);
                   })
@@ -576,18 +578,22 @@ module.exports.createPolicy = function (policyToSave) {
 
 module.exports.getUserData = function (userId, ownUserId) {
   return new Promise((resolve, reject) => {
-    User.findOne({ _id: userId , isDeleted: false })
+    User.findOne({ _id: userId, isDeleted: false })
       .populate("education")
       .populate({
         path: "industryOccupation",
-        populate: { path: "industry occupation" },
+        populate: [
+          { path: "level1Service", select: "name" },
+          { path: "level2Service", select: "name" },
+          { path: "level3Services", select: "name" }
+        ]
       })
       .populate({
         path: "basicInfo",
         populate: { path: "posts" },
       })
       .populate({
-        path: "basicInfo",
+        path: "basicInfo", 
         populate: { path: "reviews" },
       })
       .populate("workExperience")
@@ -599,10 +605,6 @@ module.exports.getUserData = function (userId, ownUserId) {
         path: "language",
         populate: { path: "language" },
       })
-      // .populate({
-      //   path: "reviews",
-      //   populate: { path: "reviews" },
-      // })
       .populate({
         path: "expertise",
         populate: { path: "expertise" },
@@ -610,13 +612,11 @@ module.exports.getUserData = function (userId, ownUserId) {
       .populate("pricing")
       .then(async (data) => {
         if (data && data.basicInfo) {
-          // Check if ownUserId is in the followers array of the found user
           const isFollowing = data.basicInfo.followers.some(
             (followerId) => followerId.toString() === ownUserId
           );
-
-          // Add isFollowing field to the data object
-          const result = data.toObject(); // Convert to a plain JavaScript object
+ 
+          const result = data.toObject();
           result.isFollowing = isFollowing;
           const ownUser = await User.findOne({ _id: ownUserId, isDeleted: false });
           result.isBlocked = ownUser.blockedUsers.includes(userId);
@@ -629,8 +629,8 @@ module.exports.getUserData = function (userId, ownUserId) {
       });
   });
 };
-
-module.exports.getTrending = function () {
+ 
+ module.exports.getTrending = function () {
   return new Promise((resolve, reject) => {
     User.find({isDeleted:false})
       .select(
@@ -639,17 +639,20 @@ module.exports.getTrending = function () {
       .populate({
         path: "industryOccupation",
         populate: [
-          { path: "industry", select: "name" },
-          { path: "occupation", select: "name" },
-        ],
+          { path: "level1Service", select: "name" },
+          { path: "level2Service", select: "name" },
+          { path: "level3Services", select: "name" }
+        ]
       })
       .populate("pricing")
-      .populate("basicInfo").populate({
+      .populate("basicInfo")
+      .populate({
         path: "expertise",
-        populate: { path: "expertise" },
-      }).populate({
-        path:"language",
-        populate:{path:"language"}
+        populate: { path: "expertise" }
+      })
+      .populate({
+        path: "language",
+        populate: {path: "language"}
       })
       .then((data) => {
         Promise.all(
@@ -662,10 +665,11 @@ module.exports.getTrending = function () {
                   rating: user?.basicInfo?.rating || "",
                   profilePic: user?.basicInfo?.profilePic || "",
                   displayName: user?.basicInfo?.displayName || "",
-                  industry: user?.industryOccupation?.industry?.name || "",
-                  occupation: user?.industryOccupation?.occupation?.name || "",
-                  language:user?.language?.language,
-                  expertise:user?.expertise?.expertise,
+                  level1: user?.industryOccupation?.level1Service?.name || "",
+                  level2: user?.industryOccupation?.level2Service?.name || "",
+                  level3: user?.industryOccupation?.level3Services?.map(service => service.name) || [],
+                  language: user?.language?.language,
+                  expertise: user?.expertise?.expertise,
                   pricing: user?.pricing || {
                     _id: "",
                     _v: 0,
@@ -691,183 +695,8 @@ module.exports.getTrending = function () {
         reject(err);
       });
   });
-};
-
-// module.exports.getUserBySearch = function (query) {
-//   return new Promise(async (resolve, reject) => {
-//     const aggregationPipeline = [
-//       {
-//         $lookup: {
-//           from: "basicinfos",
-//           localField: "basicInfo",
-//           foreignField: "_id",
-//           as: "basicInfo",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "industryoccupations",
-//           localField: "industryOccupation",
-//           foreignField: "_id",
-//           as: "industryOccupation",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "industries",
-//           localField: "industryOccupation.industry",
-//           foreignField: "_id",
-//           as: "industry",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "occupations",
-//           localField: "industryOccupation.occupation",
-//           foreignField: "_id",
-//           as: "occupation",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "interests",
-//           localField: "intereset",
-//           foreignField: "_id",
-//           as: "interest",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "interestitems",
-//           localField: "interest.intereset",
-//           foreignField: "_id",
-//           as: "interestItems",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "languages",
-//           localField: "language",
-//           foreignField: "_id",
-//           as: "language",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "languageitems",
-//           localField: "language.language",
-//           foreignField: "_id",
-//           as: "languageItems",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "expertise",
-//           localField: "expertise",
-//           foreignField: "_id",
-//           as: "expertise",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "expertiseitems",
-//           localField: "expertise.expertise",
-//           foreignField: "_id",
-//           as: "expertiseItems",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "pricings",
-//           localField: "pricing",
-//           foreignField: "_id",
-//           as: "pricing",
-//         },
-//       },
-//       {
-//         $match: query
-//           ? {
-//               $or: [
-//                 { "basicInfo.firstName": { $regex: query, $options: "i" } },
-//                 { "basicInfo.lastName": { $regex: query, $options: "i" } },
-//                 { "basicInfo.displayName": { $regex: query, $options: "i" } },
-//                 { "industry.name": { $regex: query, $options: "i" } },
-//                 { "occupation.name": { $regex: query, $options: "i" } },
-//                 { email: { $regex: query, $options: "i" } },
-//                 { "interestItems.name": { $regex: query, $options: "i" } },
-//                 { "languageItems.name": { $regex: query, $options: "i" } },
-//                 { "expertiseItems.name": { $regex: query, $options: "i" } },
-//               ],
-//             }
-//           : {},
-//       },
-//       {
-//         $addFields: {
-//           sortOrder: {
-//             $cond: [{ $eq: ["$isVerified", true] }, 0, 1],
-//           },
-//           randomValue: { $rand: {} },
-//         },
-//       },
-//       {
-//         $sort: {
-//           sortOrder: 1,
-//           noOfBooking: -1,
-//           randomValue: 1,
-//         },
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           online: { $ifNull: ["$online", false] },
-//           isVerified: { $ifNull: ["$isVerified", false] },
-//           noOfBooking: { $ifNull: ["$noOfBooking", 0] },
-//           rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
-//           profilePic: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
-//           },
-//           displayName: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
-//           },
-//           lastName: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
-//           },
-//           firstName: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
-//           },
-//           industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
-//           occupation: {
-//             $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
-//           },
-//           language: { $ifNull: ["$languageItems", []] },
-//           expertise: { $ifNull: ["$expertiseItems", []] },
-//           pricing: {
-//             $ifNull: [
-//               { $arrayElemAt: ["$pricing", 0] },
-//               {
-//                 _id: "",
-//                 _v: 0,
-//                 audioCallPrice: 0,
-//                 messagePrice: 0,
-//                 videoCallPrice: 0,
-//               },
-//             ],
-//           },
-//         },
-//       },
-//     ];
-
-//     await User.aggregate(aggregationPipeline)
-//       .then((data) => {
-//         resolve(data);
-//       })
-//       .catch((err) => {
-//         console.log(err);
-//         reject(err);
-//       });
-//   });
-// };
-
+ };
+ 
 module.exports.getCategories = function (userId) {
   return new Promise((resolve, reject) => {
     Category.find({isDeleted:false})
@@ -907,23 +736,27 @@ module.exports.getOccupation = function (industryId) {
   });
 };
 
-module.exports.getUserByIndustry = function (industryId) {
+module.exports.getUserByIndustry = function (level1ServiceId) {
   return new Promise(async (resolve, reject) => {
+    // Find all industry occupations that have this level1Service
     const industryOccupations = await IndustryOccupation.find({
-      industry: industryId,
+      level1Service: level1ServiceId,
       isDeleted: false,
     }).select("_id");
+ 
     const industryOccupationIds = industryOccupations.map((io) => io._id);
-    User.find({ isDeleted:false , industryOccupation: { $in: industryOccupationIds } })
+ 
+    User.find({ isDeleted:false, industryOccupation: { $in: industryOccupationIds } })
       .select(
-        "_id online rating profilePic displayName industryOccupation pricing"
+        "_id online rating profilePic displayName industryOccupation pricing"  
       )
       .populate({
         path: "industryOccupation",
         populate: [
-          { path: "industry", select: "name" },
-          { path: "occupation", select: "name" },
-        ],
+          { path: "level1Service", select: "name" },
+          { path: "level2Service", select: "name" },
+          { path: "level3Services", select: "name" }
+        ]
       })
       .populate("pricing")
       .populate("basicInfo")
@@ -938,8 +771,9 @@ module.exports.getUserByIndustry = function (industryId) {
                   rating: user?.basicInfo?.rating || "",
                   profilePic: user?.basicInfo?.profilePic || "",
                   displayName: user?.basicInfo?.displayName || "",
-                  industry: user?.industryOccupation?.industry?.name || "",
-                  occupation: user?.industryOccupation?.occupation?.name || "",
+                  level1: user?.industryOccupation?.level1Service?.name || "",
+                  level2: user?.industryOccupation?.level2Service?.name || "",
+                  level3: user?.industryOccupation?.level3Services?.map(service => service.name) || [],
                   pricing: user?.pricing || {
                     _id: "",
                     _v: 0,
@@ -965,8 +799,7 @@ module.exports.getUserByIndustry = function (industryId) {
         reject(err);
       });
   });
-};
-
+ };
 // block
 module.exports.getAllBlockedUsers = function (userId) {
   return new Promise((resolve, reject) => {
@@ -1315,7 +1148,6 @@ exports.getUserBySearch = async function (query) {
       return [];
     }
 
-    // Get search context from OpenAI
     const completion = await openai.chat.completions.create({
       messages: [
         {
@@ -1372,34 +1204,26 @@ exports.getUserBySearch = async function (query) {
       },
       {
         $lookup: {
-          from: "industries",
-          localField: "industryOccupationData.industry",
+          from: "services",
+          localField: "industryOccupationData.level1Service",
           foreignField: "_id",
-          as: "industryData"
+          as: "level1Services"
         }
       },
       {
         $lookup: {
-          from: "occupations",
-          localField: "industryOccupationData.occupation",
+          from: "services",
+          localField: "industryOccupationData.level2Service",
           foreignField: "_id",
-          as: "occupationData"
+          as: "level2Services"
         }
       },
       {
         $lookup: {
-          from: "expertise",
-          localField: "expertise",
+          from: "services",
+          localField: "industryOccupationData.level3Services",
           foreignField: "_id",
-          as: "expertiseData"
-        }
-      },
-      {
-        $lookup: {
-          from: "expertiseitems",
-          localField: "expertiseData.expertise",
-          foreignField: "_id",
-          as: "expertiseItems"
+          as: "level3Services"
         }
       },
       {
@@ -1440,15 +1264,15 @@ exports.getUserBySearch = async function (query) {
             { "languageItems.name": { $regex: searchQuery, $options: "i" } }
           ] :
           [
-            { "industryData.name": { $regex: searchQuery, $options: "i" } },
-            { "occupationData.name": { $regex: searchQuery, $options: "i" } },
-            { "expertiseItems.name": { $regex: searchQuery, $options: "i" } },
+            { "level1Services.name": { $regex: searchQuery, $options: "i" } },
+            { "level2Services.name": { $regex: searchQuery, $options: "i" } },
+            { "level3Services.name": { $regex: searchQuery, $options: "i" } },
             { "basicInfoData.bio": { $regex: searchQuery, $options: "i" } },
             ...searchTerms.map(term => ({
               $or: [
-                { "industryData.name": { $regex: term, $options: "i" } },
-                { "occupationData.name": { $regex: term, $options: "i" } },
-                { "expertiseItems.name": { $regex: term, $options: "i" } },
+                { "level1Services.name": { $regex: term, $options: "i" } },
+                { "level2Services.name": { $regex: term, $options: "i" } },
+                { "level3Services.name": { $regex: term, $options: "i" } },
                 { "basicInfoData.bio": { $regex: term, $options: "i" } }
               ]
             }))
@@ -1462,9 +1286,9 @@ exports.getUserBySearch = async function (query) {
           isVerified: { $ifNull: ["$isVerified", false] },
           noOfBooking: { $ifNull: ["$noOfBooking", 0] },
           basicInfo: { $arrayElemAt: ["$basicInfoData", 0] },
-          industry: { $arrayElemAt: ["$industryData", 0] },
-          occupation: { $arrayElemAt: ["$occupationData", 0] },
-          expertiseItems: 1,
+          level1: { $arrayElemAt: ["$level1Services", 0] },
+          level2: { $arrayElemAt: ["$level2Services", 0] },
+          level3: "$level3Services",
           languageItems: 1,
           pricing: { $arrayElemAt: ["$pricingData", 0] }
         }
@@ -1480,9 +1304,9 @@ exports.getUserBySearch = async function (query) {
           displayName: { $ifNull: ["$basicInfo.displayName", ""] },
           firstName: { $ifNull: ["$basicInfo.firstName", ""] },
           lastName: { $ifNull: ["$basicInfo.lastName", ""] },
-          industry: { $ifNull: ["$industry.name", ""] },
-          occupation: { $ifNull: ["$occupation.name", ""] },
-          expertiseItems: 1,
+          level1: { $ifNull: ["$level1.name", ""] },
+          level2: { $ifNull: ["$level2.name", ""] },
+          level3: { $ifNull: ["$level3.name", []] },
           languageItems: 1,
           pricing: {
             $ifNull: ["$pricing", {
@@ -1533,7 +1357,7 @@ async function performBasicSearch(query) {
       },
       {
         $lookup: {
-          from: "basicinfos",
+          from: "basicinfos", 
           localField: "basicInfo",
           foreignField: "_id",
           as: "basicInfoData"
@@ -1542,9 +1366,33 @@ async function performBasicSearch(query) {
       {
         $lookup: {
           from: "industryoccupations",
-          localField: "industryOccupation",
+          localField: "industryOccupation", 
           foreignField: "_id",
           as: "industryOccupationData"
+        }
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "industryOccupationData.level1Service",
+          foreignField: "_id",
+          as: "level1Service"
+        }
+      },
+      {
+        $lookup: {
+          from: "services", 
+          localField: "industryOccupationData.level2Service",
+          foreignField: "_id",
+          as: "level2Service"
+        }
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "industryOccupationData.level3Services",
+          foreignField: "_id",
+          as: "level3Services"
         }
       },
       {
@@ -1564,19 +1412,25 @@ async function performBasicSearch(query) {
           isVerified: { $ifNull: ["$isVerified", false] },
           noOfBooking: { $ifNull: ["$noOfBooking", 0] },
           basicInfo: { $arrayElemAt: ["$basicInfoData", 0] },
+          level1: { $arrayElemAt: ["$level1Service", 0] },
+          level2: { $arrayElemAt: ["$level2Service", 0] },
+          level3: "$level3Services"
         }
       },
       {
         $project: {
           _id: 1,
-          online: 1,
+          online: 1, 
           isVerified: 1,
           noOfBooking: 1,
           rating: { $ifNull: ["$basicInfo.rating", 0] },
           profilePic: { $ifNull: ["$basicInfo.profilePic", ""] },
           displayName: { $ifNull: ["$basicInfo.displayName", ""] },
           firstName: { $ifNull: ["$basicInfo.firstName", ""] },
-          lastName: { $ifNull: ["$basicInfo.lastName", ""] }
+          lastName: { $ifNull: ["$basicInfo.lastName", ""] },
+          level1: { $ifNull: ["$level1.name", ""] },
+          level2: { $ifNull: ["$level2.name", ""] },
+          level3: { $ifNull: ["$level3.name", []] }
         }
       },
       {
@@ -1587,7 +1441,7 @@ async function performBasicSearch(query) {
     console.error("Error in basic search:", error);
     return [];
   }
-}
+ }
 
 exports.getUserDetailsForAvailability = function(userId) {
   return new Promise((resolve, reject) => {
