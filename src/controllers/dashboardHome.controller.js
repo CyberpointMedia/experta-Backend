@@ -3,6 +3,7 @@ const User = require('../models/user.model'); // Adjust the path as needed
 const errorMessageConstants = require('../constants/error.messages'); 
 const { paginate } = require('../middlewares/paginate.middleware');
 const createResponse = require('../utils/response');
+const blockedUser = require('../models/blockUser.model');
 
 
 // Controller method to get the total number of users
@@ -39,7 +40,7 @@ exports.getVerifiedUsers = async (req, res) => {
         message: errorMessageConstants.SERVER_ERROR || 'Something went wrong while fetching the verified users.',
       });
     }
-  };
+};
 
 // Controller method to get the total number of non-verified users
 exports.getNonVerifiedUsers = async (req, res) => {
@@ -63,7 +64,6 @@ exports.getNonVerifiedUsers = async (req, res) => {
 exports.getNewUsers = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
-
     // Get the current date
     const currentDate = new Date();
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // First day of the current month
@@ -78,25 +78,34 @@ exports.getNewUsers = async (req, res) => {
     })
       .skip(skip)
       .limit(limit)
-      .populate('basicInfo') 
+      .populate('basicInfo')
+      .populate({
+        path:'block',
+        model:'BlockedUser',
+        match:{block:false}
+      })
       .exec();
+
+    const filteredUsers = users.filter(user => user.block !== null);
 
     const totalUsers = await User.countDocuments({
       isDeleted: false,
       createdAt: {
-        $gte: startOfMonth,
-        $lte: endOfMonth,
-      },
-    });
+      $gte: startOfMonth,
+      $lte: endOfMonth,
+      }
+    }).populate({
+      path: 'block',
+      model: 'BlockedUser',
+      match: { block: false },
+    })
+    .exec();
 
-    // Calculate total pages for pagination
-    const totalPages = Math.ceil(totalUsers / limit);
-
-    if (!users || users.length === 0) {
+    const totalPages = Math.ceil(filteredUsers.length / limit);
+    
+    if (filteredUsers.length === 0) {
       return res.json(createResponse.success([], "No new users found for this month"));
     }
-
-    // Return the populated user data
     res.json(createResponse.success({
       users,
       pagination: {
@@ -107,8 +116,6 @@ exports.getNewUsers = async (req, res) => {
     }));
   } catch (error) {
     console.error(error);  
-
-    // Return the error with appropriate code and message
     res.json(createResponse.error({
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message || 'An error occurred while fetching new users'
