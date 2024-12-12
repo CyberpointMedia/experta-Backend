@@ -5,6 +5,7 @@ const serviceService = require("../services/service.service");
 exports.createService = async (req, res) => {
   try {
     const { name, parent, level, icon } = req.body;
+    console.log("req.body", req.body);
     
     if (!name || !level || !icon) {
       return res.json(createResponse.invalid("Name, level and icon are required"));
@@ -18,7 +19,7 @@ exports.createService = async (req, res) => {
       return res.json(createResponse.invalid(`Parent service is required for level ${level} service`));
     }
 
-    const result = await serviceService.createService({
+    const result = await serviceService.create_Service({
       name,
       parent,
       level,
@@ -58,6 +59,7 @@ exports.getServicesByLevel = async (req, res) => {
 exports.getServiceById = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("id in controller", id);
     const result = await serviceService.getServiceById(id);
     res.json(result);
   } catch (error) {
@@ -73,7 +75,6 @@ exports.updateService = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, icon } = req.body;
-
     if (!name && !icon) {
       return res.json(createResponse.invalid("At least one field to update is required"));
     }

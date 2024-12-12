@@ -1014,6 +1014,7 @@ exports.accountSetting = async (req, res) => {
 
 exports.getUserData = async (req, res) => {
   const { userId, ownUserId } = req.body;
+  console.log("userId", userId , "ownUserId", ownUserId);
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;

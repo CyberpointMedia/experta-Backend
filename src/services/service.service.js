@@ -1,31 +1,19 @@
 const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
-const serviceService = require("../services/service.service");
+// const serviceService = require("../services/service.service");
+const Service = require("../models/service.model");
 
-exports.createService = async (req, res) => {
+exports.create_Service = async ({ name, parent, level, icon }) => {
   try {
-    const { name, parent, level, icon } = req.body;
-    
-    if (!name || !level || !icon) {
-      return res.json(createResponse.invalid("Name, level and icon are required"));
-    }
-
-    if (![1, 2, 3].includes(level)) {
-      return res.json(createResponse.invalid("Level must be 1, 2 or 3"));
-    }
-
-    if (level > 1 && !parent) {
-      return res.json(createResponse.invalid(`Parent service is required for level ${level} service`));
-    }
-
-    const result = await serviceService.createService({
+    const newService = new Service({
       name,
       parent,
       level,
       icon
     });
 
-    res.json(result);
+    const savedService = await newService.save();
+    return createResponse.success(savedService);
   } catch (error) {
     console.error("Error creating service:", error);
     res.json(createResponse.error({
@@ -35,70 +23,62 @@ exports.createService = async (req, res) => {
   }
 };
 
-exports.getServicesByLevel = async (req, res) => {
+exports.getServicesByLevel = async (level, parentId) => {
   try {
-    const { level } = req.params;
-    const { parentId } = req.query;
-
     if (!level || ![1, 2, 3].includes(parseInt(level))) {
-      return res.json(createResponse.invalid("Valid level (1, 2, or 3) is required"));
+      return createResponse.invalid("Valid level (1, 2, or 3) is required");
     }
 
-    const result = await serviceService.getServicesByLevel(parseInt(level), parentId);
-    res.json(result);
+    const services = await Service.find({
+      level: parseInt(level),
+      parent: parentId || null,
+      isDeleted: false
+    }).select('-__v');
+
+    return createResponse.success(services);
   } catch (error) {
     console.error("Error fetching services:", error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message
-    }));
+    throw new Error(error.message);
   }
 };
 
-exports.getServiceById = async (req, res) => {
+exports.getServiceById = async (id) => {
   try {
-    const { id } = req.params;
-    const result = await serviceService.getServiceById(id);
-    res.json(result);
+    const result = await Service.findOne({ _id: id, isDeleted: false });
+    console.log(result);
+    return createResponse.success(result);
   } catch (error) {
-    console.error("Error fetching service:", error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message
-    }));
+    console.error("Error fetching services:", error);
+    throw new Error(error.message);
   }
 };
 
-exports.updateService = async (req, res) => {
+exports.updateService = async (id, { name, icon }) => {
+  console.log("id", id , "name", name, "icon", icon);
   try {
-    const { id } = req.params;
-    const { name, icon } = req.body;
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (icon) updateData.icon = icon;
 
-    if (!name && !icon) {
-      return res.json(createResponse.invalid("At least one field to update is required"));
-    }
-
-    const result = await serviceService.updateService(id, { name, icon });
-    res.json(result);
+    const result = await Service.findOneAndUpdate(
+      { _id: id, isDeleted: false },
+      updateData,
+      { new: true }
+    );
+    return createResponse.success(result);
   } catch (error) {
     console.error("Error updating service:", error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message
-    }));
+    throw new Error(error.message);
   }
 };
 
-exports.deleteService = async (req, res) => {
+exports.deleteService = async (id) => {
   try {
-    const { id } = req.params;
-    const result = await serviceService.deleteService(id);
-    res.json(result);
+    const result = await Service.findOne({ _id: id, isDeleted: false });
+    result.isDeleted = true;
+    return createResponse.success(result);
   } catch (error) {
     console.error("Error deleting service:", error);
-    res.json(createResponse.error({
-      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
-      errorMessage: error.message
-    }));
+    throw new Error(error.message);
   }
 };
