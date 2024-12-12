@@ -7,7 +7,7 @@ module.exports = (app) => {
   var router = require("express").Router();
   router.get("/industry", userController.getIndustry);
   router.get("/occupation/:industryId", userController.getOccupation);
-  router.get("/user/by-industry/:industryId", userController.getUserByIndustry);
+  router.get("/user/by-industry/:level1ServiceId", userController.getUserByIndustry);
   router.post(
     "/industry",
     uploadMiddleWare.single("file"),

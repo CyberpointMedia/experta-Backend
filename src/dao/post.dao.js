@@ -4,96 +4,6 @@ const Review = require("../models/review.model");
 const Report=require("../models/report.model");
 const ReportReason = require("../models/reportReason.model");
 
-module.exports.getPostDetails = function (postId) {
-  return new Promise((resolve, reject) => {
-    Post.findOne({ _id: postId , isDeleted:false})
-      .populate({
-        path: "postedBy",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .populate({
-        path: "likes",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .populate({
-        path: "comments.user",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .then((post) => {
-        console.log("post--> ", post);
-        if (!post) {
-          return resolve(null);
-        }
-
-        const transformUser = (user) => {
-          if (!user) return null;
-          return {
-            id: user._id || "",
-            online: user.online || false,
-            rating: user.basicInfo?.rating || "",
-            profilePic: user.basicInfo?.profilePic || "",
-            displayName: user.basicInfo?.displayName || "",
-            industry: user.industryOccupation?.industry?.name || "",
-            occupation: user.industryOccupation?.occupation?.name || "",
-          };
-        };
-
-        const transformedPost = {
-          type: post.type,
-          id: post._id,
-          formattedDate: post?.formattedDate,
-          image: post?.image,
-          caption: post?.caption,
-          postedBy: transformUser(post.postedBy),
-          likes: post.likes.map(transformUser).filter(Boolean),
-          comments: post.comments.map((comment) => ({
-            comment: comment.comment,
-            formattedDate: comment?.formattedDate,
-            _id: comment._id,
-            user: transformUser(comment.user),
-          })),
-          totalLikes: post.likes.length,
-          totalComments: post.comments.length,
-        };
-
-        resolve(transformedPost);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
 
 module.exports.createPost = function (postToSave, basicInfoId) {
   return new Promise((resolve, reject) => {
@@ -116,193 +26,6 @@ module.exports.createPost = function (postToSave, basicInfoId) {
       .catch((err) => {
         console.log("error", err);
         reject(err.message);
-      });
-  });
-};
-
-module.exports.getAllPost = function (type, userId) {
-  return new Promise((resolve, reject) => {
-    Post.find({ type: type, postedBy: userId , isDeleted:false })
-      .populate({
-        path: "postedBy",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .populate({
-        path: "likes",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .populate({
-        path: "comments.user",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .then((posts) => {
-        if (!posts) {
-          return resolve(null);
-        }
-        const transformUser = (user) => {
-          if (!user) return null;
-          return {
-            id: user._id || "",
-            online: user.online || false,
-            rating: user.basicInfo?.rating || "",
-            profilePic: user.basicInfo?.profilePic || "",
-            displayName: user.basicInfo?.displayName || "",
-            industry: user.industryOccupation?.industry?.name || "",
-            occupation: user.industryOccupation?.occupation?.name || "",
-          };
-        };
-        const transformedPosts = posts.map((post) => ({
-          type: post.type,
-          id: post._id,
-          formattedDate: post?.formattedDate,
-          image: post?.image,
-          caption: post?.caption,
-          postedBy: transformUser(post.postedBy),
-          likes: post.likes.map(transformUser).filter(Boolean),
-          comments: post.comments.map((comment) => ({
-            comment: comment.comment,
-            formattedDate: comment?.formattedDate,
-            _id: comment._id,
-            createdAt: comment.createdAt,
-            user: transformUser(comment.user),
-          })),
-          totalLikes: post.likes.length,
-          totalComments: post.comments.length,
-        }));
-        resolve(transformedPosts);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
-      });
-  });
-};
-
-
-module.exports.getAllRandomPost = function (type) {
-  return new Promise((resolve, reject) => {
-    Post.find({ type: type , isDeleted:false})
-      .populate({
-        path: "postedBy",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .populate({
-        path: "likes",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .populate({
-        path: "comments.user",
-        populate: [
-          { path: "basicInfo", select: "rating profilePic displayName" },
-          {
-            path: "industryOccupation",
-            populate: [
-              { path: "industry", select: "name" },
-              { path: "occupation", select: "name" },
-            ],
-          },
-        ],
-        select: "_id online",
-      })
-      .then((posts) => {
-        if (!posts || posts.length === 0) {
-          return resolve(null);
-        }
-        const transformUser = (user) => {
-          if (!user) return null;
-          return {
-            id: user._id || "",
-            online: user.online || false,
-            rating: user.basicInfo?.rating || "",
-            profilePic: user.basicInfo?.profilePic || "",
-            displayName: user.basicInfo?.displayName || "",
-            industry: user.industryOccupation?.industry?.name || "",
-            occupation: user.industryOccupation?.occupation?.name || "",
-          };
-        };
-        const transformedPosts = posts.map((post) => ({
-          type: post.type,
-          id: post._id,
-          formattedDate: post?.formattedDate,
-          image: post?.image,
-          caption: post?.caption,
-          postedBy: transformUser(post.postedBy),
-          likes: post.likes.map(transformUser).filter(Boolean),
-          comments: post.comments.map((comment) => ({
-            comment: comment.comment,
-            formattedDate: comment?.formattedDate,
-            _id: comment._id,
-            createdAt: comment.createdAt,
-            user: transformUser(comment.user),
-          })),
-          totalLikes: post.likes.length,
-          totalComments: post.comments.length,
-        }));
-
-        // Randomize the order of posts
-        for (let i = transformedPosts.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [transformedPosts[i], transformedPosts[j]] = [
-            transformedPosts[j],
-            transformedPosts[i],
-          ];
-        }
-
-        resolve(transformedPosts);
-      })
-      .catch((err) => {
-        console.log(err);
-        reject(err);
       });
   });
 };
@@ -430,6 +153,300 @@ module.exports.deleteReportReasonById = function (id) {
     })
       .then((data) => {
         resolve(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+
+module.exports.getPostDetails = function (postId) {
+  return new Promise((resolve, reject) => {
+    Post.findOne({ _id: postId , isDeleted:false})
+      .populate({
+        path: "postedBy",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "likes",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "comments.user",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .then((post) => {
+        if (!post) {
+          return resolve(null);
+        }
+
+        const transformUser = (user) => {
+          if (!user) return null;
+          return {
+            id: user._id || "",
+            online: user.online || false,
+            rating: user.basicInfo?.rating || "",
+            profilePic: user.basicInfo?.profilePic || "",
+            displayName: user.basicInfo?.displayName || "",
+            level1: user.industryOccupation?.level1Service?.name || "",
+            level2: user.industryOccupation?.level2Service?.name || "",
+            level3: user.industryOccupation?.level3Services?.map(service => service.name) || []
+          };
+        };
+
+        const transformedPost = {
+          type: post.type,
+          id: post._id,
+          formattedDate: post?.formattedDate,
+          image: post?.image,
+          caption: post?.caption,
+          postedBy: transformUser(post.postedBy),
+          likes: post.likes.map(transformUser).filter(Boolean),
+          comments: post.comments.map((comment) => ({
+            comment: comment.comment,
+            formattedDate: comment?.formattedDate,
+            _id: comment._id,
+            user: transformUser(comment.user),
+          })),
+          totalLikes: post.likes.length,
+          totalComments: post.comments.length,
+        };
+
+        resolve(transformedPost);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+module.exports.getAllPost = function (type, userId) {
+  return new Promise((resolve, reject) => {
+    Post.find({ type: type, postedBy: userId , isDeleted:false })
+      .populate({
+        path: "postedBy",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "likes",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "comments.user",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .then((posts) => {
+        if (!posts) {
+          return resolve(null);
+        }
+
+        const transformUser = (user) => {
+          if (!user) return null;
+          return {
+            id: user._id || "",
+            online: user.online || false,
+            rating: user.basicInfo?.rating || "",
+            profilePic: user.basicInfo?.profilePic || "",
+            displayName: user.basicInfo?.displayName || "",
+            level1: user.industryOccupation?.level1Service?.name || "",
+            level2: user.industryOccupation?.level2Service?.name || "",
+            level3: user.industryOccupation?.level3Services?.map(service => service.name) || []
+          };
+        };
+
+        const transformedPosts = posts.map((post) => ({
+          type: post.type,
+          id: post._id,
+          formattedDate: post?.formattedDate,
+          image: post?.image,
+          caption: post?.caption,
+          postedBy: transformUser(post.postedBy),
+          likes: post.likes.map(transformUser).filter(Boolean),
+          comments: post.comments.map((comment) => ({
+            comment: comment.comment,
+            formattedDate: comment?.formattedDate,
+            _id: comment._id,
+            createdAt: comment.createdAt,
+            user: transformUser(comment.user),
+          })),
+          totalLikes: post.likes.length,
+          totalComments: post.comments.length,
+        }));
+
+        resolve(transformedPosts);
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+};
+
+module.exports.getAllRandomPost = function (type) {
+  return new Promise((resolve, reject) => {
+    Post.find({ type: type , isDeleted:false})
+      .populate({
+        path: "postedBy",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "likes",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .populate({
+        path: "comments.user",
+        populate: [
+          { path: "basicInfo", select: "rating profilePic displayName" },
+          {
+            path: "industryOccupation",
+            populate: [
+              { path: "level1Service", select: "name" },
+              { path: "level2Service", select: "name" },
+              { path: "level3Services", select: "name" }
+            ]
+          }
+        ],
+        select: "_id online",
+      })
+      .then((posts) => {
+        if (!posts || posts.length === 0) {
+          return resolve(null);
+        }
+
+        const transformUser = (user) => {
+          if (!user) return null;
+          return {
+            id: user._id || "",
+            online: user.online || false,
+            rating: user.basicInfo?.rating || "",
+            profilePic: user.basicInfo?.profilePic || "",
+            displayName: user.basicInfo?.displayName || "",
+            level1: user.industryOccupation?.level1Service?.name || "",
+            level2: user.industryOccupation?.level2Service?.name || "",
+            level3: user.industryOccupation?.level3Services?.map(service => service.name) || []
+          };
+        };
+
+        const transformedPosts = posts.map((post) => ({
+          type: post.type,
+          id: post._id,
+          formattedDate: post?.formattedDate,
+          image: post?.image,
+          caption: post?.caption,
+          postedBy: transformUser(post.postedBy),
+          likes: post.likes.map(transformUser).filter(Boolean),
+          comments: post.comments.map((comment) => ({
+            comment: comment.comment,
+            formattedDate: comment?.formattedDate,
+            _id: comment._id,
+            createdAt: comment.createdAt,
+            user: transformUser(comment.user),
+          })),
+          totalLikes: post.likes.length,
+          totalComments: post.comments.length,
+        }));
+
+        // Randomize the order of posts
+        for (let i = transformedPosts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [transformedPosts[i], transformedPosts[j]] = [
+            transformedPosts[j],
+            transformedPosts[i],
+          ];
+        }
+
+        resolve(transformedPosts);
       })
       .catch((err) => {
         console.log(err);
