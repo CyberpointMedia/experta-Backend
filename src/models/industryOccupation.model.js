@@ -1,18 +1,19 @@
-// /models/IndustryOccupation.js
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
-
 const industryOccupationSchema = new mongoose.Schema({
-  industry: {
-    type: Schema.Types.ObjectId,
-    ref: 'Industry',
-    required: true,
+  level1Service: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service',
+    required: true
   },
-  occupation: {
-    type: Schema.Types.ObjectId,
-    ref: 'Occupation',
-    required: true,
+  level2Service: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service',
+    required: true
   },
+  level3Services: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service'
+  }],
   registrationNumber: {
     type: String,
   },
@@ -25,7 +26,7 @@ const industryOccupationSchema = new mongoose.Schema({
   isDeleted: {
     type: Boolean,
     default: false,
-  },
+  }
 }, {
   timestamps: true,
 });

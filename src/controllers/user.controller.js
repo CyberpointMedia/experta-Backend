@@ -93,21 +93,14 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
   try {
     const userId = req.body.user._id;
     const {
-      industry,
-      occupation,
+      level1ServiceId,
+      level2ServiceId,
+      level3ServiceIds,
       registrationNumber,
       achievements,
       expertise,
     } = req.body;
     const certificate = req?.file;
-    if (!industry || "" == industry) {
-      res.send(createResponse.invalid("Industry cannot be empty"));
-      return;
-    }
-    if (!occupation || "" == occupation) {
-      res.send(createResponse.invalid("Occupation cannot be empty"));
-      return;
-    }
     if (
       (!registrationNumber || "" == registrationNumber) &&
       (!certificate || "" == certificate)
@@ -133,8 +126,9 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
 
     const savedIndustryOccupation =
       await userService.createOrUpdateIndustryOccupation(userId, {
-        industry,
-        occupation,
+        level1ServiceId,
+        level2ServiceId,
+        level3ServiceIds,
         registrationNumber,
         certificate: data?.url,
         achievements,
@@ -1020,6 +1014,7 @@ exports.accountSetting = async (req, res) => {
 
 exports.getUserData = async (req, res) => {
   const { userId, ownUserId } = req.body;
+  console.log("userId", userId , "ownUserId", ownUserId);
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
@@ -1463,13 +1458,13 @@ exports.getOccupation = async (req, res) => {
 };
 
 exports.getUserByIndustry = async (req, res) => {
-  const { industryId } = req.params;
-  if (!industryId) {
+  const { level1ServiceId } = req.params;
+  if (!level1ServiceId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
   userDao
-    .getUserByIndustry(industryId)
+    .getUserByIndustry(level1ServiceId)
     .then((data) => {
       if (null != data) {
         res.json(createResponse.success(data));
