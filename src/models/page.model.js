@@ -4,7 +4,7 @@ const pageSchema = new mongoose.Schema(
   {
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
     title: { type: String, required: false },
-    slug: { type: String, required: false, unique: true },
+    slug: { type: String, required: false },
     description: { type: String },
     seoTitle: { type: String, required: false },
     metaDescription: { type: String },
