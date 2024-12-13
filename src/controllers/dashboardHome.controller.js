@@ -4,16 +4,25 @@ const errorMessageConstants = require('../constants/error.messages');
 const { paginate } = require('../middlewares/paginate.middleware');
 const createResponse = require('../utils/response');
 const blockedUser = require('../models/blockUser.model');
+const role = require('../models/role.model');
 
 
 // Controller method to get the total number of users
 exports.getTotalUsers = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments({isDeleted:false});
+    const lastMonthUsers = await User.find({
+      isDeleted:false,
+      createdAt: {
+        $gt: new Date(new Date().setDate(new Date().getDate() - 30)),
+        $lte: new Date()
+      }
+    }).countDocuments();
+    const PercentageOfUser = (lastMonthUsers / totalUsers) * 100;
     res.status(200).json({
       status: 'success',
       message: 'Total number of users fetched successfully',
-      data: { totalUsers },
+      data: { totalUsers , PercentageOfUser },
     });
   } catch (error) {
     console.error(error);
@@ -28,10 +37,19 @@ exports.getTotalUsers = async (req, res) => {
 exports.getVerifiedUsers = async (req, res) => {
     try {
       const verifiedUsers = await User.countDocuments({ isVerified: true , isDeleted:false });
+      const lastMonthVerifiedUsers = await User.find({
+        isDeleted:false,
+        isVerified:true,
+        createdAt: {
+          $gt: new Date(new Date().setDate(new Date().getDate() - 30)),
+          $lte: new Date()
+        }
+      }).countDocuments();
+      const PercentageOfVerifiedUser = (lastMonthVerifiedUsers / verifiedUsers) * 100;
       res.status(200).json({
         status: 'success',
         message: 'Total number of verified users fetched successfully',
-        data: { verifiedUsers },
+        data: { verifiedUsers , PercentageOfVerifiedUser },
       });
     } catch (error) {
       console.error(error);
@@ -79,6 +97,10 @@ exports.getNewUsers = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .populate('basicInfo')
+      .populate({
+        path: 'roles',
+        select : 'name' 
+      })
       .populate({
         path:'block',
         model:'BlockedUser',
