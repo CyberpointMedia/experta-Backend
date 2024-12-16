@@ -6,9 +6,11 @@ const errorMessageConstants = require('../constants/error.messages');
 exports.createPage = async (req, res) => {
   const { title, slug, description, seoTitle, metaDescription, allowInSearchResults, followLinks, metaRobots, breadcrumbs, canonicalURL, status } = req.body;
   try {
-    const existingPage = await Page.findOne({ slug , isDeleted:false , status: 'published' });
-    if (existingPage) {
-      return res.json(createResponse.invalid('Page with this slug already exists.'));
+    if (status === 'published') {
+      const existingPage = await Page.findOne({ slug, status: 'published', isDeleted: false });
+      if (existingPage) {
+        return res.json(createResponse.invalid('A published page with this slug already exists.'));
+      }
     }
     const author = req.body.user._id;
     if (!author) {

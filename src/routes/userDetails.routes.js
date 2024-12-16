@@ -18,8 +18,10 @@ const { getAllBasicInfo, getAllBookings, getBookingById, createBooking, updateBo
     deleteBlockedUser,
     getUserkycStatus,
     getAllActivities,
+    uploadServices,
 } = require('../controllers/userDetails.controller');
 const { authMiddleware } = require("../middlewares/auth.middleware");
+const uploadMiddleWare = require("../middlewares/file.middleware");
 const {hasRole}=require("../middlewares/role.middleware");
 const { paginate } = require('../middlewares/paginate.middleware');
 const routes = require("../constants/route.url");
@@ -68,6 +70,8 @@ Router.get('/all-users-kyc-status/:id', authMiddleware, hasRole('admin'), getUse
 //activity routes
 Router.get('/all-activity/:id', authMiddleware, hasRole('admin'), paginate('User'), getAllActivities);
 
+//uplaod services 
+Router.post('/upload-services',uploadMiddleWare.single("icon"),uploadServices);
 //ticket routes 
 // Create a new ticket
 Router.post('/ticket', authMiddleware, hasRole('admin'), createTicket);

@@ -11,6 +11,10 @@ const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 const mongoose = require('mongoose');
 const kycService = require('../services/kyc.service');
+const AWS = require('aws-sdk');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+const Service = require('../models/service.model');
 
 // Get all users
 // exports.getAllUsers = async (req, res) => {
@@ -519,6 +523,45 @@ exports.getAllActivities = async (req, res) => {
   }
 };
 
+//uplaod services 
+exports.uploadServices = async (req, res) => {
+  try {
+    const { name, level } = req.body;
+    const file = req.file;
+
+    if (!name || !level || !file) {
+      return res.status(422).json({
+        errorCode: errorMessageConstants.BAD_REQUEST_ERROR_CODE,
+        errorMessage: 'Name, level, and file are required',
+      });
+    }
+
+    // Assuming the middleware uploads the file and sets the file URL in req.file.location
+    const icon = file.location;
+
+    // Save to database (assuming you have a Service model)
+    const newService = new Service({
+      name,
+      level,
+      icon,
+    });
+
+    await newService.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Service uploaded successfully',
+      data: newService,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    });
+  }
+};
+
 //Reviews controller
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
@@ -648,8 +691,7 @@ exports.deleteReview = async (req, res) => {
 // Create a new ticket
 exports.createTicket = async (req, res) => {
   const { subject, description, fileUrl, priority } = req.body;
-  const userId = req.body.user._id;  // Assuming user info is in `req.user` from authMiddleware
-
+  const userId = req.body.user._id; 
   try {
     const newTicket = new Ticket({
       userId,
