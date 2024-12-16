@@ -26,7 +26,6 @@ allUsersRouters.delete('/delete-user',authMiddleware , hasRole('admin'), deleteU
 allUsersRouters.put('/block-user/:id',authMiddleware , hasRole('admin'),  blockStatus);
 allUsersRouters.put('/block-user',authMiddleware , hasRole('admin'),  blockStatus);
 
-
 module.exports = (app) => {
     app.use(routes.API, allUsersRouters); 
 };

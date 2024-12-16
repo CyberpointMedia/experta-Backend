@@ -7,7 +7,7 @@ const {
   updatePage,
   deletePage
 } = require('../controllers/page.controller');
-const { authMiddleware } = require('../middlewares/auth.middleware');  // Optional, for admin routes
+const { authMiddleware } = require('../middlewares/auth.middleware');  
 const { hasRole } = require('../middlewares/role.middleware');
 const { paginate } = require('../middlewares/paginate.middleware');
 const routes = require('../constants/route.url');

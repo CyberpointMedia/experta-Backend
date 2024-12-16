@@ -307,7 +307,21 @@ exports.getUserById = async (req, res) => {
       .populate('basicInfo')
       .populate('roles')
       .populate('education')
-      .populate('industryOccupation')
+      .populate({
+        path: 'industryOccupation',
+        populate: {
+          path:'level1Service',
+          model: 'Service',
+        },
+        populate: {
+          path:'level2Service',
+          model: 'Service',
+        },
+        populate: {
+          path:'level3Services',
+          model: 'Service',
+        }
+      })
       .populate('workExperience')
       .populate('intereset')
       .populate('language')
@@ -323,6 +337,7 @@ exports.getUserById = async (req, res) => {
       .populate('notifications')
       .populate('blockedUsers', '-password -otp -otpExpiry -isDeleted')
       .exec();
+
     if (!user) {
       return res.status(404).json(createResponse.error({ errorCode: 'USER_NOT_FOUND', errorMessage: 'User not found' }));
     }
