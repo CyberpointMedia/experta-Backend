@@ -26,5 +26,6 @@ const pageSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+ pageSchema.index({ slug: 1 }, { unique: true, partialFilterExpression: { status: 'published' } });
 
 module.exports = mongoose.model("Page", pageSchema);

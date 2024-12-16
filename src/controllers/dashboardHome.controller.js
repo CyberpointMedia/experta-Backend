@@ -63,11 +63,20 @@ exports.getVerifiedUsers = async (req, res) => {
 // Controller method to get the total number of non-verified users
 exports.getNonVerifiedUsers = async (req, res) => {
     try {
-      const nonVerifiedUsers = await User.countDocuments({ isVerified: false , isDeleted:false }); // Count users where isVerified is false
+      const nonVerifiedUsers = await User.countDocuments({ isVerified: false , isDeleted:false });
+      const lastMonthNonVerifiedUsers = await User.find({
+        isDeleted:false,
+        isVerified:false,
+        createdAt: {
+          $gt: new Date(new Date().setDate(new Date().getDate() - 30)),
+          $lte: new Date()
+        }
+      }).countDocuments();
+      const PercentageOfNonVerifiedUser = (lastMonthNonVerifiedUsers / nonVerifiedUsers) * 100;
       res.status(200).json({
         status: 'success',
         message: 'Total number of non-verified users fetched successfully',
-        data: { nonVerifiedUsers },
+        data: { nonVerifiedUsers , PercentageOfNonVerifiedUser },
       });
     } catch (error) {
       console.error(error);
