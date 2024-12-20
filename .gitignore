@@ -90,7 +90,6 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
-*.html
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js
@@ -130,3 +129,7 @@ dist
 .pnp.*
 src/config/firebase-service-account.json
 src/config/firebase-service-account.json
+
+#dummy files ignore
+*.html
+*.bk
