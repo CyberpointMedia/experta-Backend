@@ -13,7 +13,7 @@ const ApiError = require("../utils/apiError");
 const transformError = async (error) => {
   try {
     let field,
-      messsage,
+      message,
       code,
       data = {};
 
@@ -43,3 +43,5 @@ const transformError = async (error) => {
     throw error;
   }
 };
+
+module.exports = transformError;
