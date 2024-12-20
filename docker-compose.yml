@@ -1,0 +1,41 @@
+# start:          docker-compose --env-file .env.docker up
+# stop:           docker-compose --env-file .env.docker down --rmi all --volumes
+services:
+  redis-server:
+    container_name: redis-server
+    restart: unless-stopped
+    image: redis/redis-stack:latest
+    ports:
+      - 6379:6379
+      - 8001:8001
+    volumes:
+      - redisdb:/data
+    networks:
+      - expertanet
+    env_file:
+      - ./.env.docker
+    environment:
+      - REDIS_ARGS="--requirepass ${REDIS_PASSWORD}"
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+  mongo-server:
+    container_name: mongo-server
+    restart: unless-stopped
+    image: mongodb/mongodb-community-server:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb:/data/db
+    env_file:
+      - ./.env.docker
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGODB_NAME}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+    networks:
+      - expertanet
+networks:
+  expertanet:
+    external: true
+volumes:
+  mongodb:
+  redisdb:
