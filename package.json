@@ -1,4 +1,14 @@
 {
+    "name": "experta-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "api/server.js",
+  "scripts": {
+    "staging": "node api/server.js",
+    "local": "nodemon api/server.js"
+  },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.716.0",
     "argon2": "^0.41.1",
