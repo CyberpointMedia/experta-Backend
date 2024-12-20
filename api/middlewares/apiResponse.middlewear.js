@@ -67,7 +67,7 @@ const apiResponseMiddlewear = (req, res, next) => {
   ) => {
     const status = await getHttpStatus(statusCode);
     const response = {
-      status: "error",
+      status: "failed",
       code: statusCode,
       message,
     };
