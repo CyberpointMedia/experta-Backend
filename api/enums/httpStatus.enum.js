@@ -1,0 +1,32 @@
+/**
+ * Module: HttpCodes Enum
+ * Info: Manage codes for each http statusCode
+ **/
+
+/**
+ * HTTP Status Code supported by API
+ */
+const HttpStatus = Object.freeze({
+  OK: 200,
+  CREATED: 201,
+  ACCEPTED: 202,
+  NO_CONTENT: 204,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  USER_NOT_AUTHENTICATED: 401,
+  TOKEN_EXPIRED: 401,
+  TOKEN_REVOKED: 401,
+  INSUFFICIENT_PERMISSIONS: 403,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  RESOURCE_NOT_FOUND: 404,
+  METHOD_NOT_ALLOWED: 405,
+  REQUEST_TIMEOUT: 408,
+  CONFLICT: 409,
+  TOO_MANY_REQUESTS: 429,
+  RATE_LIMIT_EXCEEDED: 429,
+  UNPROCESSABLE_ENTITY: 422,
+  INTERNAL_SERVER_ERROR: 500,
+});
+
+module.exports = HttpStatus;
