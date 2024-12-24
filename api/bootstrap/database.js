@@ -35,7 +35,7 @@ const disconnectDatabase = async () => {
     await mongoose.disconnect();
   } catch (error) {
     logger.error("MongoDB Error :" + error.message);
-    throw new Error("MongoDB connection failed");
+    throw new Error("MongoDB graceful shutdown failed");
   }
 };
 
