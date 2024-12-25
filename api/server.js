@@ -13,6 +13,7 @@ const { APP_PORT, MONGODB_URI, MONGODB_NAME } = require("./config/api.config");
 const logger = require("./utils/logger");
 const http = require("http");
 const { connectDatabase, disconnectDatabase } = require("./bootstrap/database");
+const { checkRedisConnection, disconnectRedis } = require("./bootstrap/redis");
 
 /**
  * Gracefully shutdown the server and close resources.
@@ -35,10 +36,13 @@ const gracefulShutdown = async (server, reason) => {
     logger.info("Disconnecting from MongoDB...");
     await disconnectDatabase();
     logger.info("MongoDB connection closed successfully");
+
+    // Disconnect Redis
+    await disconnectRedis(); // Cleanly close the Redis connection
   } catch (error) {
     logger.error("Error during shutdown:", error.message);
   } finally {
-    logger.info("🚦 Exiting process...");
+    logger.info("Exiting process...");
     process.exit(0); // Ensure process exits after cleanup
   }
 };
@@ -50,6 +54,8 @@ const startExpressServer = async () => {
   let server;
   try {
     // Connect to Redis
+    await checkRedisConnection();
+
     // Connect to MongoDB
     await connectDatabase(MONGODB_URI, MONGODB_NAME);
 
