@@ -24,6 +24,7 @@ const schemaRules = {
 
 //Compose Model Schema
 const ModelSchema = new Schema(schemaRules);
+
 // Apply the common properties plugin to the Post schema
 ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
 

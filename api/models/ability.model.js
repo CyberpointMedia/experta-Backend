@@ -5,10 +5,11 @@
 
 // Import Module dependencies.
 const { Schema } = require("mongoose");
-const BaseModel = require("./base.model");
+const SchemaComposePlugin = require("./plugins/schemaComposer");
 const ModelName = "Ability";
 
 // Define Model Schema rules and options
+const excludeOptions = {};
 const schemaRules = {
   title: {
     type: String,
@@ -34,7 +35,10 @@ const schemaRules = {
 };
 const ModelSchema = new Schema(schemaRules);
 
-// Create model using discriminator
-const AbilityModel = BaseModel.discriminator(ModelName, ModelSchema);
+// Apply the common properties plugin to the Post schema
+ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
+
+//Create model
+const AbilityModel = model(ModelName, ModelSchema);
 
 module.exports = AbilityModel;
