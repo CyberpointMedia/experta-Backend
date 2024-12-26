@@ -20,7 +20,7 @@ const generateSecret = (length = 32) => {
  * Generate 6 digit otp for verificaation
  */
 const generateOtp = () => {
-  return crypto.randomInt(100000, 1000000).toString();
+  return Math.floor(100000 + Math.random() * 999999);
 };
 
 module.exports = {

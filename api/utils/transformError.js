@@ -23,7 +23,7 @@ const transformError = async (error) => {
     code = "UNPROCESSABLE_ENTITY";
     // Handle Unique Database Constraint Error
 
-    if (error.code && (err.code === 11000 || err.code === 11001)) {
+    if (error.code && (error.code === 11000 || error.code === 11001)) {
       field = Object.keys(error.keyValue)[0];
       data[field] = `${field} is already taken. Please try wih another value.`;
       error = new ApiError(message, code, data, false, true);

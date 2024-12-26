@@ -72,6 +72,7 @@ app.use(async (error, req, res, next) => {
 
     await res.apiErrorResponse(message, statusCode, data);
   } catch (error) {
+    logger.info(error);
     logger.info(`Global error handler message: ${error.message}`);
   }
 });

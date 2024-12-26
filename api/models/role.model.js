@@ -1,47 +1,62 @@
-const mongoose = require("mongoose");
-const { Schema } = mongoose;
-const roleEnum = require("../enums/role.enum");
+/**
+ * Module: Role Model
+ * Info: Define roles in the system for manage ACL(Access Control List)
+ **/
 
-const roleSchema = Schema({
-    // The unique identifier for the role. It must be a string of uppercase letters (A-Z) with a maximum length of 10 characters.
-    _id: {
-        type: String,
-        unique: true,
-        required: true,
-        uppercase: true,
-        maxlength: 10,
-        trim: true,
-        match: [/^[a-zA-Z]+$/, "It allows only characters: a-zA-Z"],
-    },
-    // The name of the role. It must be a unique, lowercase string.
-    name: {
-        type: String,
-        required: true,
-        unique: true,
-        enum: Object.values(roleEnum),
-    },
-    // An optional display name for the role if the  user not wants to show the name then it can edit the name and this displayname is show .
-    displayName: {
-        type: String,
-        required: false,
-        unique: true,
-        trim: true,
-    },
-    // The permissions that are assigned to the role.
-    permissions:
-        [{
-            type: String,
-            ref: "Permission"
-        }],
-    // An optional description of the role.
-    description: {
-        type: String,
-        trim: true,
-    },
-}, {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-});
+// Import Module dependencies.
+const { Schema, model } = require("mongoose");
+const SchemaComposePlugin = require("./plugins/schemaComposer");
+const ModelName = "Role";
 
-module.exports = mongoose.model("Role", roleSchema);
+// Define Model Schema rules and options
+const excludeOptions = {};
+const schemaRules = {
+  title: {
+    type: String,
+    trim: true,
+  },
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    maxlength: [20, "Input must be no longer than 20 characers"],
+    trim: true,
+    immutable: true,
+    index: true,
+  }, // define identifier for role
+  priority: {
+    type: Number,
+    required: true,
+  }, //Priority define access level. Lower number means higher priority
+  parentRole: {
+    type: Schema.Types.ObjectId,
+    ref: ModelName,
+  }, // Reference to parent role
+  info: {
+    type: String,
+    maxlength: [100, "Input must be no longer than 10 characers"],
+  },
+  abilities: [
+    {
+      type: String,
+      ref: "Ability",
+    },
+  ], // Array of abilities
+  isAssigned: {
+    type: Boolean,
+    default: 0,
+  }, // Flag to check role can be deleted if not assigned
+  forSystem: {
+    type: Boolean,
+    default: 0,
+  }, // Flag to check role for system users or not
+};
+const ModelSchema = new Schema(schemaRules);
+// Apply the common properties plugin to the Post schema
+ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
+
+// Create model
+const RoleModel = model(ModelName, ModelSchema);
+
+module.exports = RoleModel;
