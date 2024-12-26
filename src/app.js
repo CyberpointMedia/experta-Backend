@@ -38,6 +38,7 @@ require("./routes/userDetails.routes")(app);
 require("./routes/page.routes")(app);
 require("./routes/dashboardHome.routes")(app);
 require("./routes/service.route")(app);
+require("./routes/zohobooks.route")(app);
 const port = process.env.PORT || 5000;
 
 // Error middlewares
