@@ -4,7 +4,7 @@
  **/
 
 // Import Module dependencies.
-const { Schema } = require("mongoose");
+const { Schema, model } = require("mongoose");
 const SchemaComposePlugin = require("./plugins/schemaComposer");
 const ModelName = "Ability";
 
