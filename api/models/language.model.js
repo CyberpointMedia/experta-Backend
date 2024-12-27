@@ -1,6 +1,6 @@
 /**
- * Module: Model
- * Info:
+ * Module: Language Model
+ * Info: Used to manage languages for selection
  **/
 
 // Import Module dependencies.

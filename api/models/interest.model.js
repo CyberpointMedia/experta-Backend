@@ -1,6 +1,6 @@
 /**
- * Module: Model
- * Info:
+ * Module: Interest Model
+ * Info: Used for manage interest dropdown
  **/
 
 // Import Module dependencies.
