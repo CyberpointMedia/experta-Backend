@@ -49,6 +49,7 @@ const schemaRules = {
   }, // Flag to check role can be deleted if not assigned
   forSystem: {
     type: Boolean,
+    immutable: true,
     default: 0,
   }, // Flag to check role for system users or not
 };

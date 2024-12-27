@@ -22,7 +22,7 @@ const AccountStatus = Object.freeze({
   // Method to get message by status
   async getStatusMessage(CODE) {
     if (this.statusCodes[CODE]) {
-      return this.statusCodes[CODE];
+      return this.statusCodes[CODE.toUpperCase()];
     } else {
       throw new TypeError(`Invalid account status code : ${CODE}`);
     }
