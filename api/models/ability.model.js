@@ -14,6 +14,7 @@ const schemaRules = {
   title: {
     type: String,
     trim: true,
+    maxlength: [30, "Input must be no longer than 30 characers"],
   },
   name: {
     type: String,
@@ -26,6 +27,7 @@ const schemaRules = {
   }, // define action or scope for access on resource
   resource: {
     type: String,
+    maxlength: [20, "Input must be no longer than 20 characers"],
     trim: true,
   }, // Define entity like Post, Comment
   onlyOwned: {
