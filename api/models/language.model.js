@@ -15,8 +15,19 @@ const excludeOptions = {
   trackDeletedAt: true,
 };
 const schemaRules = {
-  name: { type: String, required: true, unique: true }, // Full name of the language (e.g., "English")
-  code: { type: String, required: true, unique: true, maxlength: 5 }, // ISO 639-1 code (e.g., "en")
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    maxlength: [30, "Input must be no longer than 30 characers"],
+  }, // Full name of the language (e.g., "English")
+  code: {
+    type: String,
+    lowercase: true,
+    required: true,
+    unique: true,
+    maxlength: 5,
+  }, // ISO 639-1 code (e.g., "en")
   isActive: { type: Boolean, default: true },
 };
 

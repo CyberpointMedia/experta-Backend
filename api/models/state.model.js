@@ -15,10 +15,21 @@ const excludeOptions = {
   trackDeletedAt: true,
 };
 const schemaRules = {
-  name: { type: String, required: true, unique: true }, // Full name of the state
-  code: { type: String, required: true, unique: true, maxlength: 2 }, // 2-letter abbreviation
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    maxlength: [20, "Input must be no longer than 20 characers"],
+  }, // Full name of the state
+  code: {
+    type: String,
+    required: true,
+    unique: true,
+    maxlength: [2, "Input must be 2 character code"],
+  }, // 2-letter abbreviation
   countryCode: {
     type: String,
+    maxlength: [2, "Input must be 2 character country code"],
     default: "IN",
   },
 };

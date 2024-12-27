@@ -14,6 +14,7 @@ const schemaRules = {
   title: {
     type: String,
     trim: true,
+    maxlength: [20, "Input must be no longer than 20 characers"],
   },
   name: {
     type: String,
