@@ -27,6 +27,19 @@ const HttpStatus = Object.freeze({
   RATE_LIMIT_EXCEEDED: 429,
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500,
+
+  /**
+   * Helper utility to validate HTTP status code for Api
+   * @param {HTTP Status Code} CODE
+   */
+  async getStatusByCode(CODE) {
+    const statusCode = HttpStatus[CODE];
+    if (statusCode) {
+      return statusCode;
+    } else {
+      throw new TypeError(`Invalid http status code : ${CODE}`);
+    }
+  },
 });
 
 module.exports = HttpStatus;
