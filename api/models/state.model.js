@@ -26,6 +26,8 @@ const schemaRules = {
     required: true,
     unique: true,
     maxlength: [2, "Input must be 2 character code"],
+    index: true,
+    immutable: true,
   }, // 2-letter abbreviation
   countryCode: {
     type: String,
@@ -41,6 +43,6 @@ const ModelSchema = new Schema(schemaRules);
 ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
 
 //Create model
-const Model = model(ModelName, ModelSchema);
+const StateModel = model(ModelName, ModelSchema);
 
-module.exports = Model;
+module.exports = StateModel;

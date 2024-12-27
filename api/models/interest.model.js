@@ -6,7 +6,7 @@
 // Import Module dependencies.
 const { Schema, model } = require("mongoose");
 const SchemaComposePlugin = require("./plugins/schemaComposer");
-const ModelName = "Language";
+const ModelName = "Interest";
 
 // Define Model Schema rules and options
 const excludeOptions = {
@@ -19,17 +19,9 @@ const schemaRules = {
     type: String,
     required: true,
     unique: true,
-    maxlength: [30, "Input must be no longer than 30 characers"],
-  }, // Full name of the language (e.g., "English")
-  code: {
-    type: String,
-    lowercase: true,
-    required: true,
-    unique: true,
-    maxlength: 5,
-    immutable: true,
+    maxlength: [50, "Input must be no longer than 50 characers"],
     index: true,
-  }, // ISO 639-1 code (e.g., "en")
+  }, // Full name of the language (e.g., "English")
   isActive: { type: Boolean, default: true },
 };
 
@@ -40,6 +32,6 @@ const ModelSchema = new Schema(schemaRules);
 ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
 
 //Create model
-const LanguageModel = model(ModelName, ModelSchema);
+const InterestModel = model(ModelName, ModelSchema);
 
-module.exports = LanguageModel;
+module.exports = InterestModel;
