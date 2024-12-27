@@ -4,7 +4,7 @@
  **/
 
 // Import Module dependencies.
-const getHttpStatus = require("../utils/getHttpStatus");
+const HttpStatus = require("../enums/httpStatus.enum");
 
 /**
  * Middlewear to add support for handing consistent response format in entire Api
@@ -20,7 +20,7 @@ const apiResponseMiddlewear = (req, res, next) => {
    * @param {JSON || null} data - represent resource's collection data send back to the client
    */
   res.apiResponse = async (message, statusCode = "OK", data = null) => {
-    const status = await getHttpStatus(statusCode);
+    const status = await HttpStatus.getStatusByCode(statusCode);
     const response = {
       status: "success",
       code: statusCode,
@@ -43,7 +43,7 @@ const apiResponseMiddlewear = (req, res, next) => {
     statusCode = "OK",
     collection = {}
   ) => {
-    const status = await getHttpStatus(statusCode);
+    const status = await HttpStatus.getStatusByCode(statusCode);
     const response = {
       status: "success",
       code: statusCode,
@@ -65,7 +65,7 @@ const apiResponseMiddlewear = (req, res, next) => {
     statusCode = "INTERNAL_SERVER_ERROR",
     errors = null
   ) => {
-    const status = await getHttpStatus(statusCode);
+    const status = await HttpStatus.getStatusByCode(statusCode);
     const response = {
       status: "failed",
       code: statusCode,
