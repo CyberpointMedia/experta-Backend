@@ -5,7 +5,7 @@
 
 // Import Module dependencies.
 const validator = require("../utils/validator");
-const ApiError = require("../utils/apiError");
+const { ModelError } = require("../utils/errors");
 
 /**
  * Custom validator for manage request inputs validation
@@ -17,18 +17,10 @@ const apiValidator = (modelSchema) => {
     const inputs = req.body;
 
     // Apply rules and perform validations
-    const errors = validator(inputs, modelSchema, { format: "apiJson" });
-    if (errors) {
+    const errors = validator(inputs, modelSchema);
+    if (errors !== true) {
       // If errors, send errors back
-      next(
-        new ApiError(
-          "We found some errors in your input. Please review the highlighted fields and make corrections.",
-          "UNPROCESSABLE_ENTITY",
-          errors,
-          true,
-          true
-        )
-      );
+      next(new ModelError("We found some errors in your input. Please review the highlighted fields and make corrections.", "UNPROCESSABLE_ENTITY", errors, true, true));
     } else {
       // If no errors, then procceed
       next();

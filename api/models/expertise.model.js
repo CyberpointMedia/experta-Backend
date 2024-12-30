@@ -1,12 +1,12 @@
 /**
- * Module: Language Model
- * Info: Used to manage languages for selection
+ * Module: Expertise Model
+ * Info: Used for manage expertise  dropdown
  **/
 
 // Import Module dependencies.
 const { Schema, model } = require("mongoose");
 const SchemaComposePlugin = require("./plugins/schemaComposer");
-const ModelName = "Language";
+const ModelName = "Expertise";
 
 // Define Model Schema rules and options
 const schemaOptions = {
@@ -19,17 +19,9 @@ const schemaRules = {
     type: String,
     required: true,
     unique: true,
-    maxlength: [50, "Input must be no longer than 30 characers"],
-  }, // Full name of the language (e.g., "English")
-  code: {
-    type: String,
-    lowercase: true,
-    required: true,
-    unique: true,
-    maxlength: 5,
-    immutable: true,
+    maxlength: [50, "Input must be no longer than 50 characers"],
     index: true,
-  }, // ISO 639-1 code (e.g., "en")
+  }, // Full name of the language (e.g., "English")
   isActive: { type: Boolean, default: true },
 };
 
@@ -40,6 +32,6 @@ const ModelSchema = new Schema(schemaRules);
 ModelSchema.plugin(SchemaComposePlugin, schemaOptions);
 
 //Create model
-const LanguageModel = model(ModelName, ModelSchema);
+const ExpertiseModel = model(ModelName, ModelSchema);
 
-module.exports = LanguageModel;
+module.exports = ExpertiseModel;

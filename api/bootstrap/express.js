@@ -9,33 +9,33 @@ require("dotenv").config();
 // Import Module dependencies.
 const { API_PREFIX } = require("../config/api.config");
 const express = require("express");
-const cors = require("cors");
 const helmet = require("helmet");
+const cors = require("cors");
+const methodOverride = require("method-override");
 const compression = require("compression");
+
 const logger = require("../utils/logger");
-const ApiError = require("../utils/apiError");
+const { ApiError } = require("../utils/errors");
 const transformError = require("../utils/transformError");
 const reportError = require("../utils/reportError");
 const apiResponseMiddlewear = require("../middlewares/apiResponse.middlewear");
+
 const registerApiRoutes = require("../routes");
 const baseRoutes = require("../routes/base.route");
 
 // Init express app
 const app = express();
 
-// Setup express app
-app.disable("x-powered-by");
-app.enable("trust proxy");
-app.use(cors());
-app.use(helmet());
-app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Provide custom methods for sending response to client
 app.use(apiResponseMiddlewear);
-app.use((req, res, next) => {
-  req.logger = logger;
-  next();
-});
+
+//Express app middlewears
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(helmet());
+app.use(cors());
+app.use(methodOverride());
+app.use(compression());
 
 //Register API routes
 app.use("/", baseRoutes);
@@ -52,19 +52,16 @@ app.use(async (error, req, res, next) => {
   try {
     let statusCode = "INTERNAL_SERVER_ERROR",
       data = null,
-      message =
-        "An unexpected error occurred on our server. Please try again later.";
+      message = "An unexpected error occurred on our server. Please try again later.";
 
     // Transform error object to handle mangoose or useful code's error to transform error object for api response
-    if (!(error instanceof ApiError)) {
-      error = await transformError(error);
-    }
+    error = await transformError(error);
 
     //Log error for non operational error
     reportError(error);
 
     // Set error response if handled by us for more readable response to the client
-    if (error instanceof ApiError) {
+    if (error.operational && error.operational === true) {
       statusCode = error.code;
       message = error.message;
       data = error.errors;
@@ -72,8 +69,7 @@ app.use(async (error, req, res, next) => {
 
     await res.apiErrorResponse(message, statusCode, data);
   } catch (error) {
-    logger.info(error);
-    logger.info(`Global error handler message: ${error.message}`);
+    logger.error(error, "Global error handler");
   }
 });
 // Export module

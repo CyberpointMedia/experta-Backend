@@ -8,9 +8,6 @@ const HttpStatus = require("../enums/httpStatus.enum");
 
 /**
  * Middlewear to add support for handing consistent response format in entire Api
- * @param {Request} req - Object represents the HTTP request received by the server
- * @param {Response} res - Object represents the HTTP response that the server sends back to the client
- * @param {Next Middlewear} next - Middlewear used to pass control to the next middleware in the chain
  */
 const apiResponseMiddlewear = (req, res, next) => {
   /**
@@ -38,11 +35,7 @@ const apiResponseMiddlewear = (req, res, next) => {
    * @param {HTTP Status Code} statusCode - represents the HTTP status code  for manage http status for response
    * @param {JSON || null} data - represent resource's collection data send back to the client
    */
-  res.apiSearchResponse = async (
-    message,
-    statusCode = "OK",
-    collection = {}
-  ) => {
+  res.apiSearchResponse = async (message, statusCode = "OK", collection = {}) => {
     const status = await HttpStatus.getStatusByCode(statusCode);
     const response = {
       status: "success",
@@ -60,11 +53,7 @@ const apiResponseMiddlewear = (req, res, next) => {
    * @param {HTTP Status Code} statusCode - represents the HTTP status code  for manage http status for response
    * @param {JSON || null} errors - represent resource and server error object if useful for client response
    */
-  res.apiErrorResponse = async (
-    message,
-    statusCode = "INTERNAL_SERVER_ERROR",
-    errors = null
-  ) => {
+  res.apiErrorResponse = async (message, statusCode = "INTERNAL_SERVER_ERROR", errors = null) => {
     const status = await HttpStatus.getStatusByCode(statusCode);
     const response = {
       status: "failed",
