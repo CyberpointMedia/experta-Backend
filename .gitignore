@@ -133,3 +133,4 @@ src/config/firebase-service-account.json
 #dummy files ignore
 *.html
 *.bk
+*.ps1
