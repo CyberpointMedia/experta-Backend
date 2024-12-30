@@ -9,17 +9,17 @@ const SchemaComposePlugin = require("./plugins/schemaComposer");
 const ModelName = "Language";
 
 // Define Model Schema rules and options
-const excludeOptions = {
-  trackCreatedAt: true,
-  trackUpdatedAt: true,
-  trackDeletedAt: true,
+const schemaOptions = {
+  excludeCreatedAt: true,
+  excludeUpdatedAt: true,
+  excludeDeletedAt: true,
 };
 const schemaRules = {
   name: {
     type: String,
     required: true,
     unique: true,
-    maxlength: [30, "Input must be no longer than 30 characers"],
+    maxlength: [50, "Input must be no longer than 30 characers"],
   }, // Full name of the language (e.g., "English")
   code: {
     type: String,
@@ -37,7 +37,7 @@ const schemaRules = {
 const ModelSchema = new Schema(schemaRules);
 
 // Apply the common properties plugin to the Post schema
-ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
+ModelSchema.plugin(SchemaComposePlugin, schemaOptions);
 
 //Create model
 const LanguageModel = model(ModelName, ModelSchema);

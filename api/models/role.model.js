@@ -9,18 +9,23 @@ const SchemaComposePlugin = require("./plugins/schemaComposer");
 const ModelName = "Role";
 
 // Define Model Schema rules and options
-const excludeOptions = {};
+const schemaOptions = {
+  excludeCreatedAt: true,
+  excludeUpdatedAt: true,
+  excludeDeletedAt: true,
+  fillableProperty: ["title", "name", "info", "abilities"],
+};
 const schemaRules = {
   title: {
     type: String,
     trim: true,
-    maxlength: [20, "Input must be no longer than 20 characers"],
+    maxlength: [50, "Input must be no longer than 50 characers"],
   },
   name: {
     type: String,
     required: true,
     unique: true,
-    lowercase: true,
+    uppercase: true,
     maxlength: [20, "Input must be no longer than 20 characers"],
     trim: true,
     immutable: true,
@@ -36,7 +41,7 @@ const schemaRules = {
   }, // Reference to parent role
   info: {
     type: String,
-    maxlength: [100, "Input must be no longer than 10 characers"],
+    maxlength: [100, "Input must be no longer than 100 characers"],
   },
   abilities: [
     {
@@ -56,8 +61,20 @@ const schemaRules = {
 };
 const ModelSchema = new Schema(schemaRules);
 // Apply the common properties plugin to the Post schema
-ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
+ModelSchema.plugin(SchemaComposePlugin, schemaOptions);
 
+/**
+ * @method Filter Query for Resource Collection
+ * @param {*} params Query parmas
+ */
+
+ModelSchema.statics.buildQuery = async (params) => {
+  let Query = {};
+  //Exclude Super Role
+  Query.name = { $ne: "SUPERADMIN" };
+
+  return Query;
+};
 // Create model
 const RoleModel = model(ModelName, ModelSchema);
 

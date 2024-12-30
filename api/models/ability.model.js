@@ -9,12 +9,16 @@ const SchemaComposePlugin = require("./plugins/schemaComposer");
 const ModelName = "Ability";
 
 // Define Model Schema rules and options
-const excludeOptions = {};
+const schemaOptions = {
+  excludeCreatedAt: true,
+  excludeUpdatedAt: true,
+  excludeDeletedAt: true,
+};
 const schemaRules = {
   title: {
     type: String,
     trim: true,
-    maxlength: [30, "Input must be no longer than 30 characers"],
+    maxlength: [50, "Input must be no longer than 50 characers"],
   },
   name: {
     type: String,
@@ -34,11 +38,15 @@ const schemaRules = {
     type: Boolean,
     default: 0,
   }, // Flag used for only owned user access
+  forSystem: {
+    type: Boolean,
+    default: 0,
+  },
 };
 const ModelSchema = new Schema(schemaRules);
 
 // Apply the common properties plugin to the Post schema
-ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
+ModelSchema.plugin(SchemaComposePlugin, schemaOptions);
 
 //Create model
 const AbilityModel = model(ModelName, ModelSchema);

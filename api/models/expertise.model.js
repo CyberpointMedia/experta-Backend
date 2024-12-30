@@ -9,10 +9,10 @@ const SchemaComposePlugin = require("./plugins/schemaComposer");
 const ModelName = "Expertise";
 
 // Define Model Schema rules and options
-const excludeOptions = {
-  trackCreatedAt: true,
-  trackUpdatedAt: true,
-  trackDeletedAt: true,
+const schemaOptions = {
+  excludeCreatedAt: true,
+  excludeUpdatedAt: true,
+  excludeDeletedAt: true,
 };
 const schemaRules = {
   name: {
@@ -29,7 +29,7 @@ const schemaRules = {
 const ModelSchema = new Schema(schemaRules);
 
 // Apply the common properties plugin to the Post schema
-ModelSchema.plugin(SchemaComposePlugin, excludeOptions);
+ModelSchema.plugin(SchemaComposePlugin, schemaOptions);
 
 //Create model
 const ExpertiseModel = model(ModelName, ModelSchema);
