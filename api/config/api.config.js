@@ -9,9 +9,9 @@ const { cleanEnv, str, port, num } = require("envalid");
 // Handle required env file
 const apiConfig = cleanEnv(process.env, {
   //App related config
-  APP_NAME: "experta",
+  APP_NAME: str({ default: "experta" }),
   APP_PORT: port(),
-  API_PREFIX: "api/v1",
+  API_PREFIX: str({ default: "api/v1" }),
   NODE_ENV: str({
     choices: ["local", "staging", "development", "production", "test"],
   }),

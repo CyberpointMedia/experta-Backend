@@ -2,6 +2,7 @@
  * Module: ModelError
  * Info:  Custom error class for generate model error
  **/
+const CustomError = require("./customError");
 
 /**
  * Custom Model Error class
