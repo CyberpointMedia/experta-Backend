@@ -14,6 +14,30 @@ const logger = require("./utils/logger");
 const http = require("http");
 const { connectDatabase, disconnectDatabase } = require("./bootstrap/database");
 const { checkRedisConnection, disconnectRedis } = require("./bootstrap/redis");
+const { sleep } = require("./utils/time");
+
+/**
+ * Shutdown the server and close resources.
+ * @param {Server} server - Express server instance.
+ */
+const shutdown = async (server) => {
+  return new Promise((resolve, reject) => {
+    server.close(async (err) => {
+      if (err) {
+        console.error("Error closing server:", err);
+        return reject(err);
+      }
+      try {
+        await sleep(2000);
+        console.log("Cleanup complete. Server closed.");
+        resolve();
+      } catch (cleanupError) {
+        console.error("Error during cleanup:", cleanupError);
+        reject(cleanupError);
+      }
+    });
+  });
+};
 
 /**
  * Gracefully shutdown the server and close resources.
@@ -24,26 +48,19 @@ const gracefulShutdown = async (server, reason) => {
   logger.info(`Graceful server shutdown initiated: ${reason}`);
   try {
     // Close the server
-    if (server) {
-      logger.info("Closing server...");
-      await new Promise((resolve, reject) => {
-        server.close((err) => (err ? reject(err) : resolve()));
-      });
-      logger.info("Server shutdown successfully");
-    }
+    await shutdown(server);
 
     // Disconnect from MongoDB
-    logger.info("Disconnecting from MongoDB...");
     await disconnectDatabase();
-    logger.info("MongoDB connection closed successfully");
 
     // Disconnect Redis
     await disconnectRedis(); // Cleanly close the Redis connection
+
+    logger.info("Shutdown graceful");
+    process.exit(0);
   } catch (error) {
     logger.error("Error during shutdown:", error.message);
-  } finally {
-    logger.info("Exiting process...");
-    process.exit(0); // Ensure process exits after cleanup
+    process.exit(1); // Ensure process exits after cleanup
   }
 };
 
@@ -65,14 +82,25 @@ const startExpressServer = async () => {
     });
 
     // Handle express server errors
-    server.on("error", (error) => {
+    server.on("error", (error, server) => {
       logger.error("Server encountered an error:" + error.message);
-      gracefulShutdown(server, "Server error");
+      process.exit(1);
     });
 
     // Handle termination signals for graceful shutdown
     process.on("SIGINT", () => gracefulShutdown(server, "SIGINT received"));
     process.on("SIGTERM", () => gracefulShutdown(server, "SIGTERM received"));
+    // Handle nodemon's restart signal (SIGUSR2)
+    process.on("SIGUSR2", async (server) => {
+      console.log("Nodemon restart detected...");
+      try {
+        await shutdown(server);
+        process.kill(process.pid, "SIGUSR2"); // Send the signal back to nodemon
+      } catch (error) {
+        console.error("Error during nodemon restart:", error);
+        process.exit(1);
+      }
+    });
   } catch (error) {
     logger.error("Server startup failed:", error.message);
     process.exit(1); // Exit the process if startup fails
