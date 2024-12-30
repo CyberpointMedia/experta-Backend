@@ -3,7 +3,7 @@
  * Info:   Transform error object for better api response
  **/
 
-const ApiError = require("../utils/apiError");
+const { ModelError } = require("./errors");
 
 /**
  * Transform api error object for managing api response for  mongoose and userful code's error
@@ -18,15 +18,14 @@ const transformError = async (error) => {
       data = {};
 
     // Handle MongoDB Error
-    message =
-      "Some of your inputs are invalid. Please review them and make the necessary corrections.";
+    message = "Some of your inputs are invalid. Please review them and make the necessary corrections.";
     code = "UNPROCESSABLE_ENTITY";
     // Handle Unique Database Constraint Error
 
     if (error.code && (error.code === 11000 || error.code === 11001)) {
       field = Object.keys(error.keyValue)[0];
       data[field] = `${field} is already taken. Please try wih another value.`;
-      error = new ApiError(message, code, data, false, true);
+      error = new ModelError(message, code, data, true, true);
       return error;
     }
     // Handle Mongoose validaion error
@@ -34,7 +33,7 @@ const transformError = async (error) => {
       Object.keys(error.errors).forEach(function (key, index) {
         data[key] = error.errors[key].message;
       });
-      error = new ApiError(message, code, data, false, true);
+      error = new ModelError(message, code, data, true, true);
       return error;
     }
 

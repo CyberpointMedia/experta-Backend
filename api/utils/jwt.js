@@ -6,7 +6,12 @@
 // Import Module dependencies.
 const jwt = require("jsonwebtoken");
 
-const { JWT_TOKEN_SECRET, JWT_TOKEN_EXPIRE } = require("../config/api.config");
+const { APP_NAME, JWT_TOKEN_SECRET, JWT_TOKEN_EXPIRE } = require("../config/api.config");
+const JWT_OPTIONS = {
+  algorithms: "HS256", // Ensure the correct algorithm is used
+  expiresIn: JWT_TOKEN_EXPIRE,
+  issuer: APP_NAME,
+};
 
 class JWT {
   /**
@@ -15,9 +20,7 @@ class JWT {
    * @param {json} payload - data to be signed inside jwt access token
    */
   static async signAccessToken(payload) {
-    return jwt.sign(payload, JWT_TOKEN_SECRET, {
-      expiresIn: JWT_TOKEN_EXPIRE,
-    });
+    return jwt.sign(payload, JWT_TOKEN_SECRET, JWT_OPTIONS);
   }
 
   /**
@@ -26,7 +29,7 @@ class JWT {
    * @param {string} accessToken - data to be signed inside jwt access token
    */
   static async verifyAccessToken(accessToken) {
-    return jwt.verify(accessToken, JWT_TOKEN_SECRET);
+    return jwt.verify(accessToken, JWT_TOKEN_SECRET, JWT_OPTIONS);
   }
 }
 
