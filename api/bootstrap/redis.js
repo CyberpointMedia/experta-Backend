@@ -11,6 +11,10 @@ const logger = require("../utils/logger");
 // Create Redis client
 const redisClient = new Redis(REDIS_URI);
 let reported = false;
+
+/**
+ * Handler to check for Redis errors
+ **/
 redisClient.on("error", (error) => {
   if (error.code === "ECONNREFUSED" && !reported) {
     reported = true;
@@ -39,7 +43,7 @@ const checkRedisConnection = async () => {
 const disconnectRedis = async () => {
   try {
     await redisClient.quit(); //Close redis connection
-    logger.info("Redis is running.");
+    logger.info("Redis shutdown successfully.");
   } catch (error) {
     logger.error("Redis Error :" + error.message);
     throw new Error("Redis graceful shutdown failed");
