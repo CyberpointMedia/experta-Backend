@@ -1,0 +1,264 @@
+[
+  { "name": "Afrikaans", "code": "af", "isActive": true },
+  { "name": "Akan", "code": "ak", "isActive": true },
+  { "name": "Amharic", "code": "am", "isActive": true },
+  { "name": "Arabic", "code": "ar", "isActive": true },
+  { "name": "Assamese", "code": "as", "isActive": true },
+  { "name": "Azerbaijani", "code": "az", "isActive": true },
+  { "name": "Belarusian", "code": "be", "isActive": true },
+  { "name": "Bulgarian", "code": "bg", "isActive": true },
+  { "name": "Bambara", "code": "bm", "isActive": true },
+  { "name": "Bangla", "code": "bn", "isActive": true },
+  { "name": "Tibetan", "code": "bo", "isActive": true },
+  { "name": "Breton", "code": "br", "isActive": true },
+  { "name": "Bosnian", "code": "bs", "isActive": true },
+  { "name": "Catalan", "code": "ca", "isActive": true },
+  { "name": "Chechen", "code": "ce", "isActive": true },
+  { "name": "Central Kurdish", "code": "ckb", "isActive": true },
+  { "name": "Czech", "code": "cs", "isActive": true },
+  { "name": "Church Slavic", "code": "cu", "isActive": true },
+  { "name": "Welsh", "code": "cy", "isActive": true },
+  { "name": "Danish", "code": "da", "isActive": true },
+  { "name": "German", "code": "de", "isActive": true },
+  { "name": "Dzongkha", "code": "dz", "isActive": true },
+  { "name": "Ewe", "code": "ee", "isActive": true },
+  { "name": "Greek", "code": "el", "isActive": true },
+  { "name": "English", "code": "en", "isActive": true },
+  { "name": "Esperanto", "code": "eo", "isActive": true },
+  { "name": "Spanish", "code": "es", "isActive": true },
+  { "name": "Estonian", "code": "et", "isActive": true },
+  { "name": "Basque", "code": "eu", "isActive": true },
+  { "name": "Persian", "code": "fa", "isActive": true },
+  { "name": "Fulah", "code": "ff", "isActive": true },
+  { "name": "Finnish", "code": "fi", "isActive": true },
+  { "name": "Filipino", "code": "fil", "isActive": true },
+  { "name": "Faroese", "code": "fo", "isActive": true },
+  { "name": "French", "code": "fr", "isActive": true },
+  { "name": "Western Frisian", "code": "fy", "isActive": true },
+  { "name": "Irish", "code": "ga", "isActive": true },
+  { "name": "Scottish Gaelic", "code": "gd", "isActive": true },
+  { "name": "Galician", "code": "gl", "isActive": true },
+  { "name": "Gujarati", "code": "gu", "isActive": true },
+  { "name": "Manx", "code": "gv", "isActive": true },
+  { "name": "Hausa", "code": "ha", "isActive": true },
+  { "name": "Hebrew", "code": "he", "isActive": true },
+  { "name": "Hindi", "code": "hi", "isActive": true },
+  { "name": "Croatian", "code": "hr", "isActive": true },
+  { "name": "Hungarian", "code": "hu", "isActive": true },
+  { "name": "Armenian", "code": "hy", "isActive": true },
+  { "name": "Interlingua", "code": "ia", "isActive": true },
+  { "name": "Indonesian", "code": "id", "isActive": true },
+  { "name": "Igbo", "code": "ig", "isActive": true },
+  { "name": "Sichuan Yi", "code": "ii", "isActive": true },
+  { "name": "Icelandic", "code": "is", "isActive": true },
+  { "name": "Italian", "code": "it", "isActive": true },
+  { "name": "Japanese", "code": "ja", "isActive": true },
+  { "name": "Javanese", "code": "jv", "isActive": true },
+  { "name": "Georgian", "code": "ka", "isActive": true },
+  { "name": "Kikuyu", "code": "ki", "isActive": true },
+  { "name": "Kazakh", "code": "kk", "isActive": true },
+  { "name": "Kalaallisut", "code": "kl", "isActive": true },
+  { "name": "Khmer", "code": "km", "isActive": true },
+  { "name": "Kannada", "code": "kn", "isActive": true },
+  { "name": "Korean", "code": "ko", "isActive": true },
+  { "name": "Kashmiri", "code": "ks", "isActive": true },
+  { "name": "Kurdish", "code": "ku", "isActive": true },
+  { "name": "Cornish", "code": "kw", "isActive": true },
+  { "name": "Kyrgyz", "code": "ky", "isActive": true },
+  { "name": "Luxembourgish", "code": "lb", "isActive": true },
+  { "name": "Ganda", "code": "lg", "isActive": true },
+  { "name": "Lingala", "code": "ln", "isActive": true },
+  { "name": "Lao", "code": "lo", "isActive": true },
+  { "name": "Lithuanian", "code": "lt", "isActive": true },
+  { "name": "Luba-Katanga", "code": "lu", "isActive": true },
+  { "name": "Latvian", "code": "lv", "isActive": true },
+  { "name": "Malagasy", "code": "mg", "isActive": true },
+  { "name": "Māori", "code": "mi", "isActive": true },
+  { "name": "Macedonian", "code": "mk", "isActive": true },
+  { "name": "Malayalam", "code": "ml", "isActive": true },
+  { "name": "Mongolian", "code": "mn", "isActive": true },
+  { "name": "Marathi", "code": "mr", "isActive": true },
+  { "name": "Malay", "code": "ms", "isActive": true },
+  { "name": "Maltese", "code": "mt", "isActive": true },
+  { "name": "Burmese", "code": "my", "isActive": true },
+  { "name": "Norwegian (Bokmål)", "code": "nb", "isActive": true },
+  { "name": "North Ndebele", "code": "nd", "isActive": true },
+  { "name": "Nepali", "code": "ne", "isActive": true },
+  { "name": "Dutch", "code": "nl", "isActive": true },
+  { "name": "Norwegian Nynorsk", "code": "nn", "isActive": true },
+  { "name": "Norwegian", "code": "no", "isActive": true },
+  { "name": "Oromo", "code": "om", "isActive": true },
+  { "name": "Odia", "code": "or", "isActive": true },
+  { "name": "Ossetic", "code": "os", "isActive": true },
+  { "name": "Punjabi", "code": "pa", "isActive": true },
+  { "name": "Polish", "code": "pl", "isActive": true },
+  { "name": "Pashto", "code": "ps", "isActive": true },
+  { "name": "Portuguese", "code": "pt", "isActive": true },
+  { "name": "Portuguese (Brazil)", "code": "pt_br", "isActive": true },
+  { "name": "Portuguese (Portugal)", "code": "pt_pt", "isActive": true },
+  { "name": "Quechua", "code": "qu", "isActive": true },
+  { "name": "Romansh", "code": "rm", "isActive": true },
+  { "name": "Rundi", "code": "rn", "isActive": true },
+  { "name": "Romanian", "code": "ro", "isActive": true },
+  { "name": "Russian", "code": "ru", "isActive": true },
+  { "name": "Kinyarwanda", "code": "rw", "isActive": true },
+  { "name": "Sanskrit", "code": "sa", "isActive": true },
+  { "name": "Sardinian", "code": "sc", "isActive": true },
+  { "name": "Sindhi", "code": "sd", "isActive": true },
+  { "name": "Northern Sami", "code": "se", "isActive": true },
+  { "name": "Sango", "code": "sg", "isActive": true },
+  { "name": "Sinhala", "code": "si", "isActive": true },
+  { "name": "Slovak", "code": "sk", "isActive": true },
+  { "name": "Slovenian", "code": "sl","isActive": true},
+ {
+    "name": "Shona",
+    "code": "sn",
+    "isActive": true
+  },
+  {
+    "name": "Somali",
+    "code": "so",
+    "isActive": true
+  },
+  {
+    "name": "Albanian",
+    "code": "sq",
+    "isActive": true
+  },
+  {
+    "name": "Serbian",
+    "code": "sr",
+    "isActive": true
+  },
+  {
+    "name": "Sundanese",
+    "code": "su",
+    "isActive": true
+  },
+  {
+    "name": "Swedish",
+    "code": "sv",
+    "isActive": true
+  },
+  {
+    "name": "Swahili",
+    "code": "sw",
+    "isActive": true
+  },
+  {
+    "name": "Tamil",
+    "code": "ta",
+    "isActive": true
+  },
+  {
+    "name": "Telugu",
+    "code": "te",
+    "isActive": true
+  },
+  {
+    "name": "Tajik",
+    "code": "tg",
+    "isActive": true
+  },
+  {
+    "name": "Thai",
+    "code": "th",
+    "isActive": true
+  },
+  {
+    "name": "Tigrinya",
+    "code": "ti",
+    "isActive": true
+  },
+  {
+    "name": "Turkmen",
+    "code": "tk",
+    "isActive": true
+  },
+  {
+    "name": "Tongan",
+    "code": "to",
+    "isActive": true
+  },
+  {
+    "name": "Turkish",
+    "code": "tr",
+    "isActive": true
+  },
+  {
+    "name": "Tatar",
+    "code": "tt",
+    "isActive": true
+  },
+  {
+    "name": "Uyghur",
+    "code": "ug",
+    "isActive": true
+  },
+  {
+    "name": "Ukrainian",
+    "code": "uk",
+    "isActive": true
+  },
+  {
+    "name": "Urdu",
+    "code": "ur",
+    "isActive": true
+  },
+  {
+    "name": "Uzbek",
+    "code": "uz",
+    "isActive": true
+  },
+  {
+    "name": "Vietnamese",
+    "code": "vi",
+    "isActive": true
+  },
+  {
+    "name": "Volapük",
+    "code": "vo",
+    "isActive": true
+  },
+  {
+    "name": "Wolof",
+    "code": "wo",
+    "isActive": true
+  },
+  {
+    "name": "Xhosa",
+    "code": "xh",
+    "isActive": true
+  },
+  {
+    "name": "Yiddish",
+    "code": "yi",
+    "isActive": true
+  },
+  {
+    "name": "Yoruba",
+    "code": "yo",
+    "isActive": true
+  },
+  {
+    "name": "Chinese",
+    "code": "zh",
+    "isActive": true
+  },
+  {
+    "name": "Chinese (Simplified)",
+    "code": "zh_CN",
+    "isActive": true
+  },
+  {
+    "name": "Chinese (Traditional)",
+    "code": "zh_TW",
+    "isActive": true
+  },
+  {
+    "name": "Zulu",
+    "code": "zu",
+    "isActive": true
+  }
+]
+
