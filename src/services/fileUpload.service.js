@@ -1,5 +1,6 @@
 const {
   S3Client,
+  ListObjectsV2Command,
   PutObjectCommand,
   DeleteObjectCommand,
 } = require("@aws-sdk/client-s3");
@@ -32,6 +33,47 @@ const upload = multer({
     },
   }),
 });
+
+const uploadRecordingVideo = async (file) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.toLocaleString('default', { month: 'long' });
+
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: `disputeVideo/${year}/${month}/${Date.now().toString()}-${file.originalname}`,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+  };
+
+  try {
+    const command = new PutObjectCommand(params);
+    await s3Client.send(command);
+    return `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+  } catch (err) {
+    throw new Error(`Failed to upload file: ${err.message}`);
+  }
+};
+
+const getVideoFiles = async () => {
+  const params = {
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Prefix: "disputeVideo/",
+  };
+
+  try {
+    const data = await s3Client.send(new ListObjectsV2Command(params));
+    const videoFiles = data.Contents.filter((file) =>
+      file.Key.match(/\.(mp4|mov)$/)
+    ).map((file) => ({
+      key: file.Key,
+      url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${file.Key}`,
+    }));
+    return videoFiles;
+  } catch (err) {
+    throw new Error(`Failed to list video files: ${err.message}`);
+  }
+};
 
 const uploadFile = async (file) => {
   const params = {
@@ -70,6 +112,8 @@ const deleteFile = async (fileUrl) => {
 
 module.exports = {
   upload,
+  getVideoFiles,
+  uploadRecordingVideo,
   uploadFile,
   deleteFile,
 };
