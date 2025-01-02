@@ -14,7 +14,10 @@ const schemaOptions = {
   excludeUpdatedAt: true,
   excludeDeletedAt: true,
   fillableProperty: ["title", "name", "info", "abilities"],
+  sortKeys: ["id", "title", "name"],
+  defaultSortKey: "id",
 };
+
 const schemaRules = {
   title: {
     type: String,

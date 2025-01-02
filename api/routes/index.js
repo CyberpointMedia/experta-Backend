@@ -6,11 +6,12 @@
 // Import Module dependencies.
 const express = require("express");
 const apiRouter = express.Router();
+const aclRoutes = require("./acl.route");
 
 /**
  * Register all routes for api resources.
  */
-//apiRouter.use("/", userRoutes);
+apiRouter.use("/panel", aclRoutes);
 
 const registerApiRoutes = apiRouter;
 module.exports = registerApiRoutes;

@@ -51,8 +51,10 @@ const SchemaComposer = (ModelSchema, schemaOptions = {}) => {
 
   // Add common properties
   ModelSchema.statics.fillable = schemaOptions.fillableProperty && schemaOptions.fillableProperty instanceof Array ? schemaOptions.fillableProperty : [];
+  ModelSchema.statics.sortKeys = schemaOptions.sortKeys && schemaOptions.sortKeys instanceof Array ? schemaOptions.sortKeys : [];
+  ModelSchema.statics.defaultSortKey = schemaOptions.defaultSortKey ?? null;
   ModelSchema.statics.filterQuery = {};
-  ModelSchema.statics.searchPayload = { data: [], metadata: {} };
+  ModelSchema.statics.searchPayload = { data: [], metadata: { count: 0, query: {} } };
 
   /**
    * @method softDelete
@@ -70,8 +72,8 @@ const SchemaComposer = (ModelSchema, schemaOptions = {}) => {
    * Use for manage collection query payload with seach metadata
    * @param {JSON} filterQuery - Filter query used to manage find and count documents
    */
-  ModelSchema.statics.manageSearchPayload = async function (filterQuery) {
-    this.searchPayload.data = await this.find(filterQuery).exec();
+  ModelSchema.statics.manageSearchPayload = async function (filterQuery, queryParams) {
+    this.searchPayload.data = await this.find(filterQuery).sortBy(queryParams).exec();
     this.searchPayload.metadata.count = await this.countDocuments(filterQuery).lean().exec();
     return this.searchPayload;
   };
@@ -96,6 +98,41 @@ const SchemaComposer = (ModelSchema, schemaOptions = {}) => {
       ...data,
       ...privateFields,
     };
+  };
+
+  /**
+   * @method sortBy
+   * Define query method on Model Schema for sorting data
+   * @param {JSON} filterQuery - Filter query used to manage find and count documents
+   */
+  ModelSchema.query.sortBy = function (queryParams) {
+    let sortQuery = {},
+      sortOrder = "asc",
+      sortKey = this.schema.statics.defaultSortKey,
+      sortKeys = new Set(this.schema.statics.sortKeys);
+    // Set params
+    if (queryParams) {
+      if (queryParams.sortKey && sortKeys.has(queryParams.sortKey)) {
+        sortKey = queryParams.sortKey;
+      }
+      if (queryParams.sortOrder && queryParams.sortOrder === "desc") {
+        sortOrder = "desc";
+      }
+    }
+    if (sortKey === "id") {
+      sortKey = "__id";
+    }
+
+    if (sortKey) {
+      // Add sorting metadata
+      this.schema.statics.searchPayload.metadata.query.sortKey = sortKey;
+      this.schema.statics.searchPayload.metadata.query.sortOrder = sortOrder;
+      // Build Sort query
+      sortQuery[sortKey] = sortOrder;
+      // Return current instance for chaining
+      return this.sort(sortQuery);
+    }
+    return this;
   };
 };
 
