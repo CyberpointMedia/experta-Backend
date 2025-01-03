@@ -140,3 +140,5 @@
     "countryCode": "IN"
   }
 ]
+
+export default statesJson;

@@ -1,4 +1,4 @@
-[
+const rolesJson = [
 {
     "title": "Super Admin",
     "name": "SuperAdmin",
@@ -54,3 +54,5 @@
     "forSystem": true
   }
 ]
+
+export default rolesJson;

@@ -1,4 +1,4 @@
-[
+const languagesJson = [
   { "name": "Afrikaans", "code": "af", "isActive": true },
   { "name": "Akan", "code": "ak", "isActive": true },
   { "name": "Amharic", "code": "am", "isActive": true },
@@ -261,4 +261,6 @@
     "isActive": true
   }
 ]
+
+export default languagesJson;
 

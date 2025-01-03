@@ -19,9 +19,9 @@
     "local": "nodemon api/server.js",
     "gensalt": "node ./api/scripts/genSalt.script.js",
     "templates": "node ./api/scripts/genTemplates.script.js",
-    "migrate_create": "node ./api/scripts/migrate.js create",
-    "migrate_up": "node ./api/scripts/migrate.js up",
-    "migrate_down": "node ./api/scripts/migrate.js down"
+    "migrate_create": "node ./api/scripts/migrate.script.js create",
+    "migrate_up": "node ./api/scripts/migrate.script.js up",
+    "migrate_down": "node ./api/scripts/migrate.script.js down"
     },
   "dependencies": {
     "compression": "^1.7.5",
