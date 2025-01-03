@@ -37,7 +37,7 @@ exports.uploadFile = (req, res) => {
   });
 };
 exports.uploadRecordingVideo = (req, res) => {
-  fileUploadService.upload.single("file")(req, res, async (err) => {
+  fileUploadService.recordFileUpload.single("file")(req, res, async (err) => {
     if (err) {
       return res.status(400).json(
         createResponse.error({

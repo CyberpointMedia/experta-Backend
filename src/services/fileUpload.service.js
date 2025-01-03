@@ -35,6 +35,11 @@ const upload = multer({
   }),
 });
 
+const recordFileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: Infinity },
+});
+
 const uploadRecordingVideo = async (file) => {
   const now = new Date();
   const year = now.getFullYear();
@@ -51,7 +56,13 @@ const uploadRecordingVideo = async (file) => {
   try {
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
-    return `https://${config.aws.bucketName}.s3.${config.aws.region}.amazonaws.com/${params.Key}`;
+    return {
+      key: params.Key,
+      url: `https://${config.aws.bucketName}.s3.${config.aws.region}.amazonaws.com/${params.Key}`,
+      contentType: params.ContentType,
+      size: file.size,
+      originalName: file.originalname,
+    };
   } catch (err) {
     throw new Error(`Failed to upload file: ${err.message}`);
   }
@@ -115,6 +126,7 @@ const deleteFile = async (fileUrl) => {
 
 module.exports = {
   upload,
+  recordFileUpload,
   getVideoFiles,
   uploadRecordingVideo,
   uploadFile,
