@@ -17,4 +17,10 @@ module.exports = {
     surepassUrl:"https://kyc-api.surepass.io/api/v1",
     surepassToken: process.env.SUREPASS_TOKEN,
   },
+  aws:{
+    accessKeyId: process.env.AWS_IAM_USER_KEY,
+    secretAccessKey: process.env.AWS_IAM_USER_SECRET,
+    region: process.env.AWS_REGION,
+    bucketName: process.env.AWS_BUCKET_NAME
+  }
 };
