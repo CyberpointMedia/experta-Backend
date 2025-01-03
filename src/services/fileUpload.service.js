@@ -39,10 +39,11 @@ const uploadRecordingVideo = async (file) => {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.toLocaleString('default', { month: 'long' });
+  const timestamp = now.toISOString().replace(/[-:T.Z]/g, '');
 
   const params = {
     Bucket: config.aws.bucketName,
-    Key: `disputeVideo/${year}/${month}/${Date.now().toUTCString()}-${file.originalname}`,
+    Key: `disputeVideo/${year}/${month}/${timestamp}-${file.originalname}`,
     Body: file.buffer,
     ContentType: file.mimetype,
   };
@@ -99,11 +100,13 @@ const uploadFile = async (file) => {
 const deleteFile = async (fileUrl) => {
   const fileKey = fileUrl.split("/").slice(-1)[0];
   console.log(fileKey);
+  const params = {
+    Bucket: config.aws.bucketName,
+    Key: fileKey,
+  };
   try {
-    await s3Config.deleteObject({
-      Bucket: config.aws.bucketName,
-      Key: fileKey,
-    });
+    const command = new DeleteObjectCommand(params);
+    await s3Client.send(command);
     return { message: "File deleted successfully" };
   } catch (err) {
     throw new Error(`Failed to delete file: ${err.message}`);

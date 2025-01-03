@@ -6,7 +6,7 @@ const { authMiddleware } = require("../middlewares/auth.middleware");
 module.exports = (app) => {
   var router = require("express").Router();
   router.post("/upload", fileUploadController.uploadFile);
-  router.delete("/delete-file", fileUploadController.deleteFile);
+  router.delete("/delete-file",authMiddleware , fileUploadController.deleteFile);
   router.get("/videos",authMiddleware, fileUploadController.getVideoFiles);
   router.post("/uploadRecordingVideo",authMiddleware, fileUploadController.uploadRecordingVideo); 
   app.use(routes.API, router);
