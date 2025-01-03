@@ -309,11 +309,18 @@ exports.getUserById = async (req, res) => {
       .populate('education')
       .populate({
         path: 'industryOccupation',
-        populate: [
-          { path: 'level1Service', model: 'Service' },
-          { path: 'level2Service', model: 'Service' },
-          { path: 'level3Services', model: 'Service' },
-        ],
+        populate: {
+          path:'level1Service',
+          model: 'Service',
+        },
+        populate: {
+          path:'level2Service',
+          model: 'Service',
+        },
+        populate: {
+          path:'level3Services',
+          model: 'Service',
+        }
       })
       .populate('workExperience')
       .populate('intereset')
