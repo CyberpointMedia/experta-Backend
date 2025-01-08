@@ -79,6 +79,6 @@ ModelSchema.statics.buildQuery = async (params) => {
   return Query;
 };
 // Create model
-const RoleModel = model(ModelName, ModelSchema);
+const Role = model(ModelName, ModelSchema);
 
-module.exports = RoleModel;
+module.exports = { Role };

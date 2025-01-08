@@ -1,5 +1,5 @@
 const rolesJson = [
-{
+  {
     "title": "Super Admin",
     "name": "SuperAdmin",
     "priority": 0,
@@ -54,5 +54,6 @@ const rolesJson = [
     "forSystem": true
   }
 ]
+console.log('rolesJson:', rolesJson);
 
-export default rolesJson;
+module.exports = rolesJson;

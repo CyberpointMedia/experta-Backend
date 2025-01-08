@@ -4,7 +4,7 @@ const fs = require('fs'); // File system module
 const path = require('path'); // Path module
 const mongoose = require('mongoose'); // Mongoose for MongoDB
 const { connectDatabase, disconnectDatabase } = require('../bootstrap/database'); // Database connection functions
-const logger = require("../utils/logger"); // Logger utility
+const logger = console; // Use console for logging
 
 const migrationsDir = path.resolve(__dirname, '../database/migrations'); // Directory for migration files
 const migrateCollection = 'migrate'; // Collection name for migration records
@@ -17,10 +17,10 @@ const MONGODB_NAME = process.env.MONGODB_NAME; // MongoDB database name from env
   const command = args[0]; // First argument is the command
 
   if (!['create', 'up', 'down'].includes(command)) { // Validate command
-    logger.info('Invalid command. Use "create <name>", "up", or "down".');
+    logger.error('Invalid command. Use "create <name>", "up", or "down".');
     process.exit(1);
   }
-  
+
   const migrationName = args[1]; // Second argument is the migration name (for create command)
 
   try {
@@ -34,7 +34,7 @@ const MONGODB_NAME = process.env.MONGODB_NAME; // MongoDB database name from env
 
     if (command === 'create') { // Handle 'create' command
       if (!migrationName) { // Check if migration name is provided
-        logger.info('Please provide a migration name.');
+        logger.error('Please provide a migration name.');
         process.exit(1);
       }
 
@@ -95,7 +95,7 @@ const MONGODB_NAME = process.env.MONGODB_NAME; // MongoDB database name from env
       for (const migrationRecord of appliedMigrations) {
         const filePath = path.join(migrationsDir, migrationRecord.fileName); // Get migration file path
         if (!fs.existsSync(filePath)) { // Check if migration file exists
-          logger.info(`Migration file not found: ${migrationRecord.fileName}`);
+          logger.error(`Migration file not found: ${migrationRecord.fileName}`);
           process.exit(1);
         }
 
@@ -107,7 +107,7 @@ const MONGODB_NAME = process.env.MONGODB_NAME; // MongoDB database name from env
       }
     }
   } catch (err) {
-    logger.info('Error:', err.message); // Log error message
+    logger.error('Error:', err.message); // Log error message
   } finally {
     await disconnectDatabase(); // Disconnect from the database
     logger.info("Database connection closed.");

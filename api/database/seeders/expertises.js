@@ -1,4 +1,4 @@
-[
+const expertises = [
   "Google Drive",
   "Microsoft Word",
   "Microsoft Excel",
@@ -3776,3 +3776,5 @@
   "Testing GraphQL APIs",
   "Streaming APIs (Kafka, Firebase)"
 ]
+
+export default expertises;

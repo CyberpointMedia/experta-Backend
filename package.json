@@ -11,8 +11,8 @@
     "url": "git+https://github.com/CyberpointMedia/experta-Backend.git"
   },
   "license": "ISC",
-  "author": "CyberPointMedia",
   "type": "commonjs",
+  "author": "CyberPointMedia",
   "main": "api/server.js",
   "scripts": {
     "staging": "node api/server.js",
@@ -21,8 +21,9 @@
     "templates": "node ./api/scripts/genTemplates.script.js",
     "migrate_create": "node ./api/scripts/migrate.script.js create",
     "migrate_up": "node ./api/scripts/migrate.script.js up",
-    "migrate_down": "node ./api/scripts/migrate.script.js down"
-    },
+    "migrate_down": "node ./api/scripts/migrate.script.js down",
+    "create_user": "node ./api/scripts/roleInsert.script.js"
+  },
   "dependencies": {
     "compression": "^1.7.5",
     "cors": "^2.8.5",
@@ -31,6 +32,7 @@
     "express": "^4.21.2",
     "fastest-validator": "^1.19.0",
     "helmet": "^8.0.0",
+    "inquirer": "^8.2.4",
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "method-override": "^3.0.0",
