@@ -4,7 +4,7 @@ const pageSchema = new mongoose.Schema(
   {
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
     title: { type: String, required: false },
-    slug: { type: String, required: false, unique: true },
+    slug: { type: String, required: false },
     description: { type: String },
     seoTitle: { type: String, required: false },
     metaDescription: { type: String },
@@ -26,5 +26,6 @@ const pageSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+ pageSchema.index({ slug: 1 }, { unique: true, partialFilterExpression: { status: 'published' } });
 
 module.exports = mongoose.model("Page", pageSchema);

@@ -11,6 +11,10 @@ const createResponse = require('../utils/response');
 const errorMessageConstants = require('../constants/error.messages');
 const mongoose = require('mongoose');
 const kycService = require('../services/kyc.service');
+const AWS = require('aws-sdk');
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+const Service = require('../models/service.model');
 
 // Get all users
 // exports.getAllUsers = async (req, res) => {
@@ -112,7 +116,7 @@ exports.getAllBookings = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
     const id = req.params.id;
-    const {fullName} = req.query;
+    const {username} = req.query;
     console.log("id",id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -129,25 +133,25 @@ exports.getAllBookings = async (req, res) => {
       $or: [{ client: id }, { expert: id }],
     };
 
-    if (fullName) {
-      const regexPattern = new RegExp(fullName, "i");
+    if (username) {
+      const regexPattern = new RegExp(username, "i");
       baseQuery.$or.push(
-        {
-          $expr: {
-            $regexMatch: {
-              input: { $concat: ["$expert.basicInfo.firstName", " ", "$expert.basicInfo.lastName"] },
-              regex: regexPattern,
-            },
-          },
+      {
+        $expr: {
+        $regexMatch: {
+          input: "$expert.basicInfo.username",
+          regex: regexPattern,
         },
-        {
-          $expr: {
-            $regexMatch: {
-              input: { $concat: ["$client.basicInfo.firstName", " ", "$client.basicInfo.lastName"] },
-              regex: regexPattern,
-            },
-          },
-        }
+        },
+      },
+      {
+        $expr: {
+        $regexMatch: {
+          input: "$client.basicInfo.username",
+          regex: regexPattern,
+        },
+        },
+      }
       );
     }
 
@@ -158,21 +162,28 @@ exports.getAllBookings = async (req, res) => {
       path: "expert",
       select: "-__v",
       populate: {
-        path: "basicInfo",
-        select: "firstName lastName", 
+      path: "basicInfo",
+      select: "username",
+      populate: {
+        path: "reviews",
+        select: "rating review",
+      },
       },
     })
-
     .populate({
       path: "client",
       select: "-__v",
       populate: {
-        path: "basicInfo",
-        select: "firstName lastName",
+      path: "basicInfo",
+      select: "username",
+      populate: {
+        path: "reviews",
+        select: "rating review",
+      },
       },
     })
-      .select("-__v")
-      .exec();
+    .select("-__v")
+    .exec();
       const totalBookings = await Booking.countDocuments(baseQuery);
       const totalPages = Math.ceil(totalBookings / limit);
     if (!bookings || bookings.length === 0) {
@@ -312,7 +323,7 @@ exports.getAllTransactions = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
     const userId = req.params.id;
-    const {status}= req.query;
+    const {status , search}= req.query;
     
     if (!userId) {
       return res.json(createResponse.error({
@@ -335,15 +346,23 @@ exports.getAllTransactions = async (req, res) => {
       }
       filter.status = status;
     }
+    if (search) {
+      filter.$or = [
+      { description: { $regex: search, $options: 'i' } },
+      { type: { $regex: search, $options: 'i' } },
+      { 'razorpayDetails.paymentId': { $regex: search, $options: 'i' } },
+      ];
+    }
 
-    const transactions = await PaymentTransaction.find({ isDeleted: false })
+
+    const transactions = await PaymentTransaction.find(filter)
       .skip(skip)
       .limit(limit)
       .populate('user')
       .select('-__v')
       .exec();
 
-    const totalTransactions = await PaymentTransaction.countDocuments({ isDeleted: false });
+    const totalTransactions = await PaymentTransaction.countDocuments(filter);
     const totalPages = Math.ceil(totalTransactions / limit);
 
     res.json(createResponse.success({
@@ -439,41 +458,60 @@ exports.getUserkycStatus = async (req, res) => {
 //activity 
 exports.getAllActivities = async (req, res) => {
   const userId = req.params.id;
+  const { page, limit, skip } = req.pagination;
+  const { search } = req.query;
   if (!userId) {
     res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
     return;
   }
 
   try {
-    // Find posts where comments.user matches userId
-    const posts = await Post.find({
-      isDeleted: false,
-      'comments.user': new mongoose.Types.ObjectId(userId)
-    })
-    .populate({
-      path: 'postedBy',
-      model: 'User',
-      select: 'email',
-      populate: {
-        path: 'basicInfo',
-        model: 'BasicInfo',
-        select: 'firstName lastName username profilePic'
+    const userFilter = { isDeleted: false, 'comments.user': new mongoose.Types.ObjectId(userId) };
+
+ 
+
+    const posts = await Post.find(userFilter)
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: 'postedBy',
+        model: 'User',
+        select: 'email',
+        populate: {
+          path: 'basicInfo',
+          model: 'BasicInfo',
+          select: 'firstName lastName username profilePic'
+        }
+      })
+      .select('-__v');
+
+      if (search) {
+        const regexPattern = new RegExp(search, "i");
+        userFilter['postedBy.basicInfo.username'] = { $regex: regexPattern };
       }
-    })
-    .select('-__v')
 
     if (!posts.length) {
       return res.json(createResponse.invalid("No posts found"));
     }
 
-    // Filter comments within each post to only include those where comment.user matches userId
     posts.forEach(post => {
       post.comments = post.comments.filter(comment => comment.user._id.toString() === userId);
     });
 
     const review = await Review.find({ isDeleted: false, reviewBy: userId });
 
-    res.json(createResponse.success({ posts, review }));
+    const totalPosts = await Post.countDocuments(userFilter);
+    const totalPages = Math.ceil(totalPosts / limit);
+
+    res.json(createResponse.success({
+      posts,
+      review,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalPosts
+      }
+    }));
   } catch (error) {
     console.log(error);
     res.json(
@@ -484,19 +522,69 @@ exports.getAllActivities = async (req, res) => {
     );
   }
 };
+
+//uplaod services 
+exports.uploadServices = async (req, res) => {
+  try {
+    const { name, level } = req.body;
+    const file = req.file;
+
+    if (!name || !level || !file) {
+      return res.status(422).json({
+        errorCode: errorMessageConstants.BAD_REQUEST_ERROR_CODE,
+        errorMessage: 'Name, level, and file are required',
+      });
+    }
+
+    // Assuming the middleware uploads the file and sets the file URL in req.file.location
+    const icon = file.location;
+
+    // Save to database (assuming you have a Service model)
+    const newService = new Service({
+      name,
+      level,
+      icon,
+    });
+
+    await newService.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Service uploaded successfully',
+      data: newService,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    });
+  }
+};
+
 //Reviews controller
 // Get all reviews
 exports.getAllReviews = async (req, res) => {
   try {
     const { page, limit, skip } = req.pagination;
     const userId = req.params.id;
-    const reviews = await Review.find({ isDeleted: false })
+    const { search } = req.query;
+
+    const filter = { isDeleted: false, reviewBy: userId };
+
+    const reviews = await Review.find(filter)
       .populate("reviewBy", "firstName lastName")  
       .skip(skip)  
       .limit(limit)  
       .select("-__v")  
       .exec();
-      const totalReviews = await Review.countDocuments({ reviewBy: userId, isDeleted: false });
+
+      if (search) {
+        const regexPattern = new RegExp(search, "i");
+        filter['reviewerName'] = { $regex: regexPattern };
+      }
+
+      const totalReviews = await Review.countDocuments(filter);
       const totalPages = Math.ceil(totalReviews / limit);
     if (!reviews || reviews.length === 0) {
       return res.json(createResponse.success({
@@ -603,8 +691,7 @@ exports.deleteReview = async (req, res) => {
 // Create a new ticket
 exports.createTicket = async (req, res) => {
   const { subject, description, fileUrl, priority } = req.body;
-  const userId = req.body.user._id;  // Assuming user info is in `req.user` from authMiddleware
-
+  const userId = req.body.user._id; 
   try {
     const newTicket = new Ticket({
       userId,
@@ -997,8 +1084,11 @@ exports.getBlockedUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const { page, limit , skip  } = req.pagination; 
+    const {search}= req.query;
     console.log("id",id);
     // Validate the provided user ID
+    const filter = { isDeleted: false, _id: id };
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json(
         createResponse.error({
@@ -1008,15 +1098,20 @@ exports.getBlockedUserById = async (req, res) => {
       );
     }
 
-    const user = await User.findOne({ _id: id, isDeleted: false })
+    const user = await User.findOne(filter)
       .populate({
-        path: 'blockedUsers',
-        options: { skip, limit },
-        populate: {
-          path: 'basicInfo',
-        },
+      path: 'blockedUsers',
+      options: { skip, limit },
+      populate: {
+        path: 'basicInfo',
+      },
       })
       .exec();
+
+    if (search) {
+      const regexPattern = new RegExp(search, "i");
+      user.blockedUsers = user.blockedUsers.filter(blockedUser => regexPattern.test(blockedUser.basicInfo.username));
+    }
 
     if (!user) {
       return res.json(createResponse.error({
