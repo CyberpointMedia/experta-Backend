@@ -19,5 +19,6 @@ module.exports = (app) => {
     authController.verifyOtpAndChangeEmail
   );
   router.get("/check-token", authController.checkTokenValidity);
+  router.post("/social-login", authController.handleSocialLogin);
   app.use(routes.API, router);
 };

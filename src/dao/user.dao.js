@@ -886,254 +886,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// exports.getUserBySearch = async function (query) {
-//   try {
-//     if (!query || typeof query !== 'string') {
-//       return new Promise((resolve) => resolve([]));
-//     }
-
-//     // 1. Clean and normalize the query
-//     const cleanedQuery = query.trim().toLowerCase();
-    
-//     // 2. Handle empty queries
-//     if (cleanedQuery.length < 2) {
-//       return new Promise((resolve) => resolve([]));
-//     }
-
-//     // 3. Use OpenAI to understand intent and extract relevant terms
-//     const completion = await openai.chat.completions.create({
-//       messages: [
-//         {
-//           role: "system",
-//           content: `You are a professional search assistant. Your task is to:
-//           1. Understand the user's intent, even with typos or misspellings
-//           2. Extract the most relevant professional term(s). Can be single or multiple words if needed.
-//           3. Return "none" if the query is completely irrelevant to professional skills
-          
-//           Return format: Return most relevant professional term(s) in lowercase
-          
-//           Examples:
-//           "I need a docter for my hart" -> "heart specialist"
-//           "looking for good develper" -> "developer"
-//           "need physcian" -> "physician"
-//           "wat is the time now" -> "none"
-//           "asdfgh" -> "none"
-//           "need someone who can teech math" -> "math teacher"
-//           "marketing expert for my business" -> "digital marketing"
-//           "someone to fix my carr" -> "car mechanic"
-//           "i want pizza" -> "none"
-//           "property lawyer" -> "real estate lawyer"
-//           "website creation" -> "web developer"
-//           "fix my computer" -> "computer technician"
-//           "mobile app creation" -> "mobile app developer"
-//           "home renovation" -> "interior designer"
-//           "financial advice" -> "financial advisor"
-//           "logo design needed" -> "graphic designer"
-//           "need help with taxes" -> "tax consultant"
-//           "photgrapher for event" -> "event photographer"
-//           "social meda marketing" -> "social media manager"
-//           "UI UX for my app" -> "ui ux designer"
-//           "artificial intelligence expert" -> "ai specialist"
-//           "data science project" -> "data scientist"
-//           "full stack develoment" -> "full stack developer"
-//           "cloud computing expert" -> "cloud architect"`
-//         },
-//         {
-//           role: "user",
-//           content: cleanedQuery
-//         }
-//       ],
-//       model: "gpt-3.5-turbo",
-//       max_tokens: 20,
-//       temperature: 0.3,
-//     });
-
-//     let keyword = completion.choices[0].message.content.trim().toLowerCase();
-    
-//     // 4. Handle invalid or irrelevant responses
-//     if (keyword === 'none' || keyword.length < 2) {
-//       return [];
-//     }
-
-//     // 5. Split keyword into terms for more flexible matching
-//     const searchTerms = keyword.split(' ').filter(term => term.length > 2);
-
-//     // 6. Build search aggregation pipeline
-//     const aggregationPipeline = [
-//       {
-//         $lookup: {
-//           from: "basicinfos",
-//           localField: "basicInfo",
-//           foreignField: "_id",
-//           as: "basicInfo",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "industryoccupations",
-//           localField: "industryOccupation",
-//           foreignField: "_id",
-//           as: "industryOccupation",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "industries",
-//           localField: "industryOccupation.industry",
-//           foreignField: "_id",
-//           as: "industry",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "occupations",
-//           localField: "industryOccupation.occupation",
-//           foreignField: "_id",
-//           as: "occupation",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "expertise",
-//           localField: "expertise",
-//           foreignField: "_id",
-//           as: "expertiseList",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "expertiseitems",
-//           localField: "expertiseList.expertise",
-//           foreignField: "_id",
-//           as: "expertiseItems",
-//         },
-//       },
-//       {
-//         $match: {
-//           $or: [
-//             // Match all terms in various fields
-//             ...searchTerms.map(term => ({
-//               $or: [
-//                 { "industry.name": { $regex: term, $options: "i" } },
-//                 { "occupation.name": { $regex: term, $options: "i" } },
-//                 { "expertiseItems.name": { $regex: term, $options: "i" } },
-//                 { "basicInfo.bio": { $regex: term, $options: "i" } },
-//               ]
-//             })),
-//             // Also try to match the complete phrase
-//             { "industry.name": { $regex: keyword, $options: "i" } },
-//             { "occupation.name": { $regex: keyword, $options: "i" } },
-//             { "expertiseItems.name": { $regex: keyword, $options: "i" } },
-//             { "basicInfo.bio": { $regex: keyword, $options: "i" } },
-//           ],
-//         },
-//       },
-//       {
-//         $addFields: {
-//           matchScore: {
-//             $add: [
-//               // Full phrase match bonus
-//               {
-//                 $cond: [
-//                   { 
-//                     $or: [
-//                       { $regexMatch: { input: { $toLower: "$occupation.name" }, regex: keyword, options: "i" } },
-//                       { $regexMatch: { input: { $toLower: "$industry.name" }, regex: keyword, options: "i" } }
-//                     ]
-//                   },
-//                   10,
-//                   0
-//                 ]
-//               },
-//               // Term match bonuses
-//               {
-//                 $sum: searchTerms.map(term => ({
-//                   $cond: [
-//                     {
-//                       $or: [
-//                         { $regexMatch: { input: { $toLower: "$occupation.name" }, regex: term, options: "i" } },
-//                         { $regexMatch: { input: { $toLower: "$industry.name" }, regex: term, options: "i" } }
-//                       ]
-//                     },
-//                     3,
-//                     0
-//                   ]
-//                 }))
-//               },
-//               // Verification bonus
-//               { $cond: [{ $eq: ["$isVerified", true] }, 3, 0] },
-//               // Booking history bonus
-//               { $cond: [{ $gt: ["$noOfBooking", 0] }, 2, 0] },
-//               // Rating bonus
-//               { $cond: [{ $gt: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, 4] }, 2, 0] },
-//               { $cond: [{ $gt: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, 3] }, 1, 0] }
-//             ]
-//           },
-//           randomScore: { $rand: {} }
-//         }
-//       },
-//       {
-//         $sort: {
-//           matchScore: -1,
-//           randomScore: 1
-//         }
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           online: { $ifNull: ["$online", false] },
-//           isVerified: { $ifNull: ["$isVerified", false] },
-//           noOfBooking: { $ifNull: ["$noOfBooking", 0] },
-//           rating: { $ifNull: [{ $arrayElemAt: ["$basicInfo.rating", 0] }, ""] },
-//           profilePic: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.profilePic", 0] }, ""],
-//           },
-//           displayName: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.displayName", 0] }, ""],
-//           },
-//           firstName: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.firstName", 0] }, ""],
-//           },
-//           lastName: {
-//             $ifNull: [{ $arrayElemAt: ["$basicInfo.lastName", 0] }, ""],
-//           },
-//           industry: { $ifNull: [{ $arrayElemAt: ["$industry.name", 0] }, ""] },
-//           occupation: {
-//             $ifNull: [{ $arrayElemAt: ["$occupation.name", 0] }, ""],
-//           },
-//           expertise: "$expertiseItems.name",
-//           matchScore: 1,
-//           searchMetadata: {
-//             originalQuery: query,
-//             extractedTerms: keyword,
-//             matchedTerms: searchTerms
-//           }
-//         },
-//       },
-//       {
-//         $limit: 20
-//       }
-//     ];
-
-//     const User = mongoose.model('User');
-//     const results = await User.aggregate(aggregationPipeline);
-
-//     if (process.env.NODE_ENV === 'development') {
-//       console.log({
-//         originalQuery: query,
-//         extractedTerms: keyword,
-//         matchedTerms: searchTerms,
-//         resultsFound: results.length,
-//       });
-//     }
-
-//     return results;
-
-//   } catch (error) {
-//     console.error("Error in getUserBySearch:", error);
-//     return [];
-//   }
-// };
 
 
 exports.getUserBySearch = async function (query) {
@@ -1876,4 +1628,85 @@ exports.restoreAccount = async function(user, session) {
 
   await Promise.all(reactivationPromises);
   return user;
+};
+
+exports.getUserByServiceLevel = function (serviceId, level) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Build match condition based on service level
+      let industryOccupationMatch = {};
+      switch(level) {
+        case 1:
+          industryOccupationMatch = {
+            level1Service: new mongoose.Types.ObjectId(serviceId)
+          };
+          break;
+        case 2:
+          industryOccupationMatch = {
+            level2Service: new mongoose.Types.ObjectId(serviceId)
+          };
+          break;
+        case 3:
+          industryOccupationMatch = {
+            level3Services: {
+              $in: [new mongoose.Types.ObjectId(serviceId)]
+            }
+          };
+          break;
+        default:
+          throw new Error("Invalid service level");
+      }
+
+      // Find all industry occupations matching the service level
+      const industryOccupations = await IndustryOccupation.find({
+        ...industryOccupationMatch,
+        isDeleted: false
+      }).select("_id");
+
+      const industryOccupationIds = industryOccupations.map(io => io._id);
+
+      // Get users with matching industry occupations
+      const users = await User.find({ 
+        isDeleted: false, 
+        industryOccupation: { $in: industryOccupationIds } 
+      })
+        .select("_id online rating profilePic displayName industryOccupation pricing")
+        .populate({
+          path: "industryOccupation",
+          populate: [
+            { path: "level1Service", select: "name" },
+            { path: "level2Service", select: "name" },
+            { path: "level3Services", select: "name" }
+          ]
+        })
+        .populate("pricing")
+        .populate("basicInfo");
+
+      const transformedUsers = await Promise.all(
+        users.map(async user => ({
+          id: user?._id || "",
+          online: user?.online || false,
+          rating: user?.basicInfo?.rating || "",
+          profilePic: user?.basicInfo?.profilePic || "",
+          displayName: user?.basicInfo?.displayName || "",
+          level1: user?.industryOccupation?.level1Service?.name || "",
+          level2: user?.industryOccupation?.level2Service?.name || "",
+          level3: user?.industryOccupation?.level3Services?.map(service => service.name) || [],
+          pricing: user?.pricing || {
+            _id: "",
+            _v: 0,
+            audioCallPrice: 0,
+            messagePrice: 0,
+            videoCallPrice: 0,
+          },
+        }))
+      );
+
+      resolve(transformedUsers);
+
+    } catch (err) {
+      console.error("Error in getUserByServiceLevel:", err);
+      reject(err);
+    }
+  });
 };

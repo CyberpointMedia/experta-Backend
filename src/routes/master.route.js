@@ -8,6 +8,7 @@ module.exports = (app) => {
   router.get("/industry", userController.getIndustry);
   router.get("/occupation/:industryId", userController.getOccupation);
   router.get("/user/by-industry/:level1ServiceId", userController.getUserByIndustry);
+
   router.post(
     "/industry",
     uploadMiddleWare.single("file"),
@@ -16,5 +17,9 @@ module.exports = (app) => {
     userController.createOrUpdateIndustryOccupationMaster
   );
   router.post("/occupation", userController.createOrUpdateOccupation);
+  router.get(
+    "/users/service/:serviceId/level/:level",
+    userController.getUserByServiceLevel
+  );
   app.use(routes.API, router);
 };

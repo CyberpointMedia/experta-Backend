@@ -299,3 +299,24 @@ exports.checkTokenValidity = (req, res) => {
   }
 };
 
+
+exports.handleSocialLogin = async (req, res) => {
+  try {
+    const { provider, token, userData } = req.body;
+    
+    if (!provider || !token) {
+      return res.json(createResponse.invalid("Provider and token are required"));
+    }
+
+    const responseData = await authService.socialLogin(provider, token, userData);
+    res.json(responseData);
+  } catch (error) {
+    console.error("Social login error:", error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};

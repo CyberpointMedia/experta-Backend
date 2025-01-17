@@ -108,6 +108,11 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Role'
     }],
+    authProvider: {
+      type: String,
+      enum: ['email', 'google', 'facebook', 'apple'],
+      default: 'email'
+    }
   },
   {
     timestamps: true,

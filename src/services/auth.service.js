@@ -25,7 +25,9 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const RESTORE_WINDOW_DAYS = 30;
 const RESTORE_WINDOW_MS = RESTORE_WINDOW_DAYS * MS_PER_DAY;
 const mongoose = require("mongoose");
-
+const { OAuth2Client } = require('google-auth-library');
+const appleSignin = require('apple-signin-auth');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 module.exports.validateUser = async function (userData) {
   try {
@@ -435,3 +437,118 @@ module.exports.verifyOtpAndChangeEmail = async function (
     throw error;
   }
 };
+
+
+
+exports.socialLogin = async (provider, token, userData) => {
+  try {
+    let socialData;
+    
+    switch (provider) {
+      case 'google':
+        socialData = await verifyGoogleToken(token);
+        break;
+      case 'facebook':
+        socialData = await verifyFacebookToken(token);
+        break;
+      case 'apple':
+        socialData = await verifyAppleToken(token);
+        break;
+      default:
+        throw new Error('Invalid provider');
+    }
+
+    let user = await User.findOne({
+      email: socialData.email,
+      isDeleted: false
+    });
+
+    if (!user) {
+      const basicInfo = new BasicInfo({
+        firstName: socialData.firstName || userData?.firstName,
+        lastName: socialData.lastName || userData?.lastName,
+        displayName: socialData.name || `${socialData.firstName} ${socialData.lastName}`,
+        profilePic: socialData.picture
+      });
+      const savedBasicInfo = await basicInfo.save();
+
+      user = new User({
+        email: socialData.email,
+        phoneNo: userData?.phoneNo,
+        basicInfo: savedBasicInfo._id,
+        isVerified: true,
+        authProvider: provider
+      });
+      await user.save();
+    }
+
+    const token = await jwtUtil.generateToken({
+      _id: user._id,
+      email: user.email,
+      phoneNo: user.phoneNo
+    });
+
+    return createResponse.success(user, token);
+  } catch (error) {
+    console.error("Social login error:", error);
+    throw error;
+  }
+};
+
+async function verifyGoogleToken(token) {
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    
+    return {
+      email: payload.email,
+      firstName: payload.given_name,
+      lastName: payload.family_name,
+      picture: payload.picture,
+      name: payload.name
+    };
+  } catch (error) {
+    throw new Error('Invalid Google token');
+  }
+}
+
+async function verifyFacebookToken(token) {
+  try {
+    const response = await axios.get(
+      `https://graph.facebook.com/me?fields=id,email,first_name,last_name,picture&access_token=${token}`
+    );
+    const data = response.data;
+    
+    return {
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      picture: data.picture?.data?.url,
+      name: `${data.first_name} ${data.last_name}`
+    };
+  } catch (error) {
+    throw new Error('Invalid Facebook token');
+  }
+}
+
+async function verifyAppleToken(token) {
+  try {
+    const appleData = await appleSignin.verifyIdToken(token, {
+      audience: process.env.APPLE_CLIENT_ID,
+      ignoreExpiration: true,
+    });
+    
+    return {
+      email: appleData.email,
+      firstName: '',
+      lastName: '',
+      name: '',
+      sub: appleData.sub
+    };
+  } catch (error) {
+    throw new Error('Invalid Apple token');
+  }
+}
