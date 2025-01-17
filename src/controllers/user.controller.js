@@ -1864,3 +1864,34 @@ exports.deleteAccount = async (req, res) => {
     session.endSession();
   }
 };
+
+exports.getUserByServiceLevel = async (req, res) => {
+  const { serviceId, level } = req.params;
+  
+  if (!serviceId || !level) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+
+  const levelNum = parseInt(level);
+  if (isNaN(levelNum) || levelNum < 1 || levelNum > 3) {
+    res.send(createResponse.invalid("Invalid service level. Must be 1, 2, or 3"));
+    return;
+  }
+
+  try {
+    const users = await userDao.getUserByServiceLevel(serviceId, levelNum);
+    
+    if (users && users.length > 0) {
+      res.json(createResponse.success(users));
+    } else {
+      res.json(createResponse.success([], "No users found for this service level"));
+    }
+  } catch (err) {
+    console.error(err.message);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: err.message,
+    }));
+  }
+};
