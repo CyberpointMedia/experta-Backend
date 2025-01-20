@@ -1,48 +1,15 @@
 // models/ticket.model.js
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
 
-const ticketSchema = new Schema(
-  {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    assignId:{
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: false,
-    },
-    subject: {
-      type: String,
-      required: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    fileUrl: {
-      type: String,
-    },
-    status: {
-      type: String,
-      enum: ["open", "in-progress", "closed"],
-      default: "open",
-    },
-    priority:{
-      type: String,
-      enum: ["high", "low", "medium"],
-      default: "high",
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
+const ticketSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, required: true },
+  subject: { type: String, required: true },
+  description: { type: String, required: true },
+  status: { type: String, default: "open" },
+  attachments: [{ type:String }], // Store file metadata
+  zendeskResponse: { type: Object }, // Store Zendesk API response
+}, { timestamps: true});
 
-module.exports = mongoose.model("Ticket", ticketSchema);
+const Ticket = mongoose.model("Ticket", ticketSchema);
+
+module.exports = Ticket;
