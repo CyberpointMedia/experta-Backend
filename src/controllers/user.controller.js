@@ -1012,6 +1012,37 @@ exports.accountSetting = async (req, res) => {
   }
 };
 
+exports.getUserDataByParams = async (req, res) => {
+  const { userId, ownUserId } = req.params;
+  console.log("userId", userId , "ownUserId", ownUserId);
+  if (!userId) {
+    res.send(createResponse.invalid(errorMessageConstants.REQUIRED_ID));
+    return;
+  }
+  userDao
+    .getUserData(userId, ownUserId)
+    .then((data) => {
+      if (null != data) {
+        res.json(createResponse.success(data));
+      } else {
+        response = {
+          errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_COde,
+          errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+        };
+        return res.json(createResponse.error(response));
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+      response = {
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: err.message,
+      };
+      return res.json(createResponse.error(response));
+    });
+};
+
+
 exports.getUserData = async (req, res) => {
   const { userId, ownUserId } = req.body;
   console.log("userId", userId , "ownUserId", ownUserId);

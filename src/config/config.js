@@ -22,5 +22,11 @@ module.exports = {
     secretAccessKey: process.env.AWS_IAM_USER_SECRET,
     region: process.env.AWS_REGION,
     bucketName: process.env.AWS_BUCKET_NAME
+  },
+  zendeskClient :{
+    username: process.env.ZENDESK_USERNAME,
+    token: process.env.ZENDESK_API_TOKEN,
+    remoteUri: process.env.ZENDESK_REMOTE_URI,
+    zendeskEmail:process.env.ZENDESK_EMAIL
   }
 };

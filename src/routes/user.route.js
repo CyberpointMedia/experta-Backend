@@ -159,7 +159,8 @@ module.exports = (app) => {
     authMiddleware,
     userController.deleteAvailabilityById
   );
-
+  
+  router.get("/getUserData/:userId/:ownUserId", userController.getUserDataByParams);
   router.post("/getUserData", userController.getUserData);
 
   router.get("/getUserBySearch/:search", userController.getUserBySearch);
