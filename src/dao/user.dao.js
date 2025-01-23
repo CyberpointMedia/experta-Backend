@@ -92,15 +92,15 @@ module.exports.getIndustryOccupation = function (userId) {
         populate: [
           {
             path: "level1Service",
-            select: "name"
+            select: "name _id"
           },
           {
             path: "level2Service",
-            select: "name"
+            select: "name _id"
           },
           {
             path: "level3Services",
-            select: "name"
+            select: "name _id"
           }
         ]
       })
@@ -108,10 +108,16 @@ module.exports.getIndustryOccupation = function (userId) {
       .populate("workExperience")
       .then((data) => {
         const flatData = {
-          level1: data.industryOccupation?.level1Service?.name || null,
-          level2: data.industryOccupation?.level2Service?.name || null,
-          level3: data.industryOccupation?.level3Services?.map(service => service.name) || [],
-          registrationNumber: data.industryOccupation?.registrationNumber || null,
+          level1: data.industryOccupation?.level1Service
+          ? { _id: data.industryOccupation.level1Service._id, name: data.industryOccupation.level1Service.name }
+          : null,
+        level2: data.industryOccupation?.level2Service
+          ? { _id: data.industryOccupation.level2Service._id, name: data.industryOccupation.level2Service.name }
+          : null,
+        level3: data.industryOccupation?.level3Services?.map(service => ({
+          _id: service._id,
+          name: service.name
+        })) || [], registrationNumber: data.industryOccupation?.registrationNumber || null,
           certificate: data.industryOccupation?.certificate || null,
           achievements: data.industryOccupation?.achievements || [],
           education: data.education || [],

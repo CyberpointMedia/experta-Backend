@@ -171,7 +171,6 @@ module.exports.login = async function (phoneNo) {
   try {
     let user = await User.findOne({ phoneNo });
     const otp = authUtil.generateOTP();
-    console.log("otp-->",otp);
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     console.log("user--> ",user)
     if (!user) {
@@ -181,7 +180,7 @@ module.exports.login = async function (phoneNo) {
       const basicInfoDetails = await basicInfo.save({ session });
       user = new User({
         phoneNo,
-        otp : otp,
+        otp,
         otpExpiry,
         block: blockUserDetails._id,
         basicInfo: basicInfoDetails._id,
