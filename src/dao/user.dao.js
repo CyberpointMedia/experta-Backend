@@ -1680,7 +1680,14 @@ exports.getUserByServiceLevel = function (serviceId, level) {
           ]
         })
         .populate("pricing")
-        .populate("basicInfo");
+        .populate("basicInfo").populate({
+          path: "expertise",
+          populate: { path: "expertise" }
+        })
+        .populate({
+          path: "language",
+          populate: {path: "language"}
+        });
 
       const transformedUsers = await Promise.all(
         users.map(async user => ({
@@ -1692,6 +1699,8 @@ exports.getUserByServiceLevel = function (serviceId, level) {
           level1: user?.industryOccupation?.level1Service?.name || "",
           level2: user?.industryOccupation?.level2Service?.name || "",
           level3: user?.industryOccupation?.level3Services?.map(service => service.name) || [],
+          language: user?.language?.language,
+          expertise: user?.expertise?.expertise,
           pricing: user?.pricing || {
             _id: "",
             _v: 0,
