@@ -117,10 +117,17 @@ module.exports.verifyOtp = async function (userData) {
     }
 
     const now = Date.now();
-    if (user.otp !== otp || (user.otpExpiry && now > user.otpExpiry.getTime())) {
+    if (user.otp !== otp) {
       throw new customError.AuthenticationError(
-        globalConstants.INVALID_USER_CODE,
-        "Invalid OTP or expired."
+      globalConstants.INVALID_USER_CODE,
+      "Oops! That OTP doesn't match. Try again."
+      );
+    }
+
+    if (user.otpExpiry && now > user.otpExpiry.getTime()) {
+      throw new customError.AuthenticationError(
+      globalConstants.INVALID_USER_CODE,
+      "The OTP is no longer valid. Generate a new OTP to proceed."
       );
     }
 
@@ -164,6 +171,7 @@ module.exports.login = async function (phoneNo) {
   try {
     let user = await User.findOne({ phoneNo });
     const otp = authUtil.generateOTP();
+    console.log("otp-->",otp);
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     console.log("user--> ",user)
     if (!user) {
@@ -173,7 +181,7 @@ module.exports.login = async function (phoneNo) {
       const basicInfoDetails = await basicInfo.save({ session });
       user = new User({
         phoneNo,
-        otp,
+        otp : otp,
         otpExpiry,
         block: blockUserDetails._id,
         basicInfo: basicInfoDetails._id,
