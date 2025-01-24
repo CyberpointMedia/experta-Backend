@@ -28,5 +28,9 @@ module.exports = {
     token: process.env.ZENDESK_API_TOKEN,
     remoteUri: process.env.ZENDESK_REMOTE_URI,
     zendeskEmail:process.env.ZENDESK_EMAIL
+  },
+  mail:{
+    user: process.env.MailEmail,
+    pass: process.env.MailPASS
   }
 };
