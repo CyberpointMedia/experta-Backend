@@ -14,6 +14,8 @@ const AWS = require('aws-sdk');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
 const Service = require('../models/service.model');
+const {transporter} = require('../utils/sendMail');
+const ContactUs = require('../models/contactUs.model');
 
 // Get all users
 // exports.getAllUsers = async (req, res) => {
@@ -831,6 +833,42 @@ exports.getBlockedUserById = async (req, res) => {
 
 
 
+//contact-us controller 
+exports.contactUs = async (req, res) => {
+  const { name, email, message } = req.body;
 
+  if (!name || !email || !message) {
+    return res.json(createResponse.invalid('Name, email, and message are required'));
+  }
 
+  try {
+    // Send email to support
+    const contactUsData = new ContactUs({ name, email, message });
+    await contactUsData.save();
+    // Assuming you have a sendEmail function
+    const mailData = {
+      from: email,
+      to: 'ekansh@cyberpointmedia.com',
+      subject: 'Contact us message',
+      text: message,
+    };
+
+    transporter.sendMail(mailData, (error) => {
+      if (error) {
+        console.error(error);
+        return res.json(createResponse.error({
+          errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+          errorMessage: 'An error occurred while sending the email',
+        }));
+      }
+      res.json(createResponse.success('Your message has been sent successfully'));
+    });
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: 'An error occurred while processing your request',
+    }));
+  }
+};
 

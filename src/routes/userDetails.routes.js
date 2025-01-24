@@ -24,6 +24,7 @@ const { getAllBasicInfo,
     getUserkycStatus,
     getAllActivities,
     uploadServices,
+    contactUs
 } = require('../controllers/userDetails.controller');
 const { authMiddleware } = require("../middlewares/auth.middleware");
 const uploadMiddleWare = require("../middlewares/file.middleware");
@@ -77,6 +78,8 @@ Router.get('/all-activity/:id', authMiddleware, hasRole('admin'), paginate('User
 
 //uplaod services 
 Router.post('/upload-services', uploadMiddleWare.single("icon"), uploadServices);
+
+Router.post('/contact-us',contactUs);
 
 module.exports = (app) => {
     app.use(routes.API, Router);
