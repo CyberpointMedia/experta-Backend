@@ -4,6 +4,7 @@ const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
 const config = require('../config/config');
 const zendesk = require('node-zendesk');
+const Ticket = require('../models/ticket.model');
 const axios = require('axios');
 const fileUploadService = require('../services/fileUpload.service');
 
@@ -63,15 +64,14 @@ exports.createTicket = async (req, res) => {
     const zendeskTicket = {
       ticket: {
         subject: subject,
+        priority: 'normal',
         comment: {
           body: description,
           uploads: attachments,
-          priority: 'normal',
         },
         requester: {
           name: user.name,
           email: user.email,
-          external_id: "ABCIBI1234567",
         },
       },
     };
@@ -89,10 +89,22 @@ exports.createTicket = async (req, res) => {
     );
     // Step 4: Update database with Zendesk ticket ID
     const zendeskData = zendeskResponse.data.ticket;
+    const filteredResponse = {
+      url: zendeskData.url,
+      id: zendeskData.id,
+      created_at: zendeskData.created_at,
+      updated_at: zendeskData.updated_at,
+      type: zendeskData.type,
+      subject: zendeskData.subject,
+      raw_subject: zendeskData.raw_subject,
+      description: zendeskData.description,
+      priority: zendeskData.priority,
+      status: zendeskData.status,
+    };
     await ticketService.updateTicket(savedTicket.data._id, { zendeskResponse: zendeskData });
     res.json(
       { 
-        ...savedTicket.data, zendeskResponse: zendeskData 
+        zendeskResponse: filteredResponse 
       });
 
   } catch (error) {
@@ -124,8 +136,24 @@ exports.getTickets = async (req, res) => {
 
     const totalTickets = await Ticket.countDocuments(query);
 
+    const filteredTickets = tickets.map((ticket) => {
+      const zendeskResponse = ticket.zendeskResponse || {};
+      return {
+        url: zendeskResponse.url,
+        id: zendeskResponse.id,
+        created_at: zendeskResponse.created_at,
+        updated_at: zendeskResponse.updated_at,
+        type: zendeskResponse.type,
+        subject: zendeskResponse.subject,
+        raw_subject: zendeskResponse.raw_subject,
+        description: zendeskResponse.description,
+        priority: zendeskResponse.priority,
+        status: zendeskResponse.status,
+      };
+    });
+
     res.json(createResponse.success({
-      tickets,
+      tickets : filteredTickets,
       pagination: {
         total: totalTickets,
         page,
