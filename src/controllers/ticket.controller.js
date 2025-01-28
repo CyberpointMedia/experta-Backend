@@ -210,8 +210,7 @@ exports.getTicket = async (req, res) => {
 
 exports.addCommentToTicket = async (req, res) => {
   try {
-    const { ticketId } = req.params; // Ticket ID from params
-    const { commentBody, userEmail , userName } = req.body; // User email and comment body from request body
+    const { commentBody, userEmail , userName , ticketId } = req.body; // User email and comment body from request body
 
     // Validate input
     if (!ticketId || !commentBody || !userEmail || !userName) {
