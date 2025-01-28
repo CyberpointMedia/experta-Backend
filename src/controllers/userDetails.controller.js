@@ -835,15 +835,15 @@ exports.getBlockedUserById = async (req, res) => {
 
 //contact-us controller 
 exports.contactUs = async (req, res) => {
-  const { name, email, message } = req.body;
+  const { phone, email, message } = req.body;
 
-  if (!name || !email || !message) {
+  if (!phone || !email || !message) {
     return res.json(createResponse.invalid('Name, email, and message are required'));
   }
 
   try {
     // Send email to support
-    const contactUsData = new ContactUs({ name, email, message });
+    const contactUsData = new ContactUs({ phone, email, message });
     await contactUsData.save();
     // Assuming you have a sendEmail function
     const mailData = {
