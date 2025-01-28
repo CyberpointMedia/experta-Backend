@@ -196,7 +196,30 @@ exports.getTicket = async (req, res) => {
 
     const comments = zendeskResponse.data.comments;
 
-    res.json(createResponse.success(comments));
+    // Combine and sort all comments by creation time
+    const sortedComments = comments
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at)) // Sort comments by created_at (ascending)
+      .map((comment) => ({
+        id: comment.id,
+        author_id: comment.author_id,
+        body: comment.body,
+        created_at: comment.created_at,
+        channel: comment.via.channel, // Include the channel (web/api)
+        attachments: comment.attachments.map((attachment) => ({
+          id: attachment.id,
+          file_name: attachment.file_name,
+          content_url: attachment.content_url,
+          content_type: attachment.content_type,
+          size: attachment.size,
+          thumbnails: attachment.thumbnails || [],
+        })),
+      }));
+
+    res.json(
+      createResponse.success({
+        comments: sortedComments,
+      })
+    );
   } catch (error) {
     console.error(error);
     res.status(500).json(
@@ -207,6 +230,8 @@ exports.getTicket = async (req, res) => {
     );
   }
 };
+
+
 
 exports.addCommentToTicket = async (req, res) => {
   try {
