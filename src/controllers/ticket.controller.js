@@ -307,22 +307,32 @@ exports.addCommentToTicket = async (req, res) => {
 //webhook to handle zendesk responses 
 exports.handleZendeskWebhook = async (req, res) => {
   try{
-    const {id,comment}=req.body.ticket;
-    const ticket = await ticketService.getTicketByZendeskId(id);
+    console.log('Webhook received:', req.body);
+    const zendeskTicket = req.body.ticket;
+    if (!zendeskTicket) {
+      return res.status(400).json({ message: 'Invalid payload' });
+    }
+    const updatedTicketData = {
+      'zendeskResponse.url': zendeskTicket.url,
+      'zendeskResponse.id': zendeskTicket.id,
+      'zendeskResponse.created_at': zendeskTicket.created_at,
+      'zendeskResponse.updated_at': zendeskTicket.updated_at,
+      'zendeskResponse.type': zendeskTicket.type,
+      'zendeskResponse.subject': zendeskTicket.subject,
+      'zendeskResponse.raw_subject': zendeskTicket.raw_subject,
+      'zendeskResponse.description': zendeskTicket.description,
+      'zendeskResponse.priority': zendeskTicket.priority,
+      'zendeskResponse.status': zendeskTicket.status,
+    };
 
-    if(!ticket){
-      return res.send(404).json(createResponse.invalid("Ticket not found"));
-    }
-    const newComment={
-      authorID:comment.author_id,
-      body:comment.body,
-      plainBody:comment.plain_body,
-      public:comment.public,
-      metadata:comment.metadata,
-    }
-    ticket.comments.push(newComment);
-    await ticket.save();
-    res.json(createResponse.success("Ticket updated successfully",ticket));
+await Ticket.findOneAndUpdate(
+      { 'zendeskResponse.id': zendeskTicket.id }, // Match based on Zendesk ticket ID
+      { $set: updatedTicketData },
+      { new: true }
+    );
+    
+    console.log('Ticket updated in database:', updatedTicketData); 
+    res.json(createResponse.success("Ticket updated successfully"));
   }
   catch(error){
     console.error(error);

@@ -1043,7 +1043,11 @@ module.exports.shareProfile = async function (userId) {
   try {
     const user = await User.findOne({_id:userId,isDeleted:false}).populate("basicInfo").populate({
       path: "industryOccupation",
-      populate: { path: "industry occupation" },
+      populate: [
+        { path: "level1Service", model: "Service" },
+        { path: "level2Service", model: "Service" },
+        { path: "level3Services", model: "Service" },
+      ],
     });
     if (!user) {
       return createResponse.error({
@@ -1059,6 +1063,13 @@ module.exports.shareProfile = async function (userId) {
       profilePic:user.basicInfo.profilePic || "",
       industry:user.industryOccupation?.industry?.name,
       occupation:user.industryOccupation?.occupation?.name,
+      services: {
+        level1Service: user.industryOccupation?.level1Service?.name || null,
+        level2Service: user.industryOccupation?.level2Service?.name || null,
+        level3Services: user.industryOccupation?.level3Services?.map(
+          (service) => service.name
+        ) || [],
+      },
     };
     const qrCode = await generateQRCode(JSON.stringify(profileData));
     user.basicInfo.qrCode = qrCode;
