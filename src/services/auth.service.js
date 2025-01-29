@@ -164,7 +164,6 @@ module.exports.decodeToken = function (token) {
 };
 
 
-
 module.exports.login = async function (phoneNo) {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -179,12 +178,17 @@ module.exports.login = async function (phoneNo) {
       const blockUserDetails = await blockUser.save({ session });
       let basicInfo = new BasicInfo({});
       const basicInfoDetails = await basicInfo.save({ session });
+        // Assign a default role to the new user
+        const defaultRole = await Role.findOne({ name: "user" });
+        const roleIds = defaultRole ? [defaultRole._id] : [];
+  
       user = new User({
         phoneNo,
         otp,
         otpExpiry,
         block: blockUserDetails._id,
         basicInfo: basicInfoDetails._id,
+        roles: roleIds,
       });
       user = await user.save({ session });
     } else if (user.isDeleted) {
@@ -206,12 +210,17 @@ module.exports.login = async function (phoneNo) {
         let basicInfo = new BasicInfo({});
         const basicInfoDetails = await basicInfo.save({ session });
 
+         // Assign a default role to the new user
+         const defaultRole = await Role.findOne({ name: "user" });
+         const roleIds = defaultRole ? [defaultRole._id] : []; 
+
         user = new User({
           phoneNo,
           otp,
           otpExpiry,
           block: blockUserDetails._id,
           basicInfo: basicInfoDetails._id,
+          roles: roleIds,
         });
         user = await user.save({ session });
       }
@@ -234,6 +243,15 @@ module.exports.login = async function (phoneNo) {
         }
       }
 
+      const roles = await Role.find({ _id: { $in: user.roles } }).session(session);
+      const roleNames = roles.map(role => role.name);
+      if (roleNames.some(role => role !== "user")) {
+        await session.abortTransaction();
+        return createResponse.error({
+          errorCode: 403,
+          errorMessage: "Account already exists. Please contact support.",
+        });
+      }
       user.otp = otp;
       user.otpExpiry = otpExpiry;
       user = await user.save({ session });
@@ -242,6 +260,7 @@ module.exports.login = async function (phoneNo) {
     await session.commitTransaction();
     await this.sendOTP(phoneNo, otp);
 
+ 
     return createResponse.success({
       phoneNo: user.phoneNo,
       resendCount: user.resendCount,
@@ -278,7 +297,7 @@ module.exports.dashboardLogin = async function (phoneNo) {
     }
 
     // Check if the user has the required role
-    const roles = await Role.find({ _id: { $in: user.roles }});
+    const roles = await Role.find({ _id: { $in: user.roles } });
     const roleNames = roles.map(role => role.name);
     console.log("roleNames", roleNames);
     const allowedRoles = ["admin", "editor", "author", "superAdmin"];
@@ -289,7 +308,7 @@ module.exports.dashboardLogin = async function (phoneNo) {
       await session.abortTransaction();
       return createResponse.error({
         errorCode: 403,
-        errorMessage: "You do not have access the dashboard",
+        errorMessage: "You do not have access to the dashboard",
       });
     }
 
@@ -355,6 +374,7 @@ module.exports.dashboardLogin = async function (phoneNo) {
       isVerified: user.isVerified,
       id: user.id,
       otp: user?.otp,
+      roles: roleNames, // Include roles in the response
     });
 
   } catch (e) {
