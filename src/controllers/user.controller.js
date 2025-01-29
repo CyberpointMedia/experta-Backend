@@ -99,8 +99,9 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
       registrationNumber,
       achievements,
       expertise,
+      certificate, // Accept certificate as a string
     } = req.body;
-    const certificate = req?.file;
+
     if (
       (!registrationNumber || "" == registrationNumber) &&
       (!certificate || "" == certificate)
@@ -117,14 +118,6 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
         errorMessage: "expertise cannot be empty",
       }));
     }
-    let data;
-
-    if (!!certificate) {
-      data = {
-        url: req.file.location,
-        type: req.file.mimetype,
-      };
-    }
 
     const savedIndustryOccupation =
       await userService.createOrUpdateIndustryOccupation(userId, {
@@ -132,7 +125,7 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
         level2ServiceId,
         level3ServiceIds,
         registrationNumber,
-        certificate: data?.url,
+        certificate, // Pass certificate as a string
         achievements,
         expertise,
       });

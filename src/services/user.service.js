@@ -40,7 +40,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (userId, data) 
       level2ServiceId,  
       level3ServiceIds, 
       registrationNumber,
-      certificate,
+      certificate, // Accept certificate as a string
       achievements,
       expertise,
     } = data;
@@ -103,7 +103,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (userId, data) 
           level2Service: level2Service._id,
           level3Services: validatedLevel3Ids,
           registrationNumber,
-          certificate,
+          certificate, // Set certificate as a string
           achievements,
         },
       },
@@ -161,6 +161,7 @@ module.exports.createOrUpdateIndustryOccupation = async function (userId, data) 
     });
   }
 };
+
 module.exports.createBasicInfo = async function (userId, basicInfoToSave) {
   try {
     let user = await User.findById(userId).populate("basicInfo");
