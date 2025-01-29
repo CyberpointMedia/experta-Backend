@@ -15,7 +15,6 @@ module.exports = (app) => {
   );
   router.post(
     "/create-industry-info",
-    uploadMiddleWare.single("file"),
     authMiddleware,
     userController.createOrUpdateIndustryOccupation
   );
