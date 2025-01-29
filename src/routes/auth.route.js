@@ -7,7 +7,7 @@ module.exports = (app) => {
   router.post("/register", authController.register);
   router.post("/verify-otp", authController.verifyOtp);
   router.post("/login", authController.handleLogin);
-  router.post("/dashboard-login", authController.handleDashboardLogin);
+  router.post("/dashboard/login", authController.handleDashboardLogin);
   router.post("/resend-otp", authController.resendOtp);
   router.post(
     "/initiate-email-change",
