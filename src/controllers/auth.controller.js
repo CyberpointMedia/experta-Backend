@@ -47,6 +47,38 @@ exports.handleLogin = async (req, res) => {
   }
 };
 
+exports.handleDashboardLogin = async (req, res) => {
+  if (!req.body.phoneNo || "" == req.body.phoneNo) {
+    res.send(createResponse.invalid("Phone number cannot be empty"));
+    return;
+  }
+  try {
+    let responseData = await authService.dashboardLogin(req.body.phoneNo);
+    res.json(responseData);
+  } catch (e) {
+    if (e instanceof AuthenticationError) {
+      res.status(403);
+      res.json(
+        createResponse.unauthorized(
+          e.errorCode,
+          "You are unauthorized.",
+          e.message
+        )
+      );
+    } else {
+      console.log(e.message);
+      res.status(403);
+      res.json(
+        createResponse.unauthorized(
+          globalConstants.UNAUTHORIZED_ACCESS_CODE,
+          "You are unauthorized.",
+          e.message
+        )
+      );
+    }
+  }
+};
+
 exports.register = async (req, res) => {
   if (
     (!req.body.email || "" == req.body.email) &&

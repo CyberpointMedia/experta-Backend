@@ -11,6 +11,7 @@ const globalConstants = require("../constants/global-constants");
 const jwtUtil = require("../utils/jwt.utils");
 const authUtil = require("../utils/auth.utils");
 const User = require("../models/user.model");
+const Role = require("../models/role.model");
 const {
   AuthenticationError,
   ValidationError,
@@ -197,6 +198,113 @@ module.exports.login = async function (phoneNo) {
         user.otpExpiry = otpExpiry;
         user.isDeleted=false;
         console.log("user--> ",user);
+        user = await userDao.restoreAccount(user, session);
+      } else {
+        // After 30 days - create new account
+        const blockUser = new BlockedUser({ block: false });
+        const blockUserDetails = await blockUser.save({ session });
+        let basicInfo = new BasicInfo({});
+        const basicInfoDetails = await basicInfo.save({ session });
+
+        user = new User({
+          phoneNo,
+          otp,
+          otpExpiry,
+          block: blockUserDetails._id,
+          basicInfo: basicInfoDetails._id,
+        });
+        user = await user.save({ session });
+      }
+    } else {
+      // Existing active user - handle block status
+      const blockUser = await BlockedUser.findOne({ _id: user.block });
+      if (blockUser?.block) {
+        if (blockUser.blockExpiry > Date.now()) {
+          const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
+          await session.abortTransaction();
+          return createResponse.error({
+            errorCode: 429,
+            errorMessage: `Account blocked for ${remainingTime} minutes`,
+          });
+        } else {
+          blockUser.block = false;
+          blockUser.blockExpiry = null;
+          user.resendCount = 1;
+          await blockUser.save({ session });
+        }
+      }
+
+      user.otp = otp;
+      user.otpExpiry = otpExpiry;
+      user = await user.save({ session });
+    }
+
+    await session.commitTransaction();
+    await this.sendOTP(phoneNo, otp);
+
+    return createResponse.success({
+      phoneNo: user.phoneNo,
+      resendCount: user.resendCount,
+      isVerified: user.isVerified,
+      id: user.id,
+      otp: user?.otp,
+    });
+
+  } catch (e) {
+    await session.abortTransaction();
+    console.log("error", e);
+    if (e instanceof AuthenticationError) {
+      throw e;
+    } else {
+      throw new Error(e.message);
+    }
+  } finally {
+    session.endSession();
+  }
+};
+
+module.exports.dashboardLogin = async function (phoneNo) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    let user = await User.findOne({ phoneNo });
+    if (!user) {
+      await session.abortTransaction();
+      return createResponse.error({
+        errorCode: 404,
+        errorMessage: "User not found",
+      });
+    }
+
+    // Check if the user has the required role
+    const roles = await Role.find({ _id: { $in: user.roles }});
+    const roleNames = roles.map(role => role.name);
+    console.log("roleNames", roleNames);
+    const allowedRoles = ["admin", "editor", "author", "superAdmin"];
+    const hasRequiredRole = roleNames.some(role => allowedRoles.includes(role));
+    console.log("hasRequiredRole", hasRequiredRole);
+
+    if (!hasRequiredRole) {
+      await session.abortTransaction();
+      return createResponse.error({
+        errorCode: 403,
+        errorMessage: "You do not have access the dashboard",
+      });
+    }
+
+    const otp = authUtil.generateOTP();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    if (user.isDeleted) {
+      const deletedAt = user.updatedAt;
+      const timeSinceDeletion = Date.now() - deletedAt;
+
+      if (timeSinceDeletion <= RESTORE_WINDOW_MS) {
+        // Within 30 days - restore account
+        user.otp = otp;
+        user.otpExpiry = otpExpiry;
+        user.isDeleted = false;
         user = await userDao.restoreAccount(user, session);
       } else {
         // After 30 days - create new account
