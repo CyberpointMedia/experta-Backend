@@ -235,21 +235,19 @@ exports.getTicket = async (req, res) => {
 
 exports.addCommentToTicket = async (req, res) => {
   try {
-    const { commentBody, userEmail , userName , ticketId } = req.body; // User email and comment body from request body
+    const { commentBody, userEmail, userName, ticketId } = req.body;
+    const files = req.files; // Attachments from request
 
-    // Validate input
     if (!ticketId || !commentBody || !userEmail || !userName) {
       return res.status(400).json({
         status: "failed",
-        message: "Ticket ID, comment body, and user email are required",
+        message: "Ticket ID, comment body, user email, and user name are required",
       });
     }
 
-    // Authorization for Zendesk API
     const authString = `${config.zendeskClient.zendeskEmail}/token:${config.zendeskClient.token}`;
     const auth = Buffer.from(authString).toString("base64");
 
-    // Step 1: Retrieve the requester's Zendesk User ID
     const userResponse = await axios.get(
       `${config.zendeskClient.remoteUri}/users/search.json?query=${userEmail}`,
       {
@@ -260,10 +258,7 @@ exports.addCommentToTicket = async (req, res) => {
       }
     );
 
-    const zendeskUser = userResponse.data.users.find(
-      (user) => user.email === userEmail
-    );
-
+    const zendeskUser = userResponse.data.users.find((user) => user.email === userEmail);
     if (!zendeskUser) {
       return res.status(404).json({
         status: "failed",
@@ -271,31 +266,38 @@ exports.addCommentToTicket = async (req, res) => {
       });
     }
 
-    const authorId = zendeskUser.id; // Zendesk User ID of the requester
- // Step 2: Update the requester's name (if different)
- if (zendeskUser.name !== userName) {
-  await axios.put(
-    `${config.zendeskClient.remoteUri}/users/${authorId}.json`,
-    {
-      user: {
-        name: userName, // Update the name to the one provided in the request
-      },
-    },
-    {
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/json",
-      },
+    const authorId = zendeskUser.id;
+
+    if (zendeskUser.name !== userName) {
+      await axios.put(
+        `${config.zendeskClient.remoteUri}/users/${authorId}.json`,
+        {
+          user: { name: userName },
+        },
+        {
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
     }
-  );
-}
-    // Step 2: Add the comment to the ticket
+
+    let attachments = [];
+    if (files && files.length > 0) {
+      const uploadPromises = files.map((file) => 
+        ticketService.uploadFileToZendesk(file, auth, config.zendeskClient.remoteUri)
+      );
+      attachments = await Promise.all(uploadPromises);
+    }
+
     const payload = {
       ticket: {
         comment: {
-          body: commentBody, // The comment content
-          public: true, // The comment is public and visible to the company
-          author_id: authorId, // Use the requester's Zendesk User ID
+          body: commentBody,
+          public: true,
+          author_id: authorId,
+          uploads: attachments,
         },
       },
     };
@@ -311,10 +313,9 @@ exports.addCommentToTicket = async (req, res) => {
       }
     );
 
-    // Step 3: Respond with the updated ticket data
     res.status(200).json({
       status: "success",
-      message: "Comment added successfully",
+      message: "Comment added successfully with attachments",
       data: response.data.ticket,
     });
   } catch (error) {
@@ -326,6 +327,7 @@ exports.addCommentToTicket = async (req, res) => {
     });
   }
 };
+
 
 
 //webhook to handle zendesk responses 
