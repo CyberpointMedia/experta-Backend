@@ -6,7 +6,7 @@ module.exports.transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
        auth: {
             user: config.mail.user,
-            pass: process.env.MailPASS,
+            pass: config.mail.pass,
          },
     secure: true,
 });
