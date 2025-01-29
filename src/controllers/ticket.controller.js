@@ -231,8 +231,6 @@ exports.getTicket = async (req, res) => {
   }
 };
 
-
-
 exports.addCommentToTicket = async (req, res) => {
   try {
     const { commentBody, userEmail, userName, ticketId } = req.body;

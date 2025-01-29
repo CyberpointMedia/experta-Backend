@@ -12,7 +12,7 @@ module.exports = (app) => {
   router.post("/raise-ticket", authMiddleware,upload.array('files'), ticketController.createTicket);
   router.get("/tickets", authMiddleware,paginationMiddleware.paginate(), ticketController.getTickets);
   router.get('/tickets/:ticketId/comments',authMiddleware,ticketController.getTicket);
-  router.put("/tickets/comments",authMiddleware,ticketController.addCommentToTicket);
+  router.put("/tickets/comments",authMiddleware,upload.array('files'),ticketController.addCommentToTicket);
   router.post("/zendesk-webhook", ticketController.handleZendeskWebhook);
 
   app.use(routes.API, router);
