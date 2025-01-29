@@ -105,15 +105,17 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
       (!registrationNumber || "" == registrationNumber) &&
       (!certificate || "" == certificate)
     ) {
-      res.send(
-        createResponse.invalid("registrationNumber/certificate cannot be empty")
-      );
-      return;
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.VALIDATION_ERROR_CODE,
+        errorMessage: "registrationNumber/certificate cannot be empty",
+      }));
     }
 
     if (!expertise || !expertise.length) {
-      res.send(createResponse.invalid("expertise cannot be empty"));
-      return;
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.VALIDATION_ERROR_CODE,
+        errorMessage: "expertise cannot be empty",
+      }));
     }
     let data;
 
@@ -137,7 +139,7 @@ exports.createOrUpdateIndustryOccupation = async (req, res) => {
     res.json(savedIndustryOccupation);
   } catch (error) {
     console.log(error.message);
-    response = {
+    const response = {
       errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
       errorMessage: error.message,
     };
