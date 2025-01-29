@@ -30,7 +30,7 @@ module.exports = {
     zendeskEmail:process.env.ZENDESK_EMAIL
   },
   mail:{
-    user: process.env.MailEmail,
-    pass: process.env.MailPASS
+    user: process.env.MAIL_EMAIL,
+    pass: process.env.MAIL_PASS
   }
 };
