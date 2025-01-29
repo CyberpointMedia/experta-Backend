@@ -16,6 +16,7 @@ module.exports = Object.freeze({
   REQUIRED_ID: "User id is required.",
   POST_REQUIRED_ID: "Post id is required.",
   UNABLE_TO_DELETE_MESSAGE: "Unable to delete, data not found.",
+  VALIDATION_ERROR_CODE:"400",
 
   INSUFFICIENT_FUNDS: "422",
   INSUFFICIENT_FUNDS_MESSAGE: "Insufficient coins in wallet.",
