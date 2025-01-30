@@ -16,6 +16,7 @@ const multerS3 = require('multer-s3');
 const Service = require('../models/service.model');
 const {transporter} = require('../utils/sendMail');
 const ContactUs = require('../models/contactUs.model');
+const Notification = require('../models/notification.model');
 
 // Get all users
 // exports.getAllUsers = async (req, res) => {

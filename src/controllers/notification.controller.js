@@ -90,6 +90,41 @@ exports.getNotifications = async (req, res) => {
     );
   }
 };
+exports.getNotificationsByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { page = 1, limit = 20 } = req.query;
+
+    const notifications = await Notification.find({ recipient: userId , isDeleted: false})
+      .populate("sender", "basicInfo")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const total = await Notification.countDocuments({ recipient: userId });
+
+    res.json(
+      createResponse.success({
+        notifications,
+        pagination: {
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / limit),
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error getting notifications:", error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
+
 
 exports.markNotificationRead = async (req, res) => {
   try {
