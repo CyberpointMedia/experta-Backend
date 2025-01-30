@@ -75,12 +75,24 @@ exports.getBookingsAsClient = function (userId, filters = {}) {
     
     if (filters.startDate || filters.endDate) {
       query.startTime = {};
-      if (filters.startDate) query.startTime.$gte = new Date(filters.startDate);
-      if (filters.endDate) query.startTime.$lte = new Date(filters.endDate);
+    
+      const currentDate = new Date(); // Get the current date and time
+    
+      if (filters.startDate) {
+        const startDate = new Date(filters.startDate);
+        query.startTime.$gte = startDate < currentDate ? currentDate : startDate; 
+      } else {
+        query.startTime.$gte = currentDate; 
+      }
+    
+      if (filters.endDate) {
+        query.startTime.$lte = new Date(filters.endDate);
+      }
     }
+    
     if (filters.status) query.status = filters.status;
     if (filters.type) query.type = filters.type;
-
+    console.log(`query`,new Date())
     Booking.find(query)
       .populate({
         path: "expert",
