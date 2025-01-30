@@ -42,6 +42,11 @@ const notificationSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        readByDashboardUser:{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
         clicked: {
             type: Boolean,
             default: false,
