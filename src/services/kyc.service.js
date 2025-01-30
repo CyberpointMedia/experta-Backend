@@ -3,6 +3,7 @@ const FormData = require("form-data");
 const kycDao = require("../dao/kyc.dao");
 const config = require("../config/config");
 const createResponse = require("../utils/response");
+const KYC = require("../models/kyc.model");
 
 const SUREPASS_API_URL = config.surepass.surepassUrl;
 const SUREPASS_TOKEN = config.surepass.surepassToken;
@@ -159,6 +160,25 @@ module.exports.getKycStatus = async function (userId) {
     console.error("Get KYC status error:", error);
     throw error;
   }
+};
+exports.getKycByUserId = async (userId) => {
+  let kycRecord = await KYC.findOne({ userId });
+
+  // If no KYC record exists, create a default one
+  if (!kycRecord) {
+    kycRecord = new KYC({
+      userId,
+      documents: [], // Initialize the documents array
+      bankVerification: {},
+      faceLiveness: {},
+      faceMatch: {},
+      panVerification: {},
+      upiDetails: {},
+      gstDetails: {},
+    });
+  }
+
+  return kycRecord;
 };
 
 module.exports.updateFaceLivenessClient = async function (userId, data) {
