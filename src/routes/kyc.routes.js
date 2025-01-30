@@ -17,17 +17,16 @@ module.exports = (app) => {
     kycController.verifyFaceMatch
   );
   router.get("/status", authMiddleware, kycController.getKycStatus);
+  router.get("/document-verified", authMiddleware, kycController.getDocumentVerificationStatus);
+  router.post("/document-verified", authMiddleware, kycController.documentVerified);
   router.post("/verify-pan", authMiddleware, kycController.verifyPan);
-  router.post(
-    "/face-liveness-client",
-    authMiddleware,
-    kycController.updateFaceLivenessClient
-  );
+  router.post("/face-liveness-client",authMiddleware,kycController.updateFaceLivenessClient);
 
   router.post("/save-upi", authMiddleware, kycController.saveUpiId);
   router.get("/banking-details", authMiddleware, kycController.getBankingDetails);
   router.get("/payment-methods-status", authMiddleware, kycController.checkPaymentMethodsStatus);
   router.post("/save-gst", authMiddleware, kycController.saveGstNumber);
+  router.post("/");
 
   app.use("/api/kyc", router);
 };

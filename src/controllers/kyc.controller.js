@@ -2,6 +2,105 @@ const errorMessageConstants = require("../constants/error.messages");
 const createResponse = require("../utils/response");
 const kycService = require("../services/kyc.service");
 
+exports.documentVerified = async (req, res) => {
+  const userId = req.body.user._id;
+  const { documentType, verified, reason } = req.body;
+  console.log("documentType", documentType, userId, verified, reason);
+
+  if (!userId || !documentType || typeof verified !== "boolean") {
+    res.send(createResponse.invalid("Required fields missing"));
+    return;
+  }
+
+  try {
+    const kycRecord = await kycService.getKycByUserId(userId);
+    console.log("kycRecord", kycRecord);
+
+    const documentIndex = kycRecord.documents.findIndex(
+      (doc) => doc.documentType === documentType
+    );
+
+    if (documentIndex === -1) {
+      kycRecord.documents.push({ documentType, verified, reason });
+    } else {
+      kycRecord.documents[documentIndex].verified = verified;
+      kycRecord.documents[documentIndex].reason = reason;
+    }
+    await kycRecord.save();
+
+    res.json(
+      createResponse.success({
+        message: "Document verification status updated successfully",
+        document: kycRecord.documents.find(
+          (doc) => doc.documentType === documentType
+        ),
+      })
+    );
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
+exports.getDocumentVerificationStatus = async (req, res) => {
+  const userId = req.body.user._id;
+  const { documentType } = req.query; // Optional: To check a specific document type
+
+  if (!userId) {
+    res.send(createResponse.invalid("User ID is required"));
+    return;
+  }
+
+  try {
+    const kycRecord = await kycService.getKycByUserId(userId);
+
+    if (!kycRecord) {
+      res.send(createResponse.error({
+        errorCode: errorMessageConstants.KYC_RECORD_NOT_FOUND_CODE,
+        errorMessage: "KYC record not found",
+      }));
+      return;
+    }
+
+    if (documentType) {
+      // Check the verification status of a specific document type
+      const document = kycRecord.documents.find(doc => doc.documentType === documentType);
+
+      if (!document) {
+        res.send(createResponse.error({
+          errorCode: errorMessageConstants.DOCUMENT_NOT_FOUND_CODE,
+          errorMessage: "Document type not found",
+        }));
+        return;
+      }
+
+      res.json(createResponse.success({
+        message: "Document verification status retrieved successfully",
+        document,
+      }));
+    } else {
+      // Return the verification status of all documents
+      res.json(createResponse.success({
+        message: "All document verification statuses retrieved successfully",
+        documents: kycRecord.documents,
+      }));
+    }
+  } catch (error) {
+    console.log(error);
+    res.json(
+      createResponse.error({
+        errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+        errorMessage: error.message,
+      })
+    );
+  }
+};
+
 exports.verifyBankAccount = async (req, res) => {
   const userId = req.body.user._id;
   const { accountNumber, ifsc } = req.body;

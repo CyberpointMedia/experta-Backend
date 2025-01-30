@@ -165,6 +165,22 @@ const kycSchema = new mongoose.Schema(
       type: gstDetailsSchema,
       default: () => ({}),
     },
+    documents: [
+      {
+        documentType: {
+          type: String, // Example: "Aadhar", "PAN", "Passport"
+          required: true,
+        },
+        verified: {
+          type: Boolean,
+          default: false, // False by default, until verification is done
+        },
+        reason: {
+          type: String, // Stores the reason why verification passed or failed
+          default: null,
+        },
+      },
+    ],
     isDeleted: {
       type: Boolean,
       default: false,
@@ -184,16 +200,17 @@ kycSchema.virtual("kycStatus").get(function () {
   const panVerified = this.panVerification?.verificationStatus || false;
   const upiVerified = this.upiDetails?.upiId ? true : false;  // Consider UPI verified if UPI ID exists
   const hasGst = this.gstDetails?.gstNumber ? true : false;
-
+  const documentsVerified = this.documents.every(doc => doc.verified);
   return {
-    isComplete: bankVerified && livenessVerified && faceMatchVerified && panVerified,
+    isComplete: bankVerified && livenessVerified && faceMatchVerified && panVerified && documentsVerified,   
     steps: {
       bankVerification: bankVerified,
       faceLiveness: livenessVerified,
       faceMatch: faceMatchVerified,
       panVerification: panVerified,
       upiVerification: upiVerified,
-      gstAdded: hasGst
+      gstAdded: hasGst,
+      documentsVerified: documentsVerified,
     },
     paymentMethods: {
       bank: bankVerified,
