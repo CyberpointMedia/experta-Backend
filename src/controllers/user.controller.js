@@ -1253,6 +1253,7 @@ exports.getUserBySearch=async (req, res)=> {
 
 
 exports.getTrending = async (req, res) => {
+  const userId = req.body.user._id;
   userDao
     .getTrending()
     .then((data) => {

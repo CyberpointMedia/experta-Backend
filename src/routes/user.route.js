@@ -193,7 +193,7 @@ module.exports = (app) => {
   router.post("/unblockUser", authMiddleware, userController.unblockUser);
 
   router.get("/categories", userController.getCategories);
-  router.get("/trending", userController.getTrending);
+  router.get("/trending",authMiddleware,userController.getTrending);
   router.get(
     "/profile-completion/:userId",
     userController.getProfileCompletion

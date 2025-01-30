@@ -9,7 +9,7 @@ class BookingNotificationService {
             await FCMService.sendToUser(booking.expert, {
                 type: "BOOKING_REQUEST",
                 title: "New Booking Request",
-                body: `You have a new ${booking.type} booking request`,
+                body: `A new ${booking.type} booking request has been received. Please review it.`,
                 sender: booking.client,
                 data: {
                     bookingId: booking._id.toString(),
@@ -145,7 +145,7 @@ class BookingNotificationService {
                 await FCMService.sendToUser(booking.expert, {
                     type: "BOOKING_PAYMENT",
                     title: "Payment Received",
-                    body: `You've received payment for ${booking.type} booking`,
+                    body: `You’ve successfully received payment for your ${booking.type} booking`,
                     sender: booking.client,
                     data: {
                         bookingId: booking._id.toString(),
