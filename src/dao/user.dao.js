@@ -636,11 +636,11 @@ module.exports.getUserData = function (userId, ownUserId) {
   });
 };
  
- module.exports.getTrending = function () {
+ module.exports.getTrending = function (userId) {
   return new Promise((resolve, reject) => {
-    User.find({isDeleted:false})
+    User.find({ isDeleted: false, _id: { $ne: userId } })
       .select(
-        "_id online rating profilePic displayName industryOccupation pricing language expertise"
+        "_id online rating profilePic displayName industryOccupation pricing language expertise noOfBooking"
       )
       .populate({
         path: "industryOccupation",
@@ -660,6 +660,7 @@ module.exports.getUserData = function (userId, ownUserId) {
         path: "language",
         populate: {path: "language"}
       })
+      .sort({ noOfBooking: -1 })
       .then((data) => {
         Promise.all(
           data.map(
@@ -683,6 +684,7 @@ module.exports.getUserData = function (userId, ownUserId) {
                     messagePrice: 0,
                     videoCallPrice: 0,
                   },
+                  noOfBooking: user?.noOfBooking || 0,
                 };
                 resolve(filteredUser);
               })
