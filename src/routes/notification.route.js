@@ -21,14 +21,24 @@ module.exports = (app) => {
     notificationController.getNotifications
   );
   router.get(
-    "/notifications/:userId",
+    "/notifications/all",
     authMiddleware,
-    notificationController.getNotificationsByUserId
+    notificationController.getAllNotifications
   );
   router.patch(
     "/notifications/:notificationId/read",
     authMiddleware,
     notificationController.markNotificationRead
+  );
+  router.patch(
+    "/notifications/:notificationId/read/dashboard",
+    authMiddleware,
+    notificationController.markNotificationReadByDashboardUser
+  );
+  router.patch(
+    "/notifications/read-all/dashboard",
+    authMiddleware,
+    notificationController.markAllNotificationsReadByDashboardUser
   );
   router.patch(
     "/notifications/read-all",

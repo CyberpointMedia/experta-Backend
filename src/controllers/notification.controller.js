@@ -90,18 +90,18 @@ exports.getNotifications = async (req, res) => {
     );
   }
 };
-exports.getNotificationsByUserId = async (req, res) => {
+
+exports.getAllNotifications = async (req, res) => {
   try {
-    const userId = req.params.userId;
     const { page = 1, limit = 20 } = req.query;
 
-    const notifications = await Notification.find({ recipient: userId , isDeleted: false})
+    const notifications = await Notification.find({ isDeleted: false })
       .populate("sender", "basicInfo")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
-    const total = await Notification.countDocuments({ recipient: userId });
+    const total = await Notification.countDocuments({ isDeleted: false });
 
     res.json(
       createResponse.success({
@@ -135,7 +135,7 @@ exports.markNotificationRead = async (req, res) => {
       { _id: notificationId, recipient: userId , isDeleted: false},
       { read: true },
       { new: true }
-    );
+    ).sort({ createdAt: -1 });
 
     if (!notification) {
       return res.json(
@@ -178,5 +178,55 @@ exports.markAllNotificationsRead = async (req, res) => {
         errorMessage: error.message,
       })
     );
+  }
+};
+
+exports.markNotificationReadByDashboardUser = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.body.user._id;
+
+    const notification = await Notification.findOneAndUpdate(
+      { _id: notificationId, isDeleted: false },
+      { $set: { readByDashboardUser: userId } },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.json(createResponse.error({
+        errorCode: errorMessageConstants.DATA_NOT_FOUND_ERROR_CODE,
+        errorMessage: errorMessageConstants.DATA_NOT_FOUND,
+      }));
+    }
+
+    res.json(createResponse.success(notification));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    }));
+  }
+};
+
+exports.markAllNotificationsReadByDashboardUser = async (req, res) => {
+  try {
+    const userId = req.body.user._id;
+
+    const result = await Notification.updateMany(
+      { isDeleted: false , readByDashboardUser : null },
+      { $set: { readByDashboardUser: userId } }
+    );
+
+    res.json(createResponse.success({
+      message: 'All notifications marked as read by dashboard user',
+      modifiedCount: result.nModified,
+    }));
+  } catch (error) {
+    console.error(error);
+    res.json(createResponse.error({
+      errorCode: errorMessageConstants.INTERNAL_SERVER_ERROR_CODE,
+      errorMessage: error.message,
+    }));
   }
 };
