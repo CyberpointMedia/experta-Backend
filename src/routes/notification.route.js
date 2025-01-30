@@ -20,6 +20,11 @@ module.exports = (app) => {
     authMiddleware,
     notificationController.getNotifications
   );
+  router.get(
+    "/notifications/:userId",
+    authMiddleware,
+    notificationController.getNotificationsByUserId
+  );
   router.patch(
     "/notifications/:notificationId/read",
     authMiddleware,

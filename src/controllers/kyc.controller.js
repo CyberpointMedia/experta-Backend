@@ -1,6 +1,7 @@
 const errorMessageConstants = require("../constants/error.messages");
 const createResponse = require("../utils/response");
 const kycService = require("../services/kyc.service");
+const User = require("../models/user.model"); 
 
 exports.documentVerified = async (req, res) => {
   const userId = req.body.user._id;
@@ -182,8 +183,13 @@ exports.getKycStatus = async (req, res) => {
   }
 
   try {
-    const kycStatus = await kycService.getKycStatus(userId);
-    res.json(createResponse.success(kycStatus));
+    const kycStatusResponse = await kycService.getKycStatus(userId);
+    const { userData, kycStatus } = kycStatusResponse;
+
+    // Update the user's KYC status in the user model
+    await User.findByIdAndUpdate(userId, { kycStatus: kycStatus.isComplete });
+
+    res.json(createResponse.success({ userData, kycStatus }));
   } catch (error) {
     console.log(error);
     res.json(
