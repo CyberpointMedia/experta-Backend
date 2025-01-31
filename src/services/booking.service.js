@@ -99,7 +99,7 @@ exports.updateBookingStatus = async function (bookingId, status, userId) {
 
   try {
     const booking = await bookingDao.getBookingById(bookingId);
-    
+    console.log("booking-->",booking);
     if (!booking) {
       throw new Error("Booking not found");
     }
@@ -118,6 +118,7 @@ exports.updateBookingStatus = async function (bookingId, status, userId) {
                 const delay = endTime.getTime() - now.getTime();
                 setTimeout(async () => {
                     const updatedBooking = await bookingDao.getBookingById(bookingId);
+                    console.log("updatedBooking-->",updatedBooking);
                     if (updatedBooking && updatedBooking.status === 'accepted') {
                         updatedBooking.status = 'completed';
                         await updatedBooking.save();

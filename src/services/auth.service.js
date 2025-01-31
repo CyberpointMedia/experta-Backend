@@ -1,7 +1,6 @@
 const cryptoUtil = require("../utils/crypto.utils");
 var jwt = require("jsonwebtoken");
 const config = require("../config/config");
-
 const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
 
@@ -395,7 +394,7 @@ module.exports.sendOTP = async function sendOTP(phone, otp) {
     // Replace with your SMS provider integration code
     await client.messages.create({
       body: `Your OTP is ${otp}. Please enter this code to verify your identity. This code is valid for 5 minutes. Do not share it with anyone.\n\nThank you,\nYour Cyberpoint`,
-      from: "+13344313201",
+      from: config.twilio.twilioPhoneNumber,
       to: `+91${phone}`,
     });
   } catch (err) {

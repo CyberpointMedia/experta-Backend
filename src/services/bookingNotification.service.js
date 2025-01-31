@@ -8,7 +8,7 @@ class BookingNotificationService {
             // Notify expert about new booking request
             await FCMService.sendToUser(booking.expert, {
                 type: "BOOKING_REQUEST",
-                title: "New Booking Request",
+                title: `📅New ${booking.type} Booking Request`,
                 body: `A new ${booking.type} booking request has been received. Please review it.`,
                 sender: booking.client,
                 data: {
@@ -29,19 +29,19 @@ class BookingNotificationService {
         try {
             const messages = {
                 accepted: {
-                    title: "Booking Accepted",
+                    title: "📅Booking Accepted",
                     body: `Your ${booking.type} booking has been accepted by the expert`
                 },
                 rejected: {
-                    title: "Booking Rejected",
+                    title: "📅Booking Rejected",
                     body: `Your ${booking.type} booking was declined. Your coins have been refunded.`
                 },
                 completed: {
-                    title: "Booking Completed",
+                    title: "📅Booking Completed",
                     body: `Your ${booking.type} session has been completed`
                 },
                 cancelled: {
-                    title: "Booking Cancelled",
+                    title: "📅Booking Cancelled",
                     body: `Your ${booking.type} booking has been cancelled`
                 }
             };
@@ -86,7 +86,7 @@ class BookingNotificationService {
             // Notify both parties 15 minutes before the booking
             const message = {
                 type: "BOOKING_REMINDER",
-                title: "Upcoming Session",
+                title: "📅Upcoming Session",
                 body: `Your ${booking.type} session starts in 15 minutes`,
                 data: {
                     bookingId: booking._id.toString(),
@@ -115,11 +115,11 @@ class BookingNotificationService {
         try {
             const messages = {
                 payment: {
-                    title: "Payment Received",
+                    title: "💳Payment Received",
                     body: `Payment received for ${booking.type} booking`
                 },
                 refund: {
-                    title: "Refund Processed",
+                    title: "💳Refund Processed",
                     body: `Refund processed for cancelled ${booking.type} booking`
                 }
             };
@@ -144,7 +144,7 @@ class BookingNotificationService {
             if (transactionType === 'payment') {
                 await FCMService.sendToUser(booking.expert, {
                     type: "BOOKING_PAYMENT",
-                    title: "Payment Received",
+                    title: "💳Payment Received",
                     body: `You’ve successfully received payment for your ${booking.type} booking`,
                     sender: booking.client,
                     data: {
