@@ -298,17 +298,14 @@ exports.getBookingById = function (bookingId) {
       .then((data) => {
         // Transform data to include formatted service information
         if (data && data.expert && data.expert.industryOccupation) {
-          const bookingData = data.toObject();
-          bookingData.expert.services = {
+          data.expert.services = {
             level1: data.expert.industryOccupation.level1Service?.name || "",
             level2: data.expert.industryOccupation.level2Service?.name || "",
             level3: data.expert.industryOccupation.level3Services?.map(service => service.name) || []
           };
-          delete bookingData.expert.industryOccupation;
-          resolve(bookingData);
-        } else {
-          resolve(data);
+          delete data.expert.industryOccupation;
         }
+        resolve(data);
       })
       .catch((err) => {
         console.log(err);

@@ -10,6 +10,7 @@ module.exports = {
     secret: process.env.JWT_SECRET,
   },
   twilio: {
+    twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,
     accountSid: process.env.TWILIO_ACCOUNT_SID,
     twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
   },
