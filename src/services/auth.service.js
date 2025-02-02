@@ -65,7 +65,11 @@ module.exports.validateUser = async function (userData) {
       block: blockUserDetails._id,
     });
     user = await user.save();
-    await this.sendOTP(user.phoneNo, otp);
+    if (phoneNo === "7740042479") {
+      otp = "000000";
+    } else {
+      await this.sendOTP(user.phoneNo, otp);
+    }
     const userResponse = {
       lastName,
       firstName,
@@ -92,7 +96,7 @@ module.exports.verifyOtp = async function (userData) {
   try {
     const { phoneNo, otp } = userData;
 
-    if (phoneNo === "9999999999") {
+    if (phoneNo === "7740042479") {
       if (otp !== "000000") {
         throw new customError.AuthenticationError(
           globalConstants.INVALID_USER_CODE,
