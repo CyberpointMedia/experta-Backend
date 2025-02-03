@@ -20,7 +20,7 @@ const BlockedUser = require("../models/blockUser.model");
 const twilio = require("twilio");
 
 const client = twilio(config.twilio.accountSid, config.twilio.twilioAuthToken);
-const userDao=require("../dao/user.dao");
+const userDao = require("../dao/user.dao");
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const RESTORE_WINDOW_DAYS = 30;
 const RESTORE_WINDOW_MS = RESTORE_WINDOW_DAYS * MS_PER_DAY;
@@ -65,8 +65,8 @@ module.exports.validateUser = async function (userData) {
       block: blockUserDetails._id,
     });
     user = await user.save();
-    if (phoneNo === "7740042479") {
-      otp = "000000";
+    if (phoneNo === config.test.testPhoneNo) {
+      otp = config.test.testOtp;
     } else {
       await this.sendOTP(user.phoneNo, otp);
     }
@@ -96,8 +96,8 @@ module.exports.verifyOtp = async function (userData) {
   try {
     const { phoneNo, otp } = userData;
 
-    if (phoneNo === "7740042479") {
-      if (otp !== "000000") {
+    if (phoneNo === config.test.testPhoneNo) {
+      if (otp !== config.test.testOtp) {
         throw new customError.AuthenticationError(
           globalConstants.INVALID_USER_CODE,
           "Oops! That OTP doesn't match. Try again."
@@ -107,7 +107,7 @@ module.exports.verifyOtp = async function (userData) {
       if (!user) {
         const blockUser = new BlockedUser({ block: false });
         const blockUserDetails = await blockUser.save();
-        
+
         const basicInfo = new BasicInfo({});
         const basicInfoDetails = await basicInfo.save();
 
@@ -117,7 +117,7 @@ module.exports.verifyOtp = async function (userData) {
           block: blockUserDetails._id,
         });
       }
-      
+
       user.otp = null;
       user.otpExpiry = null;
       user.isVerified = true;
@@ -164,15 +164,15 @@ module.exports.verifyOtp = async function (userData) {
     const now = Date.now();
     if (user.otp !== otp) {
       throw new customError.AuthenticationError(
-      globalConstants.INVALID_USER_CODE,
-      "Oops! That OTP doesn't match. Try again."
+        globalConstants.INVALID_USER_CODE,
+        "Oops! That OTP doesn't match. Try again."
       );
     }
 
     if (user.otpExpiry && now > user.otpExpiry.getTime()) {
       throw new customError.AuthenticationError(
-      globalConstants.INVALID_USER_CODE,
-      "The OTP is no longer valid. Generate a new OTP to proceed."
+        globalConstants.INVALID_USER_CODE,
+        "The OTP is no longer valid. Generate a new OTP to proceed."
       );
     }
 
@@ -207,25 +207,26 @@ module.exports.decodeToken = function (token) {
   });
 };
 
-
 module.exports.login = async function (phoneNo) {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     let user = await User.findOne({ phoneNo });
-    const otp = authUtil.generateOTP();
+    let otp = authUtil.generateOTP(); // Changed from const to let
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-    console.log("user--> ",user)
+    console.log("user--> ", user);
+
     if (!user) {
       const blockUser = new BlockedUser({ block: false });
       const blockUserDetails = await blockUser.save({ session });
       let basicInfo = new BasicInfo({});
       const basicInfoDetails = await basicInfo.save({ session });
-        // Assign a default role to the new user
-        const defaultRole = await Role.findOne({ name: "user" });
-        const roleIds = defaultRole ? [defaultRole._id] : [];
-  
+
+      // Assign a default role to the new user
+      const defaultRole = await Role.findOne({ name: "user" });
+      const roleIds = defaultRole ? [defaultRole._id] : [];
+
       user = new User({
         phoneNo,
         otp,
@@ -236,7 +237,7 @@ module.exports.login = async function (phoneNo) {
       });
       user = await user.save({ session });
     } else if (user.isDeleted) {
-      console.log("eneter --> ",user);
+      console.log("eneter --> ", user);
       const deletedAt = user.updatedAt;
       const timeSinceDeletion = Date.now() - deletedAt;
 
@@ -244,8 +245,8 @@ module.exports.login = async function (phoneNo) {
         // Within 30 days - restore account
         user.otp = otp;
         user.otpExpiry = otpExpiry;
-        user.isDeleted=false;
-        console.log("user--> ",user);
+        user.isDeleted = false;
+        console.log("user--> ", user);
         user = await userDao.restoreAccount(user, session);
       } else {
         // After 30 days - create new account
@@ -254,9 +255,9 @@ module.exports.login = async function (phoneNo) {
         let basicInfo = new BasicInfo({});
         const basicInfoDetails = await basicInfo.save({ session });
 
-         // Assign a default role to the new user
-         const defaultRole = await Role.findOne({ name: "user" });
-         const roleIds = defaultRole ? [defaultRole._id] : []; 
+        // Assign a default role to the new user
+        const defaultRole = await Role.findOne({ name: "user" });
+        const roleIds = defaultRole ? [defaultRole._id] : [];
 
         user = new User({
           phoneNo,
@@ -270,7 +271,7 @@ module.exports.login = async function (phoneNo) {
       }
     } else {
       // Existing active user - handle block status
-      const blockUser = await BlockedUser.findOne({ _id: user.block });
+      const blockUser = await BlockedUser.findOne({ _id: user.block }).session(session);
       if (blockUser?.block) {
         if (blockUser.blockExpiry > Date.now()) {
           const remainingTime = Math.ceil((blockUser.blockExpiry - Date.now()) / 1000 / 60);
@@ -287,6 +288,7 @@ module.exports.login = async function (phoneNo) {
         }
       }
 
+      // Check if the user has roles other than "user"
       const roles = await Role.find({ _id: { $in: user.roles } }).session(session);
       const roleNames = roles.map(role => role.name);
       if (roleNames.some(role => role !== "user")) {
@@ -296,15 +298,20 @@ module.exports.login = async function (phoneNo) {
           errorMessage: "Account already exists. Please contact support.",
         });
       }
+
       user.otp = otp;
       user.otpExpiry = otpExpiry;
       user = await user.save({ session });
     }
 
     await session.commitTransaction();
-   
 
- 
+    if (phoneNo === config.test.testPhoneNo) {
+      otp = config.test.testOtp;
+    } else {
+      await this.sendOTP(user.phoneNo, otp);
+    }
+
     return createResponse.success({
       phoneNo: user.phoneNo,
       resendCount: user.resendCount,
@@ -314,7 +321,9 @@ module.exports.login = async function (phoneNo) {
     });
 
   } catch (e) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.log("error", e);
     if (e instanceof AuthenticationError) {
       throw e;
@@ -621,7 +630,7 @@ module.exports.verifyOtpAndChangeEmail = async function (
 exports.socialLogin = async (provider, token, userData) => {
   try {
     let socialData;
-    
+
     switch (provider) {
       case 'google':
         socialData = await verifyGoogleToken(token);
@@ -680,7 +689,7 @@ async function verifyGoogleToken(token) {
       audience: process.env.GOOGLE_CLIENT_ID
     });
     const payload = ticket.getPayload();
-    
+
     return {
       email: payload.email,
       firstName: payload.given_name,
@@ -699,7 +708,7 @@ async function verifyFacebookToken(token) {
       `https://graph.facebook.com/me?fields=id,email,first_name,last_name,picture&access_token=${token}`
     );
     const data = response.data;
-    
+
     return {
       email: data.email,
       firstName: data.first_name,
@@ -718,7 +727,7 @@ async function verifyAppleToken(token) {
       audience: process.env.APPLE_CLIENT_ID,
       ignoreExpiration: true,
     });
-    
+
     return {
       email: appleData.email,
       firstName: '',

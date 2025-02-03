@@ -33,5 +33,9 @@ module.exports = {
   mail:{
     user: process.env.MAIL_EMAIL,
     pass: process.env.MAIL_PASS
+  },
+  test:{
+    testPhoneNo: process.env.TEST_PHONE_NO,
+    testOtp: process.env.TEST_OTP
   }
 };
