@@ -18,7 +18,6 @@ const {
 const BasicInfo = require("../models/basicInfo.model");
 const BlockedUser = require("../models/blockUser.model");
 const twilio = require("twilio");
-
 const client = twilio(config.twilio.accountSid, config.twilio.twilioAuthToken);
 const userDao = require("../dao/user.dao");
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -28,6 +27,8 @@ const mongoose = require("mongoose");
 const { OAuth2Client } = require('google-auth-library');
 const appleSignin = require('apple-signin-auth');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+require('dotenv').config();
 
 module.exports.validateUser = async function (userData) {
   try {
