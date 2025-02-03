@@ -3,7 +3,7 @@ var jwt = require("jsonwebtoken");
 const config = require("../config/config");
 const createResponse = require("../utils/response");
 const errorMessageConstants = require("../constants/error.messages");
-
+const axios = require('axios');
 const customError = require("../errors/custom.error");
 const globalConstants = require("../constants/global-constants");
 
@@ -625,8 +625,6 @@ module.exports.verifyOtpAndChangeEmail = async function (
   }
 };
 
-
-
 exports.socialLogin = async (provider, token, userData) => {
   try {
     let socialData;
@@ -704,6 +702,21 @@ async function verifyGoogleToken(token) {
 
 async function verifyFacebookToken(token) {
   try {
+    const appId = process.env.FACEBOOK_APP_ID;
+    const appSecret = process.env.FACEBOOK_APP_SECRET;
+
+    // Validate the token with Facebook's API
+    const debugTokenResponse = await axios.get(
+      `https://graph.facebook.com/debug_token?input_token=${token}&access_token=${appId}|${appSecret}`
+    );
+
+    const debugTokenData = debugTokenResponse.data.data;
+
+    if (!debugTokenData.is_valid) {
+      throw new Error('Invalid Facebook token');
+    }
+
+    // Fetch user data from Facebook's API
     const response = await axios.get(
       `https://graph.facebook.com/me?fields=id,email,first_name,last_name,picture&access_token=${token}`
     );
