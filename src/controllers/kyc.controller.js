@@ -184,13 +184,23 @@ exports.getKycStatus = async (req, res) => {
 
   try {
     const kycStatusResponse = await kycService.getKycStatus(userId);
-    const { userData, kycStatus } = kycStatusResponse;
+    const { userData, bankVerification, faceLiveness, faceMatch, panVerification, upiDetails, gstDetails, kycStatus, createdAt, updatedAt } = kycStatusResponse;
 
     // Update the user's KYC status in the user model
     await User.findByIdAndUpdate(userId, { kycStatus: kycStatus.isComplete });
 
-    res.json(createResponse.success({ userData, kycStatus }));
-  } catch (error) {
+    res.json(createResponse.success({
+      userData,
+      bankVerification,
+      faceLiveness,
+      faceMatch,
+      panVerification,
+      upiDetails,
+      gstDetails,
+      kycStatus,
+      createdAt,
+      updatedAt
+    }));  } catch (error) {
     console.log(error);
     res.json(
       createResponse.error({
