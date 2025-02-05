@@ -185,23 +185,18 @@ exports.configureSocketEvents = (server) => {
       });
     });
 
-    // Typing events
-    socket.on("typing", (chat, typingUser) => {
-      if (!chat || !typingUser) return;
-      chat.users?.forEach((user) => {
-        if (user?._id !== typingUser?._id) {
-          socket.to(user?._id).emit("display_typing", chat, typingUser);
+    socket.on("typing", (userId, typingUserId) => {
+      if (!userId || !typingUserId) return;
+        if (userId !== typingUserId) {
+          socket.to(userId).emit("display_typing", userId, typingUserId);
         }
-      });
     });
 
-    socket.on("stop_typing", (chat, typingUser) => {
-      if (!chat || !typingUser) return;
-      chat.users?.forEach((user) => {
-        if (user?._id !== typingUser?._id) {
-          socket.to(user?._id).emit("hide_typing", chat, typingUser);
+    socket.on("stop_typing", (userId, typingUserId) => {
+      if (!userId || !typingUserId) return;
+        if (userId !== typingUserId) {
+          socket.to(userId).emit("hide_typing", userId, typingUserId);
         }
-      });
     });
 
   socket.on("new_msg_sent", async (newMsg) => {
