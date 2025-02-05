@@ -532,7 +532,7 @@ module.exports.createOrUpdateAvailability = async (
 
     let availabilityEntry;
     if (_id) {
-      availabilityEntry = await Availability.findOneAndDelete(
+      availabilityEntry = await Availability.findOneAndUpdate(
         {_id:_id,isDeleted:false},
         { startTime, endTime, weeklyRepeat },
         { new: true, upsert: true, setDefaultsOnInsert: true }
