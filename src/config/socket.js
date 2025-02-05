@@ -188,14 +188,14 @@ exports.configureSocketEvents = (server) => {
     socket.on("typing", (userId, typingUserId) => {
       if (!userId || !typingUserId) return;
         if (userId !== typingUserId) {
-          socket.to(userId).emit("display_typing", userId, typingUserId);
+          socket.emit("display_typing", userId, typingUserId);
         }
     });
 
     socket.on("stop_typing", (userId, typingUserId) => {
       if (!userId || !typingUserId) return;
         if (userId !== typingUserId) {
-          socket.to(userId).emit("hide_typing", userId, typingUserId);
+          socket.emit("hide_typing", userId, typingUserId);
         }
     });
 
