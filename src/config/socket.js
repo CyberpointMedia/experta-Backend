@@ -199,6 +199,7 @@ exports.configureSocketEvents = (server) => {
 
   socket.on("new_msg_sent", async (chatObject) => {
     console.log("new_msg_sent--> ",chatObject,chatObject?.chatId,chatObject?.content);
+    console.log("Full object keys:", Object.keys(chatObject));
     const { chatId } = chatObject;
     if (!chatObject?.chatId) {
       console.error("Invalid chat object received:", chatObject?.chatId);
