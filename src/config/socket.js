@@ -198,12 +198,13 @@ exports.configureSocketEvents = (server) => {
     });
 
   socket.on("new_msg_sent", async (newMsg) => {
+    console.log("new_msg_sent--> ",newMsg)
     const { chat } = newMsg;
     if (!chat) {
       console.error("Invalid chat object received:", chat);
       return;
     }
-
+    console.log("new_msg_sent--> ",newMsg)
     const chatUser = await ChatModel.findOne({ _id: chat, isDeleted: false });
     if (!chatUser) return;
 
