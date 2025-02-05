@@ -185,48 +185,42 @@ exports.configureSocketEvents = (server) => {
       });
     });
 
-    socket.on("typing", ({userId, typingUserId}) => {
+    socket.on("typing", (userId, typingUserId) => {
       // if (!userId || !typingUserId) return;
       console.log("userId, typingUserId--> ",userId, typingUserId);
         socket.emit("display_typing", userId, typingUserId);
         console.log("userId, typingUserId2--> ",userId, typingUserId);
     });
 
-    socket.on("stop_typing", ({userId, typingUserId}) => {
+    socket.on("stop_typing", (userId, typingUserId) => {
       if (!userId || !typingUserId) return;
-          socket.emit("hide_typing", {userId, typingUserId});
+          socket.emit("hide_typing", userId, typingUserId);
     });
 
-  socket.on("new_msg_sent", async (chatObject) => {
-    const msgData = typeof chatObject === 'string' ? JSON.parse(chatObject) : chatObject;
-    if (!msgData.chatId) {
-      console.error("Invalid chat data:", msgData);
+  socket.on("new_msg_sent", async (chat,sender,content,readBy,createdAt) => {
+    // const { chat } = newMsg;
+    console.log("chat,sender,content,readBy,createdAt",chat,sender,content,readBy,createdAt);
+    if (!chat) {
+      console.error("Invalid chat object received:", chat);
       return;
     }
-    console.log("new_msg_sent--> ",msgData,msgData?.chatId,msgData?.content);
-    console.log("Full object keys:", Object.keys(msgData));
-    const { chatId } = msgData;
-    if (!msgData?.chatId) {
-      console.error("Invalid chat object received:", msgData?.chatId);
-      return;
-    }
-    console.log("new_msg_sent--> ",msgData)
-    const chatUser = await ChatModel.findOne({ _id: msgData?.chatId, isDeleted: false });
+
+    const chatUser = await ChatModel.findOne({ _id: chat, isDeleted: false });
     if (!chatUser) return;
 
     // Iterate through chat users and process individually
     for (const userId of chatUser.users) {
-      const senderId = new ObjectId(msgData.sender._id);
+      const senderId = new ObjectId(sender._id);
       const areEqual = userId.equals(senderId);
 
       if (!areEqual) {
         const stringId = userId.toString();
-        socket.to(stringId).emit("new_msg_received", msgData);
+        socket.to(stringId).emit("new_msg_received",chat,sender,content,readBy,createdAt);
 
         try {
           // Update unread count
           let updatedChat = await ChatModel.findOneAndUpdate(
-            { _id: msgData?.chatId, "unreadCounts.user": userId , isDeleted: false },
+            { _id: chat, "unreadCounts.user": userId , isDeleted: false },
             { $inc: { "unreadCounts.$.count": 1 } },
             { new: true, upsert: true }
           );
@@ -234,7 +228,7 @@ exports.configureSocketEvents = (server) => {
 
           if (!updatedChat) {
             updatedChat = await ChatModel.findOneAndUpdate(
-              { _id: chatObject?.chatId, isDeleted: false},
+              { _id: chat, isDeleted: false},
               { $push: { unreadCounts: { user: userId, count: 1 } } },
               { new: true }
             );
@@ -249,7 +243,7 @@ exports.configureSocketEvents = (server) => {
             if (userUnreadCountObj) {
               console.log("updatedChat4--> ", updatedChat);
               socket.to(stringId).emit("update_unread_count", {
-                chatId: msgData?.chatId,
+                chatId: chat,
                 unreadCount: userUnreadCountObj.count,
               });
             }
