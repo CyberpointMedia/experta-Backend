@@ -27,6 +27,7 @@ const mongoose = require("mongoose");
 const { OAuth2Client } = require('google-auth-library');
 const appleSignin = require('apple-signin-auth');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const {sendMail} = require("../utils/sendMail");
 
 require('dotenv').config();
 
@@ -547,7 +548,7 @@ module.exports.initiateEmailChange = async function (userId, newEmail) {
     await user.save();
 
     // TODO: Send OTP to user's phone number
-    await this.sendOTP(user?.phoneNo, otp);
+    await sendMail(newEmail, "Your OTP for Email Change", `Your OTP is ${otp}. Please enter this code to verify your email change request. This code is valid for 5 minutes. Do not share it with anyone.\n\nThank you,\nYour Cyberpoint`);
 
     return createResponse.success(user);
   } catch (error) {
@@ -626,7 +627,7 @@ module.exports.verifyOtpAndChangeEmail = async function (
   }
 };
 
-exports.socialLogin = async (provider, token, userData) => {
+exports.socialLogin = async (provider) => {
   try {
     let socialData;
 
