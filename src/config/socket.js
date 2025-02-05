@@ -187,9 +187,9 @@ exports.configureSocketEvents = (server) => {
 
     socket.on("typing", (userId, typingUserId) => {
       if (!userId || !typingUserId) return;
-       
-          socket.emit("display_typing", userId, typingUserId);
-        
+      console.log("userId, typingUserId--> ",userId, typingUserId);
+        socket.emit("display_typing", userId, typingUserId);
+        console.log("userId, typingUserId2--> ",userId, typingUserId);
     });
 
     socket.on("stop_typing", (userId, typingUserId) => {
