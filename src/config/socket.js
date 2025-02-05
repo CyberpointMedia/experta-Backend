@@ -200,12 +200,12 @@ exports.configureSocketEvents = (server) => {
   socket.on("new_msg_sent", async (newMsg) => {
     console.log("new_msg_sent--> ",newMsg)
     const { chat } = newMsg;
-    if (!chat) {
-      console.error("Invalid chat object received:", chat);
+    if (!newMsg?.chat) {
+      console.error("Invalid chat object received:", newMsg?.chat);
       return;
     }
     console.log("new_msg_sent--> ",newMsg)
-    const chatUser = await ChatModel.findOne({ _id: chat, isDeleted: false });
+    const chatUser = await ChatModel.findOne({ _id: newMsg?.chat, isDeleted: false });
     if (!chatUser) return;
 
     // Iterate through chat users and process individually
@@ -220,7 +220,7 @@ exports.configureSocketEvents = (server) => {
         try {
           // Update unread count
           let updatedChat = await ChatModel.findOneAndUpdate(
-            { _id: chat, "unreadCounts.user": userId , isDeleted: false },
+            { _id: newMsg?.chat, "unreadCounts.user": userId , isDeleted: false },
             { $inc: { "unreadCounts.$.count": 1 } },
             { new: true, upsert: true }
           );
@@ -228,7 +228,7 @@ exports.configureSocketEvents = (server) => {
 
           if (!updatedChat) {
             updatedChat = await ChatModel.findOneAndUpdate(
-              { _id: chat, isDeleted: false},
+              { _id: newMsg?.chat, isDeleted: false},
               { $push: { unreadCounts: { user: userId, count: 1 } } },
               { new: true }
             );
@@ -243,7 +243,7 @@ exports.configureSocketEvents = (server) => {
             if (userUnreadCountObj) {
               console.log("updatedChat4--> ", updatedChat);
               socket.to(stringId).emit("update_unread_count", {
-                chatId: chat,
+                chatId: newMsg?.chat,
                 unreadCount: userUnreadCountObj.count,
               });
             }
