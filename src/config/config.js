@@ -37,5 +37,12 @@ module.exports = {
   test:{
     testPhoneNo: process.env.TEST_PHONE_NO,
     testOtp: process.env.TEST_OTP
+  },
+  social:{
+    google:{
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      googleCallback:process.env.GOOGLE_CLIENT_AUTH_CALLBACK
+    },
   }
 };

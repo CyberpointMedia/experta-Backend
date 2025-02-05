@@ -761,7 +761,7 @@ module.exports.createOrUpdateEducation = async (userId, educationData) => {
 
     let educationEntry;
     if (_id) {
-      educationEntry = await Education.findOneAndDelete(
+      educationEntry = await Education.findOneAndUpdate(
         {_id:_id,isDeleted:false},
         { degree, schoolCollege, startDate, endDate },
         { new: true, upsert: true, setDefaultsOnInsert: true }

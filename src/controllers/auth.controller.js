@@ -334,13 +334,13 @@ exports.checkTokenValidity = (req, res) => {
 
 exports.handleSocialLogin = async (req, res) => {
   try {
-    const { provider, token, userData } = req.body;
+    const { provider } = req.body;
     
-    if (!provider || !token) {
-      return res.json(createResponse.invalid("Provider and token are required"));
+    if (!provider) {
+      return res.json(createResponse.invalid("Provider are required"));
     }
 
-    const responseData = await authService.socialLogin(provider, token, userData);
+    const responseData = await authService.socialLogin(provider);
     res.json(responseData);
   } catch (error) {
     console.error("Social login error:", error);
